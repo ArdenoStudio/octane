@@ -2,6 +2,7 @@ import { AlertSignup } from "./components/AlertSignup";
 import { ApiSection } from "./components/ApiSection";
 import { EmbedSection } from "./components/EmbedSection";
 import { Footer } from "./components/Footer";
+import { HeroSection } from "./components/HeroSection";
 import { HistoryChart } from "./components/HistoryChart";
 import { LastVisitBanner } from "./components/LastVisitBanner";
 import { MobilePriceBar } from "./components/MobilePriceBar";
@@ -15,6 +16,7 @@ export default function App() {
     <div className="min-h-screen">
       <Nav />
       <main className="pb-20 sm:pb-0">
+        <HeroSection />
         <PriceStrip />
         <LastVisitBanner />
         <AlertSignup />

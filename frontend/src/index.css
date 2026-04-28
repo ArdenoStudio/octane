@@ -15,6 +15,12 @@
   }
 }
 
+/* Game of Life canvas fade mask */
+.hero-mask {
+  -webkit-mask-image: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(0,0,0,1) 0%, transparent 85%);
+  mask-image: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(0,0,0,1) 0%, transparent 85%);
+}
+
 @layer components {
   .container-x {
     @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
