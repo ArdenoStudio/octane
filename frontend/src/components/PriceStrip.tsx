@@ -3,6 +3,7 @@ import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, PriceRow } from "../lib/api";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
 import { FadeContainer, FadeDiv } from "./ui/Fade";
+import { ShareButtons } from "./ui/ShareButtons";
 
 const ACCENT_BY_FUEL: Record<FuelId, string> = {
   petrol_92: "from-amber-500/30 to-amber-500/0",
@@ -35,6 +36,14 @@ export function PriceStrip() {
         .sort()
         .pop()
     : null;
+
+  function buildShareMessage(): string {
+    const lines = FUEL_ORDER.map((f) => {
+      const row = cpcByFuel[f];
+      return row ? `${FUEL_DISPLAY[f]}: LKR ${row.price_lkr}` : null;
+    }).filter(Boolean);
+    return `🇱🇰 Sri Lanka fuel prices today:\n${lines.join(" · ")}\n\nTrack prices, set alerts & calculate trip costs 👇`;
+  }
 
   return (
     <section id="prices" className="container-x pt-10 sm:pt-14">
@@ -86,6 +95,24 @@ export function PriceStrip() {
             );
           })}
         </div>
+
+        {rows && (
+          <FadeDiv className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-ink-400">
+              Source:{" "}
+              <a
+                href="https://ceypetco.gov.lk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink-300 underline-offset-2 hover:underline"
+              >
+                Ceylon Petroleum Corporation
+              </a>
+              {" · "}Scraped daily at 8 AM · Independent, not affiliated.
+            </p>
+            <ShareButtons text={buildShareMessage()} />
+          </FadeDiv>
+        )}
       </FadeContainer>
     </section>
   );

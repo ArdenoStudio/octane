@@ -3,6 +3,7 @@ import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, TripResp } from "../lib/api";
 import { compactLkr } from "../lib/format";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
+import { ShareButtons } from "./ui/ShareButtons";
 
 export function TripCalculator() {
   const [distance, setDistance] = useState("30");
@@ -99,6 +100,10 @@ export function TripCalculator() {
                 {result.litres_needed.toFixed(2)} L · LKR{" "}
                 {result.price_lkr_per_l.toFixed(2)}/L · {FUEL_DISPLAY[result.fuel_type]}
               </div>
+              <ShareButtons
+                className="mt-4"
+                text={`🚗 My ${result.distance_km} km trip will cost ${compactLkr(result.cost_lkr)} in Sri Lanka.\n(${result.litres_needed.toFixed(1)} L of ${FUEL_DISPLAY[result.fuel_type]} @ LKR ${result.price_lkr_per_l.toFixed(0)}/L)\n\nCalculate yours 👇`}
+              />
             </div>
           )}
         </div>
