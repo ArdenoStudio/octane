@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { RiDownload2Line } from "@remixicon/react";
 import {
   CartesianGrid,
   Line,
@@ -83,20 +84,31 @@ export function HistoryChart() {
               Every revision since the records begin.
             </h2>
           </div>
-          <div className="flex gap-1">
-            {RANGES.map((r) => (
-              <button
-                key={r.label}
-                onClick={() => setDays(r.days)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                  days === r.days
-                    ? "bg-ink-100 text-ink-950 border border-ink-100"
-                    : "border border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {RANGES.map((r) => (
+                <button
+                  key={r.label}
+                  onClick={() => setDays(r.days)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                    days === r.days
+                      ? "bg-ink-100 text-ink-950 border border-ink-100"
+                      : "border border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <a
+              href={api.historyCsvUrl(Array.from(active), days)}
+              download
+              title="Download CSV"
+              className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
+            >
+              <RiDownload2Line className="size-3.5" />
+              CSV
+            </a>
           </div>
         </div>
 
