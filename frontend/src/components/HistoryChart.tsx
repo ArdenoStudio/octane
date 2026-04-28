@@ -29,7 +29,7 @@ export function HistoryChart() {
   const [active, setActive] = useState<Set<FuelId>>(
     () => new Set(["petrol_92", "auto_diesel"])
   );
-  const [days, setDays] = useState<number>(730);
+  const [days, setDays] = useState<number>(365);
   const [series, setSeries] = useState<Record<FuelId, HistoryPoint[]>>({} as Record<FuelId, HistoryPoint[]>);
 
   useEffect(() => {
@@ -90,8 +90,8 @@ export function HistoryChart() {
                 onClick={() => setDays(r.days)}
                 className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                   days === r.days
-                    ? "bg-ink-200 text-ink-950"
-                    : "border border-ink-700 text-ink-300 hover:bg-ink-800"
+                    ? "bg-ink-100 text-ink-950 border border-ink-100"
+                    : "border border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
                 }`}
               >
                 {r.label}
@@ -109,8 +109,8 @@ export function HistoryChart() {
                 onClick={() => toggle(f)}
                 className={`flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                   on
-                    ? "border-ink-600 bg-ink-800 text-ink-100"
-                    : "border-ink-800 text-ink-400 hover:border-ink-700"
+                    ? "border-ink-700 bg-white text-ink-200 shadow-sm"
+                    : "border-ink-800 text-ink-600 hover:border-ink-700 hover:text-ink-400"
                 }`}
               >
                 <span
