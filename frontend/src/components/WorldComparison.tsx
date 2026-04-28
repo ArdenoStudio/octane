@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { api, ComparisonResp, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api";
+import createGlobe from "cobe"
+import { useEffect, useRef, useState } from "react"
+import { api, ComparisonResp, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api"
 
 const FLAGS: Record<string, string> = {
   "Sri Lanka": "🇱🇰",
@@ -9,38 +10,129 @@ const FLAGS: Record<string, string> = {
   Nepal: "🇳🇵",
   Maldives: "🇲🇻",
   World: "🌐",
-};
+}
 
-export function WorldComparison() {
-  const [fuel, setFuel] = useState<FuelId>("petrol_95");
-  const [data, setData] = useState<ComparisonResp | null>(null);
-  const [error, setError] = useState<string | null>(null);
+// South Asian region coordinates for globe markers
+const MARKERS = [
+  { location: [7.8731, 80.7718] as [number, number], size: 0.06 },   // Sri Lanka
+  { location: [20.5937, 78.9629] as [number, number], size: 0.04 },  // India
+  { location: [23.685, 90.3563] as [number, number], size: 0.03 },   // Bangladesh
+  { location: [28.3949, 84.124] as [number, number], size: 0.03 },   // Nepal
+  { location: [30.3753, 69.3451] as [number, number], size: 0.03 },  // Pakistan
+  { location: [3.2028, 73.2207] as [number, number], size: 0.03 },   // Maldives
+]
+
+function GlobeCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    setData(null);
-    setError(null);
-    api.worldComparison(fuel).then(setData).catch((e) => setError(String(e)));
-  }, [fuel]);
+    let phi = 1.2
 
-  const delta = data?.delta_vs_world_pct;
-  const direction =
-    delta == null ? "" : delta > 0 ? "above" : delta < 0 ? "below" : "in line with";
-  const magnitude = delta == null ? null : Math.abs(delta);
+    const globe = createGlobe(canvasRef.current!, {
+      devicePixelRatio: 2,
+      width: 1200 * 2,
+      height: 1200 * 2,
+      phi,
+      theta: -0.25,
+      dark: 1,
+      diffuse: 1.2,
+      mapSamples: 25000,
+      mapBrightness: 10,
+      mapBaseBrightness: 0.04,
+      baseColor: [0.3, 0.3, 0.3],
+      glowColor: [0.18, 0.12, 0.04],
+      markerColor: [0.98, 0.62, 0.04], // amber
+      markers: MARKERS,
+      onRender: (state: { phi?: number }) => {
+        state.phi = phi
+        phi += 0.0002
+      },
+    })
+
+    return () => globe.destroy()
+  }, [])
 
   return (
-    <section className="container-x pt-16">
-      <div className="card p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="label">vs the world</div>
-          <div className="flex flex-wrap gap-1">
+    <canvas
+      ref={canvasRef}
+      className="absolute top-[7rem] z-20 aspect-square size-full max-w-fit md:top-[11rem]"
+      style={{ width: 1200, height: 1200 }}
+    />
+  )
+}
+
+export function WorldComparison() {
+  const [fuel, setFuel] = useState<FuelId>("petrol_95")
+  const [data, setData] = useState<ComparisonResp | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setData(null)
+    setError(null)
+    api.worldComparison(fuel).then(setData).catch((e) => setError(String(e)))
+  }, [fuel])
+
+  const delta = data?.delta_vs_world_pct
+  const direction =
+    delta == null ? "" : delta > 0 ? "above" : delta < 0 ? "below" : "in line with"
+  const magnitude = delta == null ? null : Math.abs(delta)
+
+  const countryRows = data
+    ? [
+        { country: "Sri Lanka", price_usd: data.sri_lanka.price_usd ?? 0 },
+        ...data.neighbors,
+        data.world_average_usd != null
+          ? { country: "World", price_usd: data.world_average_usd }
+          : null,
+      ].filter(Boolean) as { country: string; price_usd: number }[]
+    : []
+
+  return (
+    <section id="world" className="container-x pt-16">
+      <div className="relative overflow-hidden rounded-3xl bg-gray-950 pt-20 shadow-2xl shadow-black/40 md:pt-24">
+        {/* Amber glow blob */}
+        <div className="absolute top-64 left-1/2 -translate-x-1/2 size-96 rounded-full bg-amber-600/20 blur-3xl md:top-72" />
+
+        {/* Top content */}
+        <div className="relative z-10 flex flex-col items-center px-6 text-center">
+          {/* Badge */}
+          <div className="inline-block rounded-lg border border-amber-400/20 bg-amber-800/20 px-3 py-1.5 text-sm font-semibold uppercase leading-4 tracking-tight">
+            <span className="bg-gradient-to-b from-amber-200 to-amber-400 bg-clip-text text-transparent">
+              vs the world
+            </span>
+          </div>
+
+          {/* Dynamic headline */}
+          <h2 className="mt-5 max-w-2xl bg-gradient-to-b from-white to-amber-100 bg-clip-text px-2 text-4xl font-bold tracking-tighter text-transparent sm:text-5xl md:text-6xl">
+            {error || !data ? (
+              "Sri Lanka vs the world"
+            ) : magnitude == null ? (
+              "World data unavailable"
+            ) : (
+              <>
+                {magnitude.toFixed(1)}%{" "}
+                <span className="text-amber-400 bg-none" style={{ WebkitTextFillColor: "unset" }}>
+                  {direction}
+                </span>{" "}
+                world average
+              </>
+            )}
+          </h2>
+
+          <p className="mt-3 text-sm text-gray-400">
+            {FUEL_DISPLAY[fuel]} · price per litre in USD
+          </p>
+
+          {/* Fuel selector */}
+          <div className="mt-5 flex flex-wrap justify-center gap-1.5">
             {FUEL_ORDER.map((f) => (
               <button
                 key={f}
                 onClick={() => setFuel(f)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                   fuel === f
-                    ? "bg-accent text-ink-950"
-                    : "border border-ink-700 text-ink-300 hover:bg-ink-800"
+                    ? "bg-accent text-zinc-900"
+                    : "border border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
                 }`}
               >
                 {FUEL_DISPLAY[f]}
@@ -49,56 +141,41 @@ export function WorldComparison() {
           </div>
         </div>
 
-        <p className="mt-4 max-w-3xl font-display text-2xl font-bold leading-tight tracking-tightest sm:text-3xl">
-          {error || !data ? (
-            <span className="text-ink-400">Loading comparison…</span>
-          ) : magnitude == null ? (
-            <>
-              World comparison data is{" "}
-              <span className="text-ink-400">not yet available.</span>
-            </>
-          ) : (
-            <>
-              Sri Lanka {FUEL_DISPLAY[fuel].toLowerCase()} is{" "}
-              <span className="text-accent">{magnitude.toFixed(1)}% {direction}</span>{" "}
-              the world average.
-            </>
-          )}
-        </p>
+        {/* Globe */}
+        <GlobeCanvas />
 
-        {data && (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-            {[
-              { country: "Sri Lanka", price_usd: data.sri_lanka.price_usd ?? 0 },
-              ...data.neighbors,
-              data.world_average_usd != null
-                ? { country: "World", price_usd: data.world_average_usd }
-                : null,
-            ]
-              .filter(Boolean)
-              .map((row, i) => {
-                const r = row as { country: string; price_usd: number };
-                return (
-                  <div
-                    key={`${r.country}-${i}`}
-                    className="rounded-xl border border-ink-800 bg-ink-900/50 p-3"
-                  >
-                    <div className="flex items-center gap-1.5 text-sm text-ink-300">
-                      <span aria-hidden>{FLAGS[r.country] ?? "🏳"}</span>
-                      <span>{r.country}</span>
+        {/* Bottom fade + cards */}
+        <div className="z-20 -mt-28 h-[34rem] w-full overflow-hidden md:-mt-32">
+          <div className="absolute bottom-0 h-3/5 w-full bg-gradient-to-b from-transparent via-gray-950/95 to-gray-950" />
+
+          <div className="absolute inset-x-4 bottom-8 m-auto max-w-5xl md:top-2/3 md:inset-x-6 md:bottom-10">
+            {!data && !error && (
+              <p className="text-center text-sm text-gray-500">Loading comparison…</p>
+            )}
+            {error && (
+              <p className="text-center text-sm text-red-400">{error}</p>
+            )}
+            {data && countryRows.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 rounded-xl border border-white/5 bg-white/[2%] p-4 shadow-xl backdrop-blur-sm sm:grid-cols-4 md:p-6 lg:grid-cols-7">
+                {countryRows.map((row, i) => (
+                  <div key={`${row.country}-${i}`} className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                      <span aria-hidden>{FLAGS[row.country] ?? "🏳"}</span>
+                      <span className="truncate">{row.country}</span>
                     </div>
-                    <div className="mt-1 font-mono text-base font-semibold text-ink-100">
-                      ${r.price_usd?.toFixed(2)}
+                    <div className="font-mono text-base font-semibold text-white">
+                      ${row.price_usd?.toFixed(2)}
                     </div>
-                    <div className="text-[10px] uppercase tracking-wider text-ink-400">
-                      USD / litre
+                    <div className="text-[10px] uppercase tracking-wider text-gray-600">
+                      USD / L
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </section>
-  );
+  )
 }

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, TripResp } from "../lib/api";
 import { compactLkr } from "../lib/format";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
 
 export function TripCalculator() {
   const [distance, setDistance] = useState("30");
@@ -47,9 +49,9 @@ export function TripCalculator() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label htmlFor="distance" className="label">Distance (km)</label>
-              <input
+              <Input
                 id="distance"
-                className="input mt-2"
+                className="mt-2"
                 inputMode="decimal"
                 value={distance}
                 onChange={(e) => setDistance(e.target.value)}
@@ -57,9 +59,9 @@ export function TripCalculator() {
             </div>
             <div>
               <label htmlFor="efficiency" className="label">Efficiency (km/L)</label>
-              <input
+              <Input
                 id="efficiency"
-                className="input mt-2"
+                className="mt-2"
                 inputMode="decimal"
                 value={efficiency}
                 onChange={(e) => setEfficiency(e.target.value)}
@@ -74,19 +76,17 @@ export function TripCalculator() {
                 onChange={(e) => setFuel(e.target.value as FuelId)}
               >
                 {FUEL_ORDER.map((f) => (
-                  <option key={f} value={f}>
-                    {FUEL_DISPLAY[f]}
-                  </option>
+                  <option key={f} value={f}>{FUEL_DISPLAY[f]}</option>
                 ))}
               </select>
             </div>
           </div>
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <button onClick={compute} className="btn-primary" disabled={loading}>
-              {loading ? "Calculating…" : "Calculate"}
-            </button>
-            {error && <span className="text-sm text-red-300">{error}</span>}
+            <Button onClick={compute} isLoading={loading} loadingText="Calculating…">
+              Calculate
+            </Button>
+            {error && <span className="text-sm text-red-500">{error}</span>}
           </div>
 
           {result && (

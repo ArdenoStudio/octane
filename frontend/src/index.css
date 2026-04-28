@@ -8,9 +8,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
   body {
+    background-color: #ffffff;
     background-image:
-      radial-gradient(1200px 600px at 50% -200px, rgba(245, 158, 11, 0.10), transparent 60%),
-      radial-gradient(800px 400px at 90% 10%, rgba(180, 83, 9, 0.08), transparent 60%);
+      radial-gradient(1200px 600px at 50% -200px, rgba(245, 158, 11, 0.07), transparent 60%),
+      radial-gradient(800px 400px at 90% 10%, rgba(180, 83, 9, 0.05), transparent 60%);
   }
 }
 
@@ -19,19 +20,19 @@
     @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
   }
   .card {
-    @apply rounded-2xl border border-ink-800 bg-ink-900/60 backdrop-blur-sm;
+    @apply rounded-2xl border border-ink-800 bg-white shadow-sm;
   }
   .btn {
     @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition;
   }
   .btn-primary {
-    @apply btn bg-accent text-ink-950 hover:bg-amber-400;
+    @apply btn bg-accent text-zinc-900 hover:bg-amber-400;
   }
   .btn-ghost {
-    @apply btn border border-ink-700 text-ink-200 hover:bg-ink-800;
+    @apply btn border border-ink-700 text-ink-200 hover:bg-ink-900;
   }
   .input {
-    @apply w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-sm text-ink-200 placeholder:text-ink-400 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30;
+    @apply w-full rounded-xl border border-ink-700 bg-white px-3.5 py-2.5 text-sm text-ink-200 placeholder:text-ink-600 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30;
   }
   .label {
     @apply text-xs font-medium uppercase tracking-[0.12em] text-ink-400;

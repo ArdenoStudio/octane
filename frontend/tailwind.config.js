@@ -5,14 +5,15 @@ export default {
     extend: {
       colors: {
         ink: {
-          950: "#0a0a0a",
-          900: "#111113",
-          800: "#1a1a1d",
-          700: "#26262b",
-          600: "#3f3f46",
-          400: "#a1a1aa",
-          300: "#d4d4d8",
-          200: "#e4e4e7",
+          950: "#ffffff",
+          900: "#f4f4f5",
+          800: "#e4e4e7",
+          700: "#d4d4d8",
+          600: "#a1a1aa",
+          400: "#71717a",
+          300: "#3f3f46",
+          200: "#27272a",
+          100: "#09090b",
         },
         accent: {
           DEFAULT: "#f59e0b",
@@ -26,6 +27,20 @@ export default {
       },
       letterSpacing: {
         tightest: "-0.04em",
+      },
+      keyframes: {
+        accordionOpen: {
+          from: { height: "0px" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        accordionClose: {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0px" },
+        },
+      },
+      animation: {
+        accordionOpen: "accordionOpen 0.15s ease-in-out",
+        accordionClose: "accordionClose 0.15s ease-in-out",
       },
     },
   },

@@ -116,7 +116,7 @@ export function HistoryChart() {
                 <span
                   aria-hidden
                   className="h-2 w-2 rounded-full"
-                  style={{ background: on ? COLORS[f] : "#3f3f46" }}
+                  style={{ background: on ? COLORS[f] : "#d4d4d8" }}
                 />
                 {FUEL_DISPLAY[f]}
               </button>
@@ -127,28 +127,28 @@ export function HistoryChart() {
         <div className="mt-4 h-72 sm:h-96">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#1f1f23" strokeDasharray="3 3" />
+              <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
                 tickFormatter={(d) => String(d).slice(0, 7)}
-                stroke="#71717a"
+                stroke="#a1a1aa"
                 fontSize={11}
                 minTickGap={32}
               />
               <YAxis
-                stroke="#71717a"
+                stroke="#a1a1aa"
                 fontSize={11}
                 tickFormatter={(v) => String(v)}
                 domain={["auto", "auto"]}
               />
               <Tooltip
                 contentStyle={{
-                  background: "#0a0a0a",
-                  border: "1px solid #27272a",
+                  background: "#ffffff",
+                  border: "1px solid #e4e4e7",
                   borderRadius: 12,
                   fontSize: 12,
                 }}
-                labelStyle={{ color: "#a1a1aa" }}
+                labelStyle={{ color: "#71717a" }}
                 formatter={(value: number, name: string) => [
                   `LKR ${value.toFixed(2)}`,
                   FUEL_DISPLAY[name as FuelId] ?? name,

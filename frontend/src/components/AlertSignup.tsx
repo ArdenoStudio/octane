@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
 
 export function AlertSignup() {
   const [email, setEmail] = useState("");
@@ -51,10 +53,10 @@ export function AlertSignup() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label htmlFor="email" className="label">Email</label>
-                <input
+                <Input
                   id="email"
                   type="email"
-                  className="input mt-2"
+                  className="mt-2"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -70,9 +72,7 @@ export function AlertSignup() {
                   onChange={(e) => setFuel(e.target.value as FuelId)}
                 >
                   {FUEL_ORDER.map((f) => (
-                    <option key={f} value={f}>
-                      {FUEL_DISPLAY[f]}
-                    </option>
+                    <option key={f} value={f}>{FUEL_DISPLAY[f]}</option>
                   ))}
                 </select>
               </div>
@@ -90,9 +90,9 @@ export function AlertSignup() {
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="threshold" className="label">Threshold (LKR)</label>
-                <input
+                <Input
                   id="threshold"
-                  className="input mt-2"
+                  className="mt-2"
                   inputMode="decimal"
                   value={threshold}
                   onChange={(e) => setThreshold(e.target.value)}
@@ -100,14 +100,14 @@ export function AlertSignup() {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button className="btn-primary" disabled={busy}>
-                {busy ? "Subscribing…" : "Notify me"}
-              </button>
+              <Button type="submit" isLoading={busy} loadingText="Subscribing…">
+                Notify me
+              </Button>
               {status === "ok" && (
-                <span className="text-sm text-emerald-300">{msg}</span>
+                <span className="text-sm text-emerald-600">{msg}</span>
               )}
               {status === "err" && (
-                <span className="text-sm text-red-300">{msg}</span>
+                <span className="text-sm text-red-500">{msg}</span>
               )}
             </div>
           </form>
