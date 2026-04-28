@@ -2,12 +2,12 @@ export function Footer() {
   const year = new Date().getFullYear()
   return (
     <div className="container-x mt-20">
-      <footer className="relative border-t border-ink-800 overflow-hidden">
+      <footer className="relative border-t border-ink-800 overflow-hidden min-h-[220px]">
         {/* Faded logo watermark */}
-        <div className="pointer-events-none select-none absolute inset-0 flex items-center justify-center opacity-[0.04]">
+        <div className="pointer-events-none select-none absolute inset-0 flex items-center justify-center opacity-[0.07]">
           <svg
             viewBox="300 560 890 370"
-            className="w-full h-auto fill-ink-50"
+            className="w-[110%] h-[110%] fill-ink-50"
             preserveAspectRatio="xMidYMid meet"
             aria-hidden="true"
           >
@@ -42,7 +42,7 @@ export function Footer() {
         </div>
 
         {/* Footer content */}
-        <div className="relative flex flex-wrap items-center justify-between gap-3 py-6 text-sm text-ink-400">
+        <div className="relative flex flex-wrap items-center justify-between gap-3 py-10 text-sm text-ink-400">
           <div>
             &copy; {year} Built by{" "}
             <a href="https://ardenostudio.com" className="font-semibold text-ink-200 hover:text-accent transition-colors">
@@ -59,7 +59,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="relative pb-6 text-xs text-ink-600">
+        <div className="relative pb-10 text-xs text-ink-600">
           Sources: Ceylon Petroleum Corporation, Lanka IOC, globalpetrolprices.com.
           Octane is independent and not affiliated with any of these organizations.
         </div>
