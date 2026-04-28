@@ -43,7 +43,8 @@ function GlobeCanvas() {
       glowColor: [0.18, 0.12, 0.04],
       markerColor: [0.98, 0.62, 0.04], // amber
       markers: MARKERS,
-      onRender: (state: { phi?: number }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onRender: (state: any) => {
         state.phi = phi
         phi += 0.0002
       },
