@@ -3,6 +3,7 @@ import { ApiSection } from "./components/ApiSection";
 import { EmbedSection } from "./components/EmbedSection";
 import { Footer } from "./components/Footer";
 import { HistoryChart } from "./components/HistoryChart";
+import { LastVisitBanner } from "./components/LastVisitBanner";
 import { MobilePriceBar } from "./components/MobilePriceBar";
 import { Nav } from "./components/Nav";
 import { PriceStrip } from "./components/PriceStrip";
@@ -15,6 +16,7 @@ export default function App() {
       <Nav />
       <main className="pb-20 sm:pb-0">
         <PriceStrip />
+        <LastVisitBanner />
         <AlertSignup />
         <WorldComparison />
         <TripCalculator />
