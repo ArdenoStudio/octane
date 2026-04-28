@@ -33,14 +33,14 @@ function GlobeCanvas() {
       width: 900 * 2,
       height: 900 * 2,
       phi,
-      theta: 0.15,
+      theta: 0.1,
       dark: 1,
-      diffuse: 1.5,
+      diffuse: 1.2,
       mapSamples: 25000,
-      mapBrightness: 14,
-      mapBaseBrightness: 0.06,
-      baseColor: [0.3, 0.3, 0.3],
-      glowColor: [0.6, 0.38, 0.08],
+      mapBrightness: 10,
+      mapBaseBrightness: 0.04,
+      baseColor: [0.25, 0.25, 0.25],
+      glowColor: [0.18, 0.11, 0.01],
       markerColor: [0.98, 0.62, 0.04],
       markers: MARKERS,
       onRender: (state: Record<string, unknown>) => {
@@ -55,8 +55,8 @@ function GlobeCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
-      style={{ width: 900, height: 900 }}
+      className="absolute left-1/2 -translate-x-1/2 z-0"
+      style={{ top: "35%", width: 900, height: 900 }}
     />
   )
 }

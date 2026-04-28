@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, HistoryPoint } from "../lib/api";
+import { GlassFilter } from "./GlassFilter";
 
 const COLORS: Record<FuelId, string> = {
   petrol_92: "#f59e0b",
@@ -76,6 +77,7 @@ export function HistoryChart() {
 
   return (
     <section id="history" className="container-x pt-16">
+      <GlassFilter />
       <div className="card p-5 sm:p-7">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -90,6 +92,7 @@ export function HistoryChart() {
                 <button
                   key={r.label}
                   onClick={() => setDays(r.days)}
+                  style={{ filter: "url(#radio-glass)" }}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                     days === r.days
                       ? "bg-ink-100 text-ink-950 border border-ink-100"
@@ -104,6 +107,7 @@ export function HistoryChart() {
               href={api.historyCsvUrl(Array.from(active), days)}
               download
               title="Download CSV"
+              style={{ filter: "url(#radio-glass)" }}
               className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
             >
               <RiDownload2Line className="size-3.5" />
@@ -119,6 +123,7 @@ export function HistoryChart() {
               <button
                 key={f}
                 onClick={() => toggle(f)}
+                style={{ filter: "url(#radio-glass)" }}
                 className={`flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                   on
                     ? "border-ink-700 bg-white text-ink-200 shadow-sm"
