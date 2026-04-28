@@ -10,7 +10,6 @@ import {
   YAxis,
 } from "recharts";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, HistoryPoint } from "../lib/api";
-import { GlassFilter } from "./ui/liquid-radio";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
@@ -78,7 +77,6 @@ export function HistoryChart() {
 
   return (
     <section id="history" className="container-x pt-16">
-      <GlassFilter />
       <div className="card p-5 sm:p-7">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -96,10 +94,10 @@ export function HistoryChart() {
               >
                 <div
                   aria-hidden
-                  className="absolute inset-y-0 w-1/4 rounded-md bg-ink-100 shadow-md transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  className="absolute inset-y-0 w-1/4 rounded-md bg-ink-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
                   style={{
                     transform: `translateX(${RANGES.findIndex((r) => r.days === days) * 100}%)`,
-                    filter: "url(#radio-glass)",
+                    boxShadow: "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
                   }}
                 />
                 {RANGES.map((r) => (
@@ -119,15 +117,10 @@ export function HistoryChart() {
               href={api.historyCsvUrl(Array.from(active), days)}
               download
               title="Download CSV"
-              className="relative overflow-hidden flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:text-ink-200"
+              className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
             >
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-lg border border-ink-700 hover:border-ink-600"
-                style={{ filter: "url(#radio-glass)" }}
-              />
-              <RiDownload2Line className="relative size-3.5" />
-              <span className="relative">CSV</span>
+              <RiDownload2Line className="size-3.5" />
+              CSV
             </a>
           </div>
         </div>
@@ -139,25 +132,18 @@ export function HistoryChart() {
               <button
                 key={f}
                 onClick={() => toggle(f)}
-                className={`relative overflow-hidden flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-medium transition ${
-                  on ? "text-ink-200" : "text-ink-600 hover:text-ink-400"
+                className={`flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                  on
+                    ? "border-ink-700 bg-white text-ink-200 shadow-sm"
+                    : "border-ink-800 text-ink-600 hover:border-ink-700 hover:text-ink-400"
                 }`}
               >
                 <span
                   aria-hidden
-                  className={`absolute inset-0 rounded-lg border ${
-                    on
-                      ? "bg-white border-ink-700 shadow-sm"
-                      : "border-ink-800 hover:border-ink-700"
-                  }`}
-                  style={{ filter: "url(#radio-glass)" }}
-                />
-                <span
-                  aria-hidden
-                  className="relative h-2 w-2 rounded-full"
+                  className="h-2 w-2 rounded-full"
                   style={{ background: on ? COLORS[f] : "#d4d4d8" }}
                 />
-                <span className="relative">{FUEL_DISPLAY[f]}</span>
+                {FUEL_DISPLAY[f]}
               </button>
             );
           })}
