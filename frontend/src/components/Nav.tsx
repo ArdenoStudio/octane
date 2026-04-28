@@ -57,7 +57,7 @@ export function Nav() {
           {/* Desktop nav */}
           <nav className="hidden items-center gap-0.5 text-[13px] sm:flex">
             {LINKS.map(({ href, label }) => (
-              <a key={href} href={href} className="rounded-full px-3 py-1.5 text-ink-500 hover:text-ink-900 hover:bg-black/[0.05] transition-all duration-150 font-medium">
+              <a key={href} href={href} className="rounded-full px-3 py-1.5 text-ink-400 hover:text-ink-900 hover:bg-ink-100 transition-all duration-150 font-medium">
                 {label}
               </a>
             ))}
@@ -66,7 +66,7 @@ export function Nav() {
           {/* Mobile hamburger */}
           <button
             onClick={() => setOpen(!open)}
-            className="rounded-full p-1.5 text-ink-500 hover:bg-black/[0.05] hover:text-ink-900 transition-all sm:hidden"
+            className="rounded-full p-1.5 text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-all sm:hidden"
             aria-label={open ? "Close menu" : "Open menu"}
           >
             {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
@@ -82,7 +82,7 @@ export function Nav() {
                   <a
                     href={href}
                     onClick={() => setOpen(false)}
-                    className="block rounded-full px-3 py-2 text-sm font-medium text-ink-500 hover:bg-black/[0.05] hover:text-ink-900 transition-all"
+                    className="block rounded-full px-3 py-2 text-sm font-medium text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-all"
                   >
                     {label}
                   </a>
