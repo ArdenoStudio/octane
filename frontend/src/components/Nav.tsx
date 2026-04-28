@@ -18,19 +18,19 @@ export function Nav() {
   const scrolled = useScroll(10)
 
   return (
-    <div className="sticky top-4 z-30 flex justify-center px-4 pointer-events-none">
+    <div className="sticky top-5 z-30 flex justify-center px-4 pointer-events-none">
       <header
         className={cx(
-          "pointer-events-auto w-full max-w-3xl rounded-full transition-all duration-300",
+          "pointer-events-auto w-full max-w-2xl rounded-full transition-all duration-500",
           scrolled || open
-            ? "bg-white/85 shadow-lg shadow-black/10 backdrop-blur-md border border-ink-100/60"
-            : "bg-white/70 shadow-md shadow-black/5 backdrop-blur-sm border border-ink-100/40",
+            ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
+            : "bg-white/60 shadow-sm shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
         )}
       >
-        <div className="flex h-12 items-center justify-between px-4">
+        <div className="flex h-11 items-center justify-between px-3">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2">
-            <svg viewBox="300 560 890 370" className="h-7 w-auto" aria-label="Octane">
+          <a href="/" className="flex items-center pl-1">
+            <svg viewBox="300 560 890 370" className="h-6 w-auto" aria-label="Octane">
               <g transform="translate(336,590)" fill="#09090b">
                 <g transform="translate(1.973142,225.654816)">
                   <path d="M 164.8125 -216.203125 C 180.476562 -216.203125 193.84375 -212.804688 204.90625 -206.015625 C 215.976562 -199.222656 224.332031 -190.082031 229.96875 -178.59375 C 235.613281 -167.101562 238.4375 -154.46875 238.4375 -140.6875 C 238.4375 -118.332031 232.117188 -95.820312 219.484375 -73.15625 C 206.847656 -50.5 190.238281 -31.859375 169.65625 -17.234375 C 149.082031 -2.609375 127.519531 4.703125 104.96875 4.703125 C 90.34375 4.703125 77.441406 1.46875 66.265625 -5 C 55.085938 -11.476562 46.46875 -20.515625 40.40625 -32.109375 C 34.351562 -43.703125 31.328125 -56.914062 31.328125 -71.75 C 31.328125 -93.0625 37.539062 -115.046875 49.96875 -137.703125 C 62.40625 -160.367188 78.910156 -179.117188 99.484375 -193.953125 C 120.054688 -208.785156 141.832031 -216.203125 164.8125 -216.203125 Z M 64.859375 -59.53125 C 64.859375 -45.539062 68.25 -33.113281 75.03125 -22.25 C 81.820312 -11.382812 92.320312 -5.953125 106.53125 -5.953125 C 125.75 -5.953125 142.820312 -14.410156 157.75 -31.328125 C 172.6875 -48.253906 184.28125 -68.253906 192.53125 -91.328125 C 200.789062 -114.410156 204.921875 -133.992188 204.921875 -150.078125 C 204.921875 -165.742188 201.421875 -178.90625 194.421875 -189.5625 C 187.421875 -200.21875 176.925781 -205.546875 162.9375 -205.546875 C 143.71875 -205.546875 126.691406 -197.082031 111.859375 -180.15625 C 97.023438 -163.238281 85.484375 -143.132812 77.234375 -119.84375 C 68.984375 -96.550781 64.859375 -76.445312 64.859375 -59.53125 Z" />
@@ -52,13 +52,12 @@ export function Nav() {
                 </g>
               </g>
             </svg>
-            <span className="hidden text-xs uppercase tracking-[0.16em] text-ink-600 sm:inline">.lk</span>
           </a>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-0.5 text-sm sm:flex">
+          <nav className="hidden items-center gap-0.5 text-[13px] sm:flex">
             {LINKS.map(({ href, label }) => (
-              <a key={href} href={href} className="rounded-full px-3 py-1.5 text-ink-400 hover:text-ink-200 hover:bg-ink-900/60 transition-colors">
+              <a key={href} href={href} className="rounded-full px-3 py-1.5 text-ink-500 hover:text-ink-900 hover:bg-black/[0.05] transition-all duration-150 font-medium">
                 {label}
               </a>
             ))}
@@ -67,7 +66,7 @@ export function Nav() {
           {/* Mobile hamburger */}
           <button
             onClick={() => setOpen(!open)}
-            className="rounded-full p-1.5 text-ink-400 hover:bg-ink-900 hover:text-ink-200 transition-colors sm:hidden"
+            className="rounded-full p-1.5 text-ink-500 hover:bg-black/[0.05] hover:text-ink-900 transition-all sm:hidden"
             aria-label={open ? "Close menu" : "Open menu"}
           >
             {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
@@ -76,14 +75,14 @@ export function Nav() {
 
         {/* Mobile menu */}
         {open && (
-          <nav className="border-t border-ink-100/40 px-4 pb-3 pt-2 sm:hidden">
-            <ul className="flex flex-col gap-1">
+          <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2 sm:hidden">
+            <ul className="flex flex-col gap-0.5">
               {LINKS.map(({ href, label }) => (
                 <li key={href}>
                   <a
                     href={href}
                     onClick={() => setOpen(false)}
-                    className="block rounded-full px-3 py-2 text-sm text-ink-400 hover:bg-ink-900 hover:text-ink-200 transition-colors"
+                    className="block rounded-full px-3 py-2 text-sm font-medium text-ink-500 hover:bg-black/[0.05] hover:text-ink-900 transition-all"
                   >
                     {label}
                   </a>
