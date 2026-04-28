@@ -36,11 +36,11 @@ export function Footer() {
       </div>
 
       {/* Full-width watermark logo */}
-      <div className="relative h-[260px] overflow-hidden pointer-events-none select-none" aria-hidden="true">
+      <div className="relative overflow-hidden pointer-events-none select-none" aria-hidden="true">
         <svg
-          viewBox="300 560 890 370"
-          preserveAspectRatio="xMidYMid slice"
-          className="absolute inset-0 w-full h-full fill-ink-50 opacity-[0.08]"
+          viewBox="200 530 1100 440"
+          preserveAspectRatio="xMidYMid meet"
+          className="w-full h-auto fill-ink-50 opacity-[0.1]"
         >
           <g transform="matrix(1, 0, 0, 1, 336, 590)">
             <g clipPath="url(#footer-wm-clip)">
