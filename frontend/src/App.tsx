@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import { AlertSignup } from "./components/AlertSignup";
 import { ApiSection } from "./components/ApiSection";
 import { EmbedSection } from "./components/EmbedSection";
@@ -22,6 +23,7 @@ export default function App() {
         <ApiSection />
       </main>
       <Footer />
+      <Analytics />
     </div>
   );
 }
