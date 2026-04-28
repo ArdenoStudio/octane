@@ -41,14 +41,13 @@ function GlobeCanvas() {
       mapBaseBrightness: 0.04,
       baseColor: [0.3, 0.3, 0.3],
       glowColor: [0.18, 0.12, 0.04],
-      markerColor: [0.98, 0.62, 0.04], // amber
+      markerColor: [0.98, 0.62, 0.04],
       markers: MARKERS,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      onRender: (state: any) => {
+      onRender: (state: Record<string, unknown>) => {
         state.phi = phi
         phi += 0.0002
       },
-    })
+    } as Parameters<typeof createGlobe>[1])
 
     return () => globe.destroy()
   }, [])
