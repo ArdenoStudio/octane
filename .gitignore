@@ -17,3 +17,5 @@ coverage/
 *.sqlite
 *.db
 .claude/settings.local.json
+
+.vercel

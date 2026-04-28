@@ -30,22 +30,22 @@ function GlobeCanvas() {
 
     const globe = createGlobe(canvasRef.current!, {
       devicePixelRatio: 2,
-      width: 1200 * 2,
-      height: 1200 * 2,
+      width: 900 * 2,
+      height: 900 * 2,
       phi,
-      theta: -0.3,
+      theta: 0.15,
       dark: 1,
-      diffuse: 1.2,
+      diffuse: 1.5,
       mapSamples: 25000,
-      mapBrightness: 13,
-      mapBaseBrightness: 0.05,
+      mapBrightness: 14,
+      mapBaseBrightness: 0.06,
       baseColor: [0.3, 0.3, 0.3],
-      glowColor: [0.55, 0.35, 0.08],
+      glowColor: [0.6, 0.38, 0.08],
       markerColor: [0.98, 0.62, 0.04],
       markers: MARKERS,
       onRender: (state: Record<string, unknown>) => {
         state.phi = phi
-        phi += 0.0002
+        phi += 0.003
       },
     } as Parameters<typeof createGlobe>[1])
 
@@ -55,8 +55,8 @@ function GlobeCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute top-[8rem] left-1/2 -translate-x-1/2 z-20 md:top-[11rem]"
-      style={{ width: 1200, height: 1200 }}
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
+      style={{ width: 900, height: 900 }}
     />
   )
 }
