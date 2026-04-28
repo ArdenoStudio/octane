@@ -40,7 +40,7 @@ function GlobeCanvas() {
       mapBrightness: 13,
       mapBaseBrightness: 0.05,
       baseColor: [0.3, 0.3, 0.3],
-      glowColor: [0.28, 0.18, 0.04],
+      glowColor: [0.55, 0.35, 0.08],
       markerColor: [0.98, 0.62, 0.04],
       markers: MARKERS,
       onRender: (state: Record<string, unknown>) => {
@@ -55,7 +55,7 @@ function GlobeCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute top-[7.1rem] z-20 aspect-square size-full max-w-fit md:top-[12rem]"
+      className="absolute top-[8rem] left-1/2 -translate-x-1/2 z-20 md:top-[11rem]"
       style={{ width: 1200, height: 1200 }}
     />
   )
@@ -155,9 +155,9 @@ export function WorldComparison() {
               <p className="text-center text-sm text-red-400">{error}</p>
             )}
             {data && countryRows.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 rounded-xl border border-white/[3%] bg-white/[2%] p-4 shadow-xl backdrop-blur md:p-6 lg:grid-cols-7">
+              <div className="flex flex-wrap justify-between gap-x-2 gap-y-6 rounded-xl border border-white/[3%] bg-white/[2%] p-4 shadow-xl backdrop-blur md:p-6">
                 {countryRows.map((row, i) => (
-                  <div key={`${row.country}-${i}`} className="flex flex-col gap-1">
+                  <div key={`${row.country}-${i}`} className="flex min-w-[70px] flex-1 flex-col gap-1">
                     <div className="flex items-center gap-1.5 text-xs text-amber-200/40">
                       <span aria-hidden>{FLAGS[row.country] ?? "🏳"}</span>
                       <span className="truncate">{row.country}</span>
