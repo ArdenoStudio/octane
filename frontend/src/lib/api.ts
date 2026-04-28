@@ -57,6 +57,25 @@ export interface TripResp {
   price_recorded_at: string;
 }
 
+export interface PriceChangeRow {
+  fuel_type: FuelId;
+  recorded_at: string;
+  price_lkr: number;
+  previous_lkr: number | null;
+  delta_lkr: number | null;
+  delta_pct: number | null;
+}
+
+export interface ManageAlertResp {
+  id: number;
+  email: string;
+  fuel_type: FuelId;
+  threshold: number;
+  direction: "above" | "below";
+  active: boolean;
+  created_at: string;
+}
+
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(`${API_BASE}${path}`);
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
@@ -69,6 +88,15 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error(`${path}: ${r.status} ${text}`);
+  }
+  return r.json() as Promise<T>;
+}
+
+async function del<T>(path: string): Promise<T> {
+  const r = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
   if (!r.ok) {
     const text = await r.text().catch(() => "");
     throw new Error(`${path}: ${r.status} ${text}`);
@@ -92,5 +120,17 @@ export const api = {
     threshold: number;
     direction: "above" | "below";
   }) => post<{ id: number; ok: boolean }>("/v1/alerts/subscribe", payload),
+  changes: (limit = 200) =>
+    get<{ source: string; changes: PriceChangeRow[] }>(
+      `/v1/prices/changes?limit=${limit}`
+    ),
+  manageAlert: (token: string) =>
+    get<ManageAlertResp>(
+      `/v1/alerts/manage?token=${encodeURIComponent(token)}`
+    ),
+  unsubscribeAlert: (token: string) =>
+    del<{ ok: boolean; message: string }>(
+      `/v1/alerts/manage?token=${encodeURIComponent(token)}`
+    ),
   apiBase: API_BASE,
 };

@@ -8,6 +8,7 @@ const LINKS = [
   { href: "#calc", label: "Calculator" },
   { href: "#history", label: "History" },
   { href: "#alerts", label: "Alerts" },
+  { href: "/changes", label: "Changes" },
   { href: "#api", label: "API" },
 ]
 
