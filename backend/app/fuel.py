@@ -18,6 +18,13 @@ DISPLAY = {
 
 # CPC label aliases — used to normalize scraped table headers.
 CPC_ALIASES: dict[str, str] = {
+    # Current CPC table headers (as of 2026)
+    "lp 95": PETROL_95,
+    "lp 92": PETROL_92,
+    "lad": AUTO_DIESEL,
+    "lsd": SUPER_DIESEL,
+    "lk": KEROSENE,
+    # Legacy / long-form aliases
     "petrol 92 octane": PETROL_92,
     "petrol octane 92": PETROL_92,
     "octane 92": PETROL_92,
