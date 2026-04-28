@@ -33,14 +33,14 @@ function GlobeCanvas() {
       width: 1200 * 2,
       height: 1200 * 2,
       phi,
-      theta: -0.25,
-      dark: 0,
-      diffuse: 1.5,
+      theta: -0.3,
+      dark: 1,
+      diffuse: 1.2,
       mapSamples: 25000,
-      mapBrightness: 8,
+      mapBrightness: 13,
       mapBaseBrightness: 0.05,
-      baseColor: [0.75, 0.72, 0.68],
-      glowColor: [0.95, 0.75, 0.3],
+      baseColor: [0.3, 0.3, 0.3],
+      glowColor: [0.28, 0.18, 0.04],
       markerColor: [0.98, 0.62, 0.04],
       markers: MARKERS,
       onRender: (state: Record<string, unknown>) => {
@@ -55,7 +55,7 @@ function GlobeCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute top-[7rem] z-20 aspect-square size-full max-w-fit md:top-[11rem]"
+      className="absolute top-[7.1rem] z-20 aspect-square size-full max-w-fit md:top-[12rem]"
       style={{ width: 1200, height: 1200 }}
     />
   )
@@ -89,33 +89,36 @@ export function WorldComparison() {
 
   return (
     <section id="world" className="container-x pt-16">
-      <div className="relative overflow-hidden rounded-3xl border border-ink-800 bg-ink-900 pt-20 shadow-sm md:pt-24">
+      <div className="relative overflow-hidden rounded-3xl bg-gray-950 pt-24 shadow-xl shadow-black/30 md:pt-28">
         {/* Amber glow blob */}
-        <div className="absolute top-64 left-1/2 -translate-x-1/2 size-96 rounded-full bg-amber-400/10 blur-3xl md:top-72" />
+        <div className="absolute top-[17rem] left-1/2 -translate-x-1/2 size-[40rem] rounded-full bg-amber-700/30 blur-3xl md:top-[20rem]" />
 
         {/* Top content */}
         <div className="relative z-10 flex flex-col items-center px-6 text-center">
           {/* Badge */}
-          <div className="inline-block rounded-lg border border-accent/20 bg-accent/10 px-3 py-1.5 text-sm font-semibold uppercase leading-4 tracking-tight text-accent-dark">
-            vs the world
+          <div className="inline-block rounded-lg border border-accent/20 bg-accent/10 px-3 py-1.5 text-sm font-semibold uppercase leading-4 tracking-tight">
+            <span className="bg-gradient-to-b from-amber-200 to-accent bg-clip-text text-transparent">
+              vs the world
+            </span>
           </div>
 
           {/* Dynamic headline */}
-          <h2 className="mt-5 max-w-2xl px-2 text-4xl font-bold tracking-tighter text-ink-100 sm:text-5xl md:text-6xl">
+          <h2 className="mt-6 inline-block bg-gradient-to-b from-white to-amber-100 bg-clip-text px-2 text-center text-5xl font-bold tracking-tighter text-transparent md:text-7xl">
             {error || !data ? (
-              "Sri Lanka vs the world"
+              <>Sri Lanka<br />vs the world</>
             ) : magnitude == null ? (
               "World data unavailable"
             ) : (
               <>
                 {magnitude.toFixed(1)}%{" "}
-                <span className="text-accent">{direction}</span>{" "}
+                {direction}
+                <br />
                 world average
               </>
             )}
           </h2>
 
-          <p className="mt-3 text-sm text-ink-400">
+          <p className="mt-3 text-sm text-amber-200/40">
             {FUEL_DISPLAY[fuel]} · price per litre in USD
           </p>
 
@@ -128,7 +131,7 @@ export function WorldComparison() {
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                   fuel === f
                     ? "bg-accent text-zinc-900"
-                    : "border border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
+                    : "border border-white/10 text-white/30 hover:border-white/20 hover:text-white/60"
                 }`}
               >
                 {FUEL_DISPLAY[f]}
@@ -141,28 +144,28 @@ export function WorldComparison() {
         <GlobeCanvas />
 
         {/* Bottom fade + cards */}
-        <div className="z-20 -mt-28 h-[34rem] w-full overflow-hidden md:-mt-32">
-          <div className="absolute bottom-0 h-3/5 w-full bg-gradient-to-b from-transparent via-ink-900/95 to-ink-900" />
+        <div className="z-20 -mt-32 h-[36rem] w-full overflow-hidden md:-mt-36">
+          <div className="absolute bottom-0 h-3/5 w-full bg-gradient-to-b from-transparent via-gray-950/95 to-gray-950" />
 
           <div className="absolute inset-x-4 bottom-8 m-auto max-w-5xl md:top-2/3 md:inset-x-6 md:bottom-10">
             {!data && !error && (
-              <p className="text-center text-sm text-ink-600">Loading comparison…</p>
+              <p className="text-center text-sm text-white/20">Loading comparison…</p>
             )}
             {error && (
-              <p className="text-center text-sm text-red-500">{error}</p>
+              <p className="text-center text-sm text-red-400">{error}</p>
             )}
             {data && countryRows.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 rounded-xl border border-ink-800 bg-white/60 p-4 shadow-sm backdrop-blur-sm sm:grid-cols-4 md:p-6 lg:grid-cols-7">
+              <div className="grid grid-cols-2 gap-3 rounded-xl border border-white/[3%] bg-white/[2%] p-4 shadow-xl backdrop-blur md:p-6 lg:grid-cols-7">
                 {countryRows.map((row, i) => (
                   <div key={`${row.country}-${i}`} className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-xs text-ink-400">
+                    <div className="flex items-center gap-1.5 text-xs text-amber-200/40">
                       <span aria-hidden>{FLAGS[row.country] ?? "🏳"}</span>
                       <span className="truncate">{row.country}</span>
                     </div>
-                    <div className="font-mono text-base font-semibold text-ink-100">
+                    <div className="font-mono text-base font-semibold text-white/80">
                       ${row.price_usd?.toFixed(2)}
                     </div>
-                    <div className="text-[10px] uppercase tracking-wider text-ink-600">
+                    <div className="text-[10px] uppercase tracking-wider text-white/20">
                       USD / L
                     </div>
                   </div>
