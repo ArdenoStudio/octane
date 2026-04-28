@@ -10,7 +10,8 @@ import {
   YAxis,
 } from "recharts";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, HistoryPoint } from "../lib/api";
-import { GlassFilter } from "./GlassFilter";
+import { GlassFilter } from "./ui/liquid-radio";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
   petrol_92: "#f59e0b",
@@ -87,29 +88,32 @@ export function HistoryChart() {
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {RANGES.map((r) => (
-                <button
-                  key={r.label}
-                  onClick={() => setDays(r.days)}
-                  className={`relative overflow-hidden rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                    days === r.days
-                      ? "text-ink-950"
-                      : "text-ink-400 hover:text-ink-200"
-                  }`}
-                >
-                  <span
-                    aria-hidden
-                    className={`absolute inset-0 rounded-lg border ${
-                      days === r.days
-                        ? "bg-ink-100 border-ink-100"
-                        : "border-ink-700 hover:border-ink-600"
+            <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
+              <RadioGroup
+                value={String(days)}
+                onValueChange={(v) => setDays(Number(v))}
+                className="relative inline-grid grid-cols-4 items-center gap-0 text-xs font-semibold"
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-y-0 w-1/4 rounded-md bg-ink-100 shadow-md transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{
+                    transform: `translateX(${RANGES.findIndex((r) => r.days === days) * 100}%)`,
+                    filter: "url(#radio-glass)",
+                  }}
+                />
+                {RANGES.map((r) => (
+                  <label
+                    key={r.label}
+                    className={`relative z-10 inline-flex h-full min-w-8 cursor-pointer select-none items-center justify-center px-3 transition-colors ${
+                      days === r.days ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
                     }`}
-                    style={{ filter: "url(#radio-glass)" }}
-                  />
-                  <span className="relative">{r.label}</span>
-                </button>
-              ))}
+                  >
+                    {r.label}
+                    <RadioGroupItem value={String(r.days)} className="sr-only" />
+                  </label>
+                ))}
+              </RadioGroup>
             </div>
             <a
               href={api.historyCsvUrl(Array.from(active), days)}
