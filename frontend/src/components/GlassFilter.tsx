@@ -12,22 +12,21 @@ export function GlassFilter() {
         >
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.65 0.65"
+            baseFrequency="0.45 0.45"
             numOctaves="2"
             seed="1"
             result="turbulence"
           />
-          <feGaussianBlur in="turbulence" stdDeviation="1" result="blurredNoise" />
+          <feGaussianBlur in="turbulence" stdDeviation="1.5" result="blurredNoise" />
           <feDisplacementMap
             in="SourceGraphic"
             in2="blurredNoise"
-            scale="3"
+            scale="10"
             xChannelSelector="R"
             yChannelSelector="B"
             result="displaced"
           />
-          <feGaussianBlur in="displaced" stdDeviation="0.3" result="finalBlur" />
-          <feComposite in="finalBlur" in2="finalBlur" operator="over" />
+          <feComposite in="displaced" in2="displaced" operator="over" />
         </filter>
       </defs>
     </svg>

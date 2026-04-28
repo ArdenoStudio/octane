@@ -92,14 +92,22 @@ export function HistoryChart() {
                 <button
                   key={r.label}
                   onClick={() => setDays(r.days)}
-                  style={{ filter: "url(#radio-glass)" }}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                  className={`relative overflow-hidden rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                     days === r.days
-                      ? "bg-ink-100 text-ink-950 border border-ink-100"
-                      : "border border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
+                      ? "text-ink-950"
+                      : "text-ink-400 hover:text-ink-200"
                   }`}
                 >
-                  {r.label}
+                  <span
+                    aria-hidden
+                    className={`absolute inset-0 rounded-lg border ${
+                      days === r.days
+                        ? "bg-ink-100 border-ink-100"
+                        : "border-ink-700 hover:border-ink-600"
+                    }`}
+                    style={{ filter: "url(#radio-glass)" }}
+                  />
+                  <span className="relative">{r.label}</span>
                 </button>
               ))}
             </div>
@@ -107,11 +115,15 @@ export function HistoryChart() {
               href={api.historyCsvUrl(Array.from(active), days)}
               download
               title="Download CSV"
-              style={{ filter: "url(#radio-glass)" }}
-              className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
+              className="relative overflow-hidden flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:text-ink-200"
             >
-              <RiDownload2Line className="size-3.5" />
-              CSV
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-lg border border-ink-700 hover:border-ink-600"
+                style={{ filter: "url(#radio-glass)" }}
+              />
+              <RiDownload2Line className="relative size-3.5" />
+              <span className="relative">CSV</span>
             </a>
           </div>
         </div>
@@ -123,19 +135,25 @@ export function HistoryChart() {
               <button
                 key={f}
                 onClick={() => toggle(f)}
-                style={{ filter: "url(#radio-glass)" }}
-                className={`flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-                  on
-                    ? "border-ink-700 bg-white text-ink-200 shadow-sm"
-                    : "border-ink-800 text-ink-600 hover:border-ink-700 hover:text-ink-400"
+                className={`relative overflow-hidden flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                  on ? "text-ink-200" : "text-ink-600 hover:text-ink-400"
                 }`}
               >
                 <span
                   aria-hidden
-                  className="h-2 w-2 rounded-full"
+                  className={`absolute inset-0 rounded-lg border ${
+                    on
+                      ? "bg-white border-ink-700 shadow-sm"
+                      : "border-ink-800 hover:border-ink-700"
+                  }`}
+                  style={{ filter: "url(#radio-glass)" }}
+                />
+                <span
+                  aria-hidden
+                  className="relative h-2 w-2 rounded-full"
                   style={{ background: on ? COLORS[f] : "#d4d4d8" }}
                 />
-                {FUEL_DISPLAY[f]}
+                <span className="relative">{FUEL_DISPLAY[f]}</span>
               </button>
             );
           })}
