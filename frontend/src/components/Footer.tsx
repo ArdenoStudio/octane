@@ -40,7 +40,7 @@ export function Footer() {
         <svg
           viewBox="200 530 1100 440"
           preserveAspectRatio="xMidYMid meet"
-          className="w-full h-auto fill-ink-50 opacity-[0.1]"
+          className="w-full h-auto fill-ink-50 opacity-[0.12] blur-xl"
         >
           <g transform="matrix(1, 0, 0, 1, 336, 590)">
             <g clipPath="url(#footer-wm-clip)">
