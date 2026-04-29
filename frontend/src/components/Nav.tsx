@@ -21,7 +21,7 @@ export function Nav() {
     <div className="sticky top-5 z-30 flex justify-center px-4 pointer-events-none">
       <header
         className={cx(
-          "pointer-events-auto w-full max-w-2xl transition-all duration-500",
+          "pointer-events-auto w-full max-w-2xl transition-[background-color,box-shadow,border-color,backdrop-filter] duration-500",
           open ? "rounded-3xl" : "rounded-full",
           scrolled || open
             ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
