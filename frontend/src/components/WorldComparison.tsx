@@ -1,5 +1,4 @@
-import createGlobe from "cobe"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { api, ComparisonResp, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api"
 
 const FLAGS: Record<string, string> = {
@@ -10,55 +9,6 @@ const FLAGS: Record<string, string> = {
   Nepal: "🇳🇵",
   Maldives: "🇲🇻",
   World: "🌐",
-}
-
-// South Asian region coordinates for globe markers
-const MARKERS = [
-  { location: [7.8731, 80.7718] as [number, number], size: 0.06 },   // Sri Lanka
-  { location: [20.5937, 78.9629] as [number, number], size: 0.04 },  // India
-  { location: [23.685, 90.3563] as [number, number], size: 0.03 },   // Bangladesh
-  { location: [28.3949, 84.124] as [number, number], size: 0.03 },   // Nepal
-  { location: [30.3753, 69.3451] as [number, number], size: 0.03 },  // Pakistan
-  { location: [3.2028, 73.2207] as [number, number], size: 0.03 },   // Maldives
-]
-
-function GlobeCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    let phi = 1.2
-
-    const globe = createGlobe(canvasRef.current!, {
-      devicePixelRatio: 2,
-      width: 900 * 2,
-      height: 900 * 2,
-      phi,
-      theta: 0.1,
-      dark: 1,
-      diffuse: 1.2,
-      mapSamples: 25000,
-      mapBrightness: 10,
-      mapBaseBrightness: 0.04,
-      baseColor: [0.25, 0.25, 0.25],
-      glowColor: [0.18, 0.11, 0.01],
-      markerColor: [0.98, 0.62, 0.04],
-      markers: MARKERS,
-      onRender: (state: Record<string, unknown>) => {
-        state.phi = phi
-        phi += 0.003
-      },
-    } as Parameters<typeof createGlobe>[1])
-
-    return () => globe.destroy()
-  }, [])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute left-1/2 -translate-x-1/2 z-0"
-      style={{ top: "35%", width: 900, height: 900 }}
-    />
-  )
 }
 
 export function WorldComparison() {
@@ -73,52 +23,64 @@ export function WorldComparison() {
   }, [fuel])
 
   const delta = data?.delta_vs_world_pct
+  const isBelow = delta != null && delta < 0
   const direction =
-    delta == null ? "" : delta > 0 ? "above" : delta < 0 ? "below" : "in line with"
+    delta == null ? "" : delta > 0 ? "above" : delta < 0 ? "below" : "at"
   const magnitude = delta == null ? null : Math.abs(delta)
 
   const countryRows = data
     ? [
-        { country: "Sri Lanka", price_usd: data.sri_lanka.price_usd ?? 0 },
-        ...data.neighbors,
+        { country: "Sri Lanka", price_usd: data.sri_lanka.price_usd ?? 0, isSelf: true },
+        ...data.neighbors.map((n) => ({ ...n, isSelf: false })),
         data.world_average_usd != null
-          ? { country: "World", price_usd: data.world_average_usd }
+          ? { country: "World", price_usd: data.world_average_usd, isSelf: false }
           : null,
-      ].filter(Boolean) as { country: string; price_usd: number }[]
+      ].filter(Boolean) as { country: string; price_usd: number; isSelf: boolean }[]
     : []
+
+  const maxPrice = countryRows.length
+    ? Math.max(...countryRows.map((r) => r.price_usd)) * 1.15
+    : 1
 
   return (
     <section id="world" className="container-x pt-16">
-      <div className="relative overflow-hidden rounded-3xl bg-gray-950 pt-24 shadow-xl shadow-black/30 md:pt-28">
-        {/* Amber glow blob */}
-        <div className="absolute top-[17rem] left-1/2 -translate-x-1/2 size-[40rem] rounded-full bg-amber-700/30 blur-3xl md:top-[20rem]" />
+      <div className="overflow-hidden rounded-3xl border border-ink-800 bg-white shadow-sm">
 
-        {/* Top content */}
-        <div className="relative z-20 flex flex-col items-center px-6 text-center">
+        {/* Top accent line */}
+        <div className="h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+
+        {/* Header */}
+        <div className="px-6 pt-10 pb-8 text-center sm:px-10">
+
           {/* Badge */}
-          <div className="inline-block rounded-lg border border-accent/20 bg-accent/10 px-3 py-1.5 text-sm font-semibold uppercase leading-4 tracking-tight">
-            <span className="bg-gradient-to-b from-amber-200 to-accent bg-clip-text text-transparent">
-              vs the world
-            </span>
+          <div className="inline-block rounded-full border border-accent/30 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-amber-700">
+            vs the world
           </div>
 
-          {/* Dynamic headline */}
-          <h2 className="mt-6 inline-block bg-gradient-to-b from-white to-amber-100 bg-clip-text px-2 text-center text-5xl font-bold tracking-tighter text-transparent md:text-7xl">
-            {error || !data ? (
-              <>Sri Lanka<br />vs the world</>
-            ) : magnitude == null ? (
-              "World data unavailable"
-            ) : (
-              <>
-                {magnitude.toFixed(1)}%{" "}
-                {direction}
-                <br />
-                world average
-              </>
+          {/* Headline */}
+          <div className="mt-5">
+            {!data && !error && (
+              <div className="h-16 animate-pulse rounded-xl bg-ink-900/40 mx-auto max-w-xs" />
             )}
-          </h2>
+            {error && (
+              <p className="text-lg text-red-500">Could not load comparison data</p>
+            )}
+            {data && magnitude != null && (
+              <h2 className="text-5xl font-extrabold tracking-tighter text-ink-100 sm:text-6xl">
+                <span className={isBelow ? "text-emerald-600" : "text-red-500"}>
+                  {magnitude.toFixed(1)}%{" "}
+                </span>
+                <span className="text-ink-200">{direction} world average</span>
+              </h2>
+            )}
+            {data && magnitude == null && (
+              <h2 className="text-4xl font-extrabold tracking-tighter text-ink-200">
+                Sri Lanka vs the world
+              </h2>
+            )}
+          </div>
 
-          <p className="mt-3 text-sm text-amber-200/40">
+          <p className="mt-2 text-sm text-ink-400">
             {FUEL_DISPLAY[fuel]} · price per litre in USD
           </p>
 
@@ -130,8 +92,8 @@ export function WorldComparison() {
                 onClick={() => setFuel(f)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                   fuel === f
-                    ? "bg-accent text-zinc-900"
-                    : "border border-white/10 text-white/30 hover:border-white/20 hover:text-white/60"
+                    ? "bg-accent text-zinc-900 shadow-sm"
+                    : "border border-ink-800 text-ink-400 hover:border-ink-700 hover:text-ink-200"
                 }`}
               >
                 {FUEL_DISPLAY[f]}
@@ -140,40 +102,74 @@ export function WorldComparison() {
           </div>
         </div>
 
-        {/* Globe */}
-        <GlobeCanvas />
+        {/* Divider */}
+        <div className="mx-6 h-px bg-ink-900 sm:mx-10" />
 
-        {/* Bottom fade + cards */}
-        <div className="relative z-20 -mt-32 h-[36rem] w-full overflow-hidden md:-mt-36">
-          <div className="absolute bottom-0 h-3/5 w-full bg-gradient-to-b from-transparent via-gray-950/95 to-gray-950" />
+        {/* Price comparison bars */}
+        <div className="px-6 py-8 sm:px-10">
+          {!data && !error && (
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <div className="w-24 h-3 animate-pulse rounded-full bg-ink-900/40" />
+                  <div className="flex-1 h-3 animate-pulse rounded-full bg-ink-900/40" style={{ maxWidth: `${30 + i * 12}%` }} />
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div className="absolute inset-x-4 bottom-8 m-auto max-w-5xl md:top-2/3 md:inset-x-6 md:bottom-10">
-            {!data && !error && (
-              <p className="text-center text-sm text-white/20">Loading comparison…</p>
-            )}
-            {error && (
-              <p className="text-center text-sm text-red-400">{error}</p>
-            )}
-            {data && countryRows.length > 0 && (
-              <div className="flex flex-wrap justify-between gap-x-2 gap-y-6 rounded-xl border border-white/[3%] bg-white/[2%] p-4 shadow-xl backdrop-blur md:p-6">
-                {countryRows.map((row, i) => (
-                  <div key={`${row.country}-${i}`} className="flex min-w-[70px] flex-1 flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-xs text-amber-200/40">
-                      <span aria-hidden>{FLAGS[row.country] ?? "🏳"}</span>
-                      <span className="truncate">{row.country}</span>
+          {data && countryRows.length > 0 && (
+            <div className="space-y-3">
+              {countryRows.map((row, i) => {
+                const pct = (row.price_usd / maxPrice) * 100
+                return (
+                  <div key={`${row.country}-${i}`} className="group flex items-center gap-3">
+                    {/* Country label */}
+                    <div className="flex w-28 shrink-0 items-center gap-1.5 sm:w-36">
+                      <span className="text-base leading-none" aria-hidden>
+                        {FLAGS[row.country] ?? "🏳"}
+                      </span>
+                      <span
+                        className={`truncate text-sm font-medium ${
+                          row.isSelf ? "text-ink-100" : "text-ink-400"
+                        }`}
+                      >
+                        {row.country}
+                      </span>
                     </div>
-                    <div className="font-mono text-base font-semibold text-white/80">
-                      ${row.price_usd?.toFixed(2)}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-white/20">
-                      USD / L
+
+                    {/* Bar */}
+                    <div className="relative flex-1 h-7 overflow-hidden rounded-lg bg-ink-900/40">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-lg transition-all duration-700 ${
+                          row.isSelf
+                            ? "bg-gradient-to-r from-amber-400 to-accent"
+                            : "bg-ink-800"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                      <span
+                        className={`absolute inset-y-0 left-3 flex items-center text-xs font-semibold tabular-nums ${
+                          row.isSelf ? "text-zinc-900" : "text-ink-300"
+                        }`}
+                      >
+                        ${row.price_usd.toFixed(2)}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Footer note */}
+          {data && (
+            <p className="mt-6 text-center text-[11px] text-ink-600">
+              Prices in USD/litre · Source: CPC, Global Petrol Prices · Updated daily
+            </p>
+          )}
         </div>
+
       </div>
     </section>
   )
