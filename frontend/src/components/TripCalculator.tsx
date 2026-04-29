@@ -6,7 +6,7 @@ import { Input } from "./ui/Input";
 import { ShareButtons } from "./ui/ShareButtons";
 
 export function TripCalculator() {
-  const [distance, setDistance] = useState("30");
+  const [distance, setDistance] = useState("115");
   const [efficiency, setEfficiency] = useState("12");
   const [fuel, setFuel] = useState<FuelId>("petrol_92");
   const [result, setResult] = useState<TripResp | null>(null);
@@ -54,6 +54,7 @@ export function TripCalculator() {
                 id="distance"
                 className="mt-2"
                 inputMode="decimal"
+                placeholder="e.g. 115"
                 value={distance}
                 onChange={(e) => setDistance(e.target.value)}
               />
