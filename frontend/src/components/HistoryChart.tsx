@@ -24,7 +24,7 @@ const RANGES = [
   { label: "1Y", days: 365 },
   { label: "2Y", days: 730 },
   { label: "5Y", days: 365 * 5 },
-  { label: "All", days: 365 * 20 },
+  { label: "All", days: 3650 },
 ];
 
 export function HistoryChart() {
