@@ -103,7 +103,7 @@ export function HeroSection() {
             href="#prices"
             className="inline-flex max-w-full items-center gap-3 rounded-full bg-white/60 px-2.5 py-0.5 pr-3 pl-0.5 text-sm font-medium text-ink-200 ring-1 ring-ink-800 shadow-lg shadow-accent/10 backdrop-blur-[1px] transition-colors hover:bg-accent/5"
           >
-            <span className="shrink-0 truncate rounded-full bg-ink-900 px-2.5 py-1 text-xs text-ink-400">
+            <span className="shrink-0 truncate rounded-full bg-red-500 px-2.5 py-1 text-xs text-black">
               Live
             </span>
             <span className="flex items-center gap-1 truncate">
