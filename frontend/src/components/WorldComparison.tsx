@@ -94,7 +94,7 @@ export function WorldComparison() {
         <div className="absolute top-[17rem] left-1/2 -translate-x-1/2 size-[40rem] rounded-full bg-amber-700/30 blur-3xl md:top-[20rem]" />
 
         {/* Top content */}
-        <div className="relative z-10 flex flex-col items-center px-6 text-center">
+        <div className="relative z-20 flex flex-col items-center px-6 text-center">
           {/* Badge */}
           <div className="inline-block rounded-lg border border-accent/20 bg-accent/10 px-3 py-1.5 text-sm font-semibold uppercase leading-4 tracking-tight">
             <span className="bg-gradient-to-b from-amber-200 to-accent bg-clip-text text-transparent">
@@ -144,7 +144,7 @@ export function WorldComparison() {
         <GlobeCanvas />
 
         {/* Bottom fade + cards */}
-        <div className="z-20 -mt-32 h-[36rem] w-full overflow-hidden md:-mt-36">
+        <div className="relative z-20 -mt-32 h-[36rem] w-full overflow-hidden md:-mt-36">
           <div className="absolute bottom-0 h-3/5 w-full bg-gradient-to-b from-transparent via-gray-950/95 to-gray-950" />
 
           <div className="absolute inset-x-4 bottom-8 m-auto max-w-5xl md:top-2/3 md:inset-x-6 md:bottom-10">
