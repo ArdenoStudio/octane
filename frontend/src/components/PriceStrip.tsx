@@ -145,6 +145,7 @@ export function PriceStrip() {
                       <div className="label">{FUEL_DISPLAY[fuel]}</div>
                       {hasDelta && (
                         <span
+                          aria-label={flat ? "no change" : up ? `price up ${Math.round(delta!)} rupees` : `price down ${Math.abs(Math.round(delta!))} rupees`}
                           className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${
                             flat
                               ? "text-ink-400 bg-ink-900"
@@ -153,7 +154,7 @@ export function PriceStrip() {
                                 : "text-emerald-600 bg-emerald-50"
                           }`}
                         >
-                          {flat ? "—" : `${up ? "+" : ""}${Math.round(delta!)}`}
+                          {flat ? "→ 0" : `${up ? "↑ +" : "↓ "}${Math.round(delta!)}`}
                         </span>
                       )}
                     </div>

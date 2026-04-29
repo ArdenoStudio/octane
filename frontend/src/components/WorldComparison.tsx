@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { api, ComparisonResp, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api"
+import { shortDate } from "../lib/format"
 
 const FLAGS: Record<string, string> = {
   "Sri Lanka": "🇱🇰",
@@ -165,7 +166,7 @@ export function WorldComparison() {
           {/* Footer note */}
           {data && (
             <p className="mt-6 text-center text-[11px] text-ink-600">
-              Prices in USD/litre · Source: CPC, Global Petrol Prices · Updated daily
+              Prices in USD/litre · Source: CPC, Global Petrol Prices · As of {shortDate(data.sri_lanka.recorded_at)}
             </p>
           )}
         </div>
