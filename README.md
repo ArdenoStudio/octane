@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="./frontend/public/octane-logo-nav.svg" alt="Octane" height="60" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./frontend/public/octane-logo-nav-white.svg" />
+    <img src="./frontend/public/octane-logo-nav.svg" alt="Octane" height="60" />
+  </picture>
 </p>
 
 <p align="center">
@@ -83,7 +86,10 @@ Interactive docs available at `/docs` (Swagger UI).
 ---
 
 <p align="center">
-  <img src="./frontend/public/octane-o.svg" alt="" height="24" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./frontend/public/octane-o-white.svg" />
+    <img src="./frontend/public/octane-o.svg" alt="" height="24" />
+  </picture>
   <br/>
   <sub>An <strong>Ardeno Studio</strong> production · <a href="https://octane.lk">octane.lk</a></sub>
 </p>
