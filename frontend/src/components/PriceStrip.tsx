@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
+import { BadgeDelta } from "./ui/BadgeDelta";
 import { FadeContainer, FadeDiv } from "./ui/Fade";
 import { ShareButtons } from "./ui/ShareButtons";
 
@@ -144,18 +145,13 @@ export function PriceStrip() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="label">{FUEL_DISPLAY[fuel]}</div>
                       {hasDelta && (
-                        <span
+                        <BadgeDelta
                           aria-label={flat ? "no change" : up ? `price up ${Math.round(delta!)} rupees` : `price down ${Math.abs(Math.round(delta!))} rupees`}
-                          className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${
-                            flat
-                              ? "text-ink-400 bg-ink-900"
-                              : up
-                                ? "text-red-600 bg-red-50"
-                                : "text-emerald-600 bg-emerald-50"
-                          }`}
-                        >
-                          {flat ? "→ 0" : `${up ? "↑ +" : "↓ "}${Math.round(delta!)}`}
-                        </span>
+                          variant="solid"
+                          deltaType={flat ? "neutral" : up ? "increase" : "decrease"}
+                          value={flat ? "0" : up ? `+${Math.round(delta!)}` : `${Math.round(delta!)}`}
+                          className="shrink-0 tabular-nums"
+                        />
                       )}
                     </div>
 
