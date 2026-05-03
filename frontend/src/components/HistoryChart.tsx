@@ -22,9 +22,9 @@ const COLORS: Record<FuelId, string> = {
 
 const RANGES = [
   { label: "1Y", days: 365 },
-  { label: "2Y", days: 730 },
   { label: "5Y", days: 365 * 5 },
-  { label: "All", days: 3650 },
+  { label: "10Y", days: 365 * 10 },
+  { label: "All", days: 36500 },
 ];
 
 export function HistoryChart() {
