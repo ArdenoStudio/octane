@@ -38,7 +38,7 @@ export function Footer() {
       {/* Full-width watermark logo */}
       <div className="relative overflow-hidden pointer-events-none select-none" aria-hidden="true">
         <svg
-          viewBox="-300 330 2100 210"
+          viewBox="-300 570 2100 195"
           preserveAspectRatio="xMidYMid meet"
           className="w-full h-auto fill-ink-50 opacity-[0.15]"
         >
