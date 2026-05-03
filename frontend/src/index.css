@@ -21,6 +21,14 @@
   mask-image: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(0,0,0,1) 0%, transparent 85%);
 }
 
+@keyframes octane-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes octane-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 @layer components {
   .container-x {
     @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
