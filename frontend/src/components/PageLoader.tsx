@@ -96,8 +96,8 @@ export function PageLoader({ show }: Props) {
 
       {/* Byline */}
       <p
-        className="absolute bottom-8 text-xs tracking-[0.18em] text-ink-600 uppercase"
-        style={{ animation: "octane-enter 0.6s cubic-bezier(0.0, 0.0, 0.2, 1) 0.15s both" }}
+        className="absolute bottom-8 text-[10px] tracking-[0.14em] text-ink-700 uppercase"
+        style={{ animation: "octane-enter 0.8s cubic-bezier(0.0, 0.0, 0.2, 1) 0.3s both", opacity: 0.5 }}
       >
         An Ardeno Production
       </p>
