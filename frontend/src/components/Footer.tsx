@@ -39,7 +39,7 @@ export function Footer() {
       <div
         className="relative overflow-hidden pointer-events-none select-none"
         aria-hidden="true"
-        style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 80%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 80%)' }}
+        style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 95%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 95%)' }}
       >
         <svg
           viewBox="-300 585 2100 210"
