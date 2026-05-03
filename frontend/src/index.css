@@ -30,6 +30,25 @@
   100% { transform: translateX(560%); }
 }
 
+/* Slim, on-brand scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @layer components {
   .container-x {
     @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
