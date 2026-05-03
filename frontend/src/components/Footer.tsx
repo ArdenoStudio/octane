@@ -36,7 +36,11 @@ export function Footer() {
       </div>
 
       {/* Full-width watermark logo */}
-      <div className="relative overflow-hidden pointer-events-none select-none" aria-hidden="true">
+      <div
+        className="relative overflow-hidden pointer-events-none select-none"
+        aria-hidden="true"
+        style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 55%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 55%)' }}
+      >
         <svg
           viewBox="-300 585 2100 210"
           preserveAspectRatio="xMidYMid meet"
