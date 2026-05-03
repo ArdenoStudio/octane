@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/status-live-f59e0b?style=flat-square" />
   <img src="https://img.shields.io/badge/API-free%20%26%20open-f59e0b?style=flat-square" />
   <img src="https://img.shields.io/badge/stack-FastAPI%20%2B%20React-1b1b1b?style=flat-square" />
-  <img src="https://img.shields.io/badge/deployed-Vercel%20%2B%20Railway-1b1b1b?style=flat-square" />
+  <img src="https://img.shields.io/badge/deployed-Vercel%20%2B%20Fly.io-1b1b1b?style=flat-square" />
 </p>
 
 ---
@@ -31,10 +31,10 @@ Octane tracks CPC fuel prices daily the moment they're revised, and presents the
 
 | Layer | Tech |
 |---|---|
-| Backend | FastAPI · PostgreSQL · Railway |
+| Backend | FastAPI · PostgreSQL · Fly.io |
 | Scrapers | `httpx` + `BeautifulSoup` · daily 8am cron |
 | Frontend | React 18 · Vite · Tailwind CSS · Recharts |
-| Hosting | Vercel (frontend) · Railway (backend + DB) |
+| Hosting | Vercel (frontend) · Fly.io (backend + DB) |
 | Sources | `ceypetco.gov.lk` · `lankaiocoil.lk` · `globalpetrolprices.com` |
 
 ## Project layout
