@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 
+from app.db import migrate
 from app.db.connection import cursor
 from app.scrapers import cpc, lanka_ioc, world
 from app.services import alerts as alert_service
@@ -56,6 +57,7 @@ def _persist_world(points: list[world.WorldPrice]) -> int:
 
 
 def run_all() -> dict[str, int]:
+    migrate.run()
     summary: dict[str, int] = {}
 
     try:
