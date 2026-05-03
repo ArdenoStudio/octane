@@ -96,10 +96,10 @@ export function PageLoader({ show }: Props) {
 
       {/* Byline */}
       <p
-        className="absolute bottom-8 text-[10px] tracking-[0.14em] text-ink-700 uppercase"
-        style={{ animation: "octane-enter 0.8s cubic-bezier(0.0, 0.0, 0.2, 1) 0.3s both", opacity: 0.5 }}
+        className="absolute bottom-8 font-mono text-[10px] tracking-[0.06em] text-ink-600"
+        style={{ animation: "octane-enter 0.8s cubic-bezier(0.0, 0.0, 0.2, 1) 0.3s both", opacity: 0.4 }}
       >
-        An Ardeno Production
+        © 2026 Built by Ardeno
       </p>
     </div>
   );
