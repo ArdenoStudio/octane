@@ -37,7 +37,7 @@ def history(
 
 
 @router.get("/changes")
-def changes(source: str = Query("cpc"), limit: int = Query(200, ge=1, le=1000)):
+def changes(source: str = Query("cpc"), limit: int = Query(200, ge=1, le=5000)):
     return {"source": source, "changes": prices.changes(source, limit)}
 
 

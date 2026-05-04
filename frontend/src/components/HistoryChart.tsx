@@ -43,6 +43,7 @@ export function HistoryChart() {
   // Revisions mode: all actual price change events from /v1/prices/changes
   const [allRevisions, setAllRevisions] = useState<PriceChangeRow[] | null>(null);
   const [revisionsLoading, setRevisionsLoading] = useState(false);
+  const [revisionsError, setRevisionsError] = useState<string | null>(null);
 
   // Fetch daily series whenever active fuels, range, or mode changes
   useEffect(() => {
@@ -63,10 +64,14 @@ export function HistoryChart() {
   useEffect(() => {
     if (mode !== "revisions" || allRevisions !== null) return;
     setRevisionsLoading(true);
+    setRevisionsError(null);
     api
-      .changes(2000)
+      .changes(5000)
       .then((r) => setAllRevisions(r.changes))
-      .catch(() => setAllRevisions([]))
+      .catch((e: unknown) => {
+        setRevisionsError(String(e));
+        setAllRevisions([]);
+      })
       .finally(() => setRevisionsLoading(false));
   }, [mode, allRevisions]);
 
@@ -127,6 +132,7 @@ export function HistoryChart() {
   }
 
   const isLoading = mode === "revisions" && revisionsLoading;
+  const hasRevisionsError = mode === "revisions" && !!revisionsError;
 
   return (
     <section id="history" className="container-x pt-16">
@@ -245,6 +251,10 @@ export function HistoryChart() {
           {isLoading ? (
             <div className="flex h-full items-center justify-center text-sm text-ink-500">
               Loading revision history…
+            </div>
+          ) : hasRevisionsError ? (
+            <div className="flex h-full items-center justify-center text-sm text-red-400">
+              Couldn't load revision data. Try refreshing.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
