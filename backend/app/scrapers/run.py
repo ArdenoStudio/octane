@@ -2,16 +2,16 @@
 
 Invoked by:
   - Manual: `python -m app.scrapers.run`
-  - Cron:   Railway daily 8am
-  - HTTP:   POST /v1/internal/run-scrapers (with token)
+  - Cron:   GitHub Actions daily (see .github/workflows/scrape.yml)
 """
 from __future__ import annotations
 
 import logging
 
+from app.config import get_settings
 from app.db import migrate
 from app.db.connection import cursor
-from app.scrapers import cpc, lanka_ioc, news, world
+from app.scrapers import cpc, fx, lanka_ioc, news, world
 from app.services import alerts as alert_service
 
 log = logging.getLogger(__name__)
@@ -56,6 +56,29 @@ def _persist_world(points: list[world.WorldPrice]) -> int:
     return len(rows)
 
 
+def _persist_fx(rate: fx.FxRate) -> int:
+    with cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO fx_rates (recorded_at, base, target, rate)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (recorded_at, base, target) DO UPDATE
+              SET rate = EXCLUDED.rate
+            """,
+            (rate.recorded_at, rate.base, rate.target, rate.rate),
+        )
+    return 1
+
+
+def _notify_admin(subject: str, body: str) -> None:
+    """Send an operational alert to the admin email if configured."""
+    s = get_settings()
+    if not s.admin_email:
+        return
+    from app.services.alerts import _send_email
+    _send_email(s.admin_email, subject, body)
+
+
 def run_all() -> dict[str, int]:
     migrate.run()
     summary: dict[str, int] = {}
@@ -63,6 +86,15 @@ def run_all() -> dict[str, int]:
     try:
         cpc_points = list(cpc.run())
         summary["cpc"] = _persist_fuel(cpc_points)
+        if summary["cpc"] == 0:
+            log.error("cpc scraper returned 0 rows — site layout may have changed")
+            _notify_admin(
+                "Octane: CPC scraper returned 0 rows",
+                "The CPC scraper ran but found no price data.\n\n"
+                "The site layout may have changed. Check manually:\n"
+                "https://ceypetco.gov.lk/historical-prices/\n\n"
+                "— Octane health monitor",
+            )
     except Exception as e:  # noqa: BLE001
         log.exception("cpc scraper failed: %s", e)
         summary["cpc"] = 0
@@ -70,6 +102,8 @@ def run_all() -> dict[str, int]:
     try:
         ioc_points = list(lanka_ioc.run())
         summary["lanka_ioc"] = _persist_fuel(ioc_points)
+        if summary["lanka_ioc"] == 0:
+            log.warning("lanka_ioc scraper returned 0 rows")
     except Exception as e:  # noqa: BLE001
         log.exception("lanka_ioc scraper failed: %s", e)
         summary["lanka_ioc"] = 0
@@ -87,6 +121,18 @@ def run_all() -> dict[str, int]:
     except Exception as e:  # noqa: BLE001
         log.exception("world scraper failed: %s", e)
         summary["world"] = 0
+
+    try:
+        fx_rate = fx.run()
+        if fx_rate:
+            summary["fx"] = _persist_fx(fx_rate)
+            log.info("fx rate: 1 USD = %s LKR", fx_rate.rate)
+        else:
+            summary["fx"] = 0
+            log.warning("fx scraper returned no rate")
+    except Exception as e:  # noqa: BLE001
+        log.exception("fx scraper failed: %s", e)
+        summary["fx"] = 0
 
     try:
         summary["alerts_fired"] = alert_service.dispatch_pending()

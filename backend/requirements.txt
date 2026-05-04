@@ -9,3 +9,5 @@ pydantic-settings==2.6.1
 python-dotenv==1.0.1
 APScheduler==3.10.4
 email-validator==2.2.0
+slowapi==0.1.9
+limits==3.13.0

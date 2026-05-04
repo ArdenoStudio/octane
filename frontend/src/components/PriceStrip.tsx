@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { RiArrowDownSLine, RiArrowUpSLine, RiFlashlightLine } from "@remixicon/react";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
@@ -81,6 +82,8 @@ export function PriceStrip() {
     });
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const lastRevision = rows
     ? rows
         .filter((r) => r.source === "cpc")
@@ -88,6 +91,10 @@ export function PriceStrip() {
         .sort()
         .pop()
     : null;
+
+  // Fuel types with an actual price change recorded today
+  const todayRevisions =
+    changes?.filter((c) => c.recorded_at === todayStr && c.delta_lkr !== null && c.delta_lkr !== 0) ?? [];
 
   function buildShareMessage(): string {
     const lines = FUEL_ORDER.map((f) => {
@@ -115,6 +122,38 @@ export function PriceStrip() {
             </FadeDiv>
           )}
         </div>
+
+        {/* Today's revision notice — only shown when prices were actually revised today */}
+        {todayRevisions.length > 0 && (
+          <FadeDiv className="mt-5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
+                <RiFlashlightLine className="size-4" />
+                Prices revised today
+              </span>
+              <span className="flex flex-wrap gap-x-4 gap-y-1">
+                {todayRevisions.map((c) => {
+                  const up = (c.delta_lkr ?? 0) > 0;
+                  return (
+                    <span key={c.fuel_type} className="flex items-center gap-1 text-sm text-ink-300">
+                      <span className="text-ink-500">{FUEL_DISPLAY[c.fuel_type as FuelId]}</span>
+                      {up ? (
+                        <RiArrowUpSLine className="size-4 text-red-400" />
+                      ) : (
+                        <RiArrowDownSLine className="size-4 text-emerald-400" />
+                      )}
+                      <span className={up ? "font-semibold text-red-400" : "font-semibold text-emerald-400"}>
+                        {up ? "+" : ""}
+                        {lkr(c.delta_lkr ?? 0, { showSymbol: false })}
+                      </span>
+                      <span className="text-ink-500">→ {lkr(c.price_lkr, { showSymbol: false })}</span>
+                    </span>
+                  );
+                })}
+              </span>
+            </div>
+          </FadeDiv>
+        )}
 
         {error && (
           <FadeDiv className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">

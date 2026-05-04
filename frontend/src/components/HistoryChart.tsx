@@ -4,12 +4,13 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, HistoryPoint } from "../lib/api";
+import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, HistoryPoint, PriceChangeRow } from "../lib/api";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
@@ -27,14 +28,25 @@ const RANGES = [
   { label: "All", days: 36500 },
 ];
 
+type ChartMode = "daily" | "revisions";
+
 export function HistoryChart() {
   const [active, setActive] = useState<Set<FuelId>>(
     () => new Set(["petrol_92", "auto_diesel"])
   );
   const [days, setDays] = useState<number>(365);
+  const [mode, setMode] = useState<ChartMode>("daily");
+
+  // Daily mode: per-fuel time-series from /v1/prices/history
   const [series, setSeries] = useState<Record<FuelId, HistoryPoint[]>>({} as Record<FuelId, HistoryPoint[]>);
 
+  // Revisions mode: all actual price change events from /v1/prices/changes
+  const [allRevisions, setAllRevisions] = useState<PriceChangeRow[] | null>(null);
+  const [revisionsLoading, setRevisionsLoading] = useState(false);
+
+  // Fetch daily series whenever active fuels, range, or mode changes
   useEffect(() => {
+    if (mode !== "daily") return;
     Promise.all(
       Array.from(active).map((f) => api.history(f, days).then((r) => [f, r.points] as const))
     )
@@ -45,13 +57,52 @@ export function HistoryChart() {
       })
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, Array.from(active).join(",")]);
+  }, [days, mode, Array.from(active).join(",")]);
+
+  // Fetch all revision events once when first switching to revisions mode
+  useEffect(() => {
+    if (mode !== "revisions" || allRevisions !== null) return;
+    setRevisionsLoading(true);
+    api
+      .changes(2000)
+      .then((r) => setAllRevisions(r.changes))
+      .catch(() => setAllRevisions([]))
+      .finally(() => setRevisionsLoading(false));
+  }, [mode, allRevisions]);
 
   const chartData = useMemo(() => {
+    if (mode === "revisions" && allRevisions) {
+      // Show only dates when prices actually changed — no interpolation
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+      const priceMap: Partial<Record<FuelId, Map<string, number>>> = {};
+      const dateSet = new Set<string>();
+      for (const f of active) priceMap[f] = new Map();
+
+      for (const c of allRevisions) {
+        if (!active.has(c.fuel_type as FuelId)) continue;
+        if (c.recorded_at < cutoffStr) continue;
+        dateSet.add(c.recorded_at);
+        priceMap[c.fuel_type as FuelId]!.set(c.recorded_at, c.price_lkr);
+      }
+
+      return Array.from(dateSet)
+        .sort()
+        .map((d) => {
+          const row: Record<string, string | number> = { date: d };
+          for (const f of active) {
+            const v = priceMap[f]!.get(d);
+            if (v != null) row[f] = v;
+          }
+          return row;
+        });
+    }
+
+    // Daily mode — merge per-fuel series by date
     const dateSet = new Set<string>();
-    Object.values(series).forEach((arr) =>
-      arr?.forEach((p) => dateSet.add(p.recorded_at))
-    );
+    Object.values(series).forEach((arr) => arr?.forEach((p) => dateSet.add(p.recorded_at)));
     const dates = Array.from(dateSet).sort();
     const indices: Partial<Record<FuelId, Map<string, number>>> = {};
     (Object.keys(series) as FuelId[]).forEach((f) => {
@@ -65,7 +116,7 @@ export function HistoryChart() {
       });
       return row;
     });
-  }, [series]);
+  }, [mode, series, allRevisions, active, days]);
 
   function toggle(f: FuelId) {
     const next = new Set(active);
@@ -74,6 +125,8 @@ export function HistoryChart() {
     if (next.size === 0) next.add(f);
     setActive(next);
   }
+
+  const isLoading = mode === "revisions" && revisionsLoading;
 
   return (
     <section id="history" className="container-x pt-16">
@@ -85,7 +138,38 @@ export function HistoryChart() {
               Every revision since the records begin.
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Mode: Daily interpolated vs Revisions only */}
+            <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
+              <RadioGroup
+                value={mode}
+                onValueChange={(v) => setMode(v as ChartMode)}
+                className="relative inline-grid grid-cols-2 items-center gap-0 text-xs font-semibold"
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-y-0 w-1/2 rounded-md bg-ink-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{
+                    transform: `translateX(${mode === "daily" ? "0%" : "100%"})`,
+                    boxShadow:
+                      "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
+                  }}
+                />
+                {(["daily", "revisions"] as const).map((m) => (
+                  <label
+                    key={m}
+                    className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center px-3 capitalize transition-colors ${
+                      mode === m ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
+                    }`}
+                  >
+                    {m}
+                    <RadioGroupItem value={m} className="sr-only" />
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+
+            {/* Range picker */}
             <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
               <RadioGroup
                 value={String(days)}
@@ -97,7 +181,8 @@ export function HistoryChart() {
                   className="absolute inset-y-0 w-1/4 rounded-md bg-ink-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
                   style={{
                     transform: `translateX(${RANGES.findIndex((r) => r.days === days) * 100}%)`,
-                    boxShadow: "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
+                    boxShadow:
+                      "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
                   }}
                 />
                 {RANGES.map((r) => (
@@ -113,6 +198,7 @@ export function HistoryChart() {
                 ))}
               </RadioGroup>
             </div>
+
             <a
               href={api.historyCsvUrl(Array.from(active), days)}
               download
@@ -124,6 +210,12 @@ export function HistoryChart() {
             </a>
           </div>
         </div>
+
+        {mode === "revisions" && (
+          <p className="mt-2 text-xs text-ink-500">
+            Only dates when prices actually changed — no daily interpolation.
+          </p>
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
           {FUEL_ORDER.map((f) => {
@@ -150,49 +242,64 @@ export function HistoryChart() {
         </div>
 
         <div className="mt-4 h-72 sm:h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(d) => String(d).slice(0, 7)}
-                stroke="#a1a1aa"
-                fontSize={11}
-                minTickGap={32}
-              />
-              <YAxis
-                stroke="#a1a1aa"
-                fontSize={11}
-                tickFormatter={(v) => String(v)}
-                domain={["auto", "auto"]}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "#ffffff",
-                  border: "1px solid #e4e4e7",
-                  borderRadius: 12,
-                  fontSize: 12,
-                }}
-                labelStyle={{ color: "#71717a" }}
-                formatter={(value: number, name: string) => [
-                  `LKR ${value.toFixed(2)}`,
-                  FUEL_DISPLAY[name as FuelId] ?? name,
-                ]}
-              />
-              {Array.from(active).map((f) => (
-                <Line
-                  key={f}
-                  type="monotone"
-                  dataKey={f}
-                  stroke={COLORS[f]}
-                  strokeWidth={2}
-                  dot={false}
-                  connectNulls
-                  isAnimationActive={false}
+          {isLoading ? (
+            <div className="flex h-full items-center justify-center text-sm text-ink-500">
+              Loading revision history…
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(d) => String(d).slice(0, 7)}
+                  stroke="#a1a1aa"
+                  fontSize={11}
+                  minTickGap={32}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+                <YAxis
+                  stroke="#a1a1aa"
+                  fontSize={11}
+                  tickFormatter={(v) => String(v)}
+                  domain={["auto", "auto"]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#ffffff",
+                    border: "1px solid #e4e4e7",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "#71717a" }}
+                  formatter={(value: number, name: string) => [
+                    `LKR ${value.toFixed(2)}`,
+                    FUEL_DISPLAY[name as FuelId] ?? name,
+                  ]}
+                />
+                {mode === "revisions" &&
+                  chartData.map((d) => (
+                    <ReferenceLine
+                      key={d.date as string}
+                      x={d.date as string}
+                      stroke="#d4d4d8"
+                      strokeDasharray="2 4"
+                    />
+                  ))}
+                {Array.from(active).map((f) => (
+                  <Line
+                    key={f}
+                    type={mode === "revisions" ? "stepAfter" : "monotone"}
+                    dataKey={f}
+                    stroke={COLORS[f]}
+                    strokeWidth={2}
+                    dot={mode === "revisions" ? { r: 3, fill: COLORS[f], strokeWidth: 0 } : false}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </section>

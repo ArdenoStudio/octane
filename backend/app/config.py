@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     alert_from_email: str = "alerts@octane.lk"
     site_url: str = "https://octane.lk"
     scraper_user_agent: str = "OctaneBot/1.0 (+https://octane.lk)"
+    admin_email: str = ""
+    rate_limit: str = "60/minute"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

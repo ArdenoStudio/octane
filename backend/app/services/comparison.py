@@ -5,11 +5,9 @@ from app import fuel as fuel_mod
 from app.db.connection import connect
 from app.services import prices
 
-# Static USD/LKR fallback used only when no recent record is available.
-# In production, override via daily FX scrape — for now, conservative default.
+# Fallback rate used only when no record exists in fx_rates table.
 USD_LKR_FALLBACK = 305.0
 
-# Map our fuel ids to globalpetrolprices categories (gasoline / diesel).
 FUEL_TO_WORLD = {
     fuel_mod.PETROL_92: "gasoline",
     fuel_mod.PETROL_95: "gasoline",
@@ -17,6 +15,23 @@ FUEL_TO_WORLD = {
     fuel_mod.SUPER_DIESEL: "diesel",
     fuel_mod.KEROSENE: "diesel",
 }
+
+
+def _live_fx_rate(base: str = "USD", target: str = "LKR") -> float:
+    """Return the most recently scraped exchange rate, or the static fallback."""
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT rate FROM fx_rates
+                WHERE base = %s AND target = %s
+                ORDER BY recorded_at DESC
+                LIMIT 1
+                """,
+                (base, target),
+            )
+            r = cur.fetchone()
+    return float(r["rate"]) if r else USD_LKR_FALLBACK
 
 
 def _world_latest(fuel_category: str) -> list[dict]:
@@ -48,8 +63,9 @@ def world_comparison(fuel_type: str) -> dict:
     world_rows = _world_latest(category)
     world_avg = next((r for r in world_rows if r["country"] == "World"), None)
 
+    fx_rate = _live_fx_rate()
     sl_price_lkr = sl_price["price_lkr"] if sl_price else None
-    sl_price_usd = (sl_price_lkr / USD_LKR_FALLBACK) if sl_price_lkr else None
+    sl_price_usd = (sl_price_lkr / fx_rate) if sl_price_lkr else None
 
     delta_pct = None
     if sl_price_usd and world_avg:
@@ -66,5 +82,5 @@ def world_comparison(fuel_type: str) -> dict:
         "world_average_usd": world_avg["price_usd"] if world_avg else None,
         "delta_vs_world_pct": round(delta_pct, 1) if delta_pct is not None else None,
         "neighbors": [r for r in world_rows if r["country"] not in ("World", "Sri Lanka")],
-        "fx_rate_used": USD_LKR_FALLBACK,
+        "fx_rate_used": fx_rate,
     }

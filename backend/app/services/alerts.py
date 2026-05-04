@@ -12,6 +12,8 @@ from app.services import prices
 
 log = logging.getLogger(__name__)
 
+MAX_SEND_ATTEMPTS = 5
+
 
 def subscribe(email: str, fuel_type: str, threshold: float, direction: str) -> int:
     if direction not in ("above", "below"):
@@ -66,18 +68,24 @@ def list_active() -> list[dict]:
             cur.execute(
                 """
                 SELECT id, email, fuel_type, threshold, direction,
-                       last_fired_at, unsubscribe_token
+                       last_fired_at, unsubscribe_token,
+                       send_attempts, last_send_error
                 FROM alerts WHERE active = TRUE
                 """
             )
             return [dict(r) for r in cur.fetchall()]
 
 
-def _send_email(to_email: str, subject: str, body: str) -> bool:
+def _send_email(to_email: str, subject: str, body: str) -> tuple[bool, str | None]:
+    """Send an email. Returns (sent, error_message_or_None).
+
+    Returns (False, None) when SMTP is not configured — not treated as a failure.
+    Returns (False, reason) on actual send failure.
+    """
     s = get_settings()
     if not s.smtp_host or not s.smtp_user:
         log.info("[alert] would send to %s: %s", to_email, subject)
-        return False
+        return False, None
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = s.alert_from_email
@@ -87,10 +95,10 @@ def _send_email(to_email: str, subject: str, body: str) -> bool:
             smtp.starttls()
             smtp.login(s.smtp_user, s.smtp_pass)
             smtp.send_message(msg)
-        return True
-    except Exception:  # noqa: BLE001
+        return True, None
+    except Exception as exc:  # noqa: BLE001
         log.exception("smtp send failed")
-        return False
+        return False, str(exc)[:500]
 
 
 def dispatch_pending() -> int:
@@ -98,6 +106,16 @@ def dispatch_pending() -> int:
     s = get_settings()
     fired = 0
     for alert in list_active():
+        # Skip alerts that have repeatedly failed — they need manual attention.
+        if (alert.get("send_attempts") or 0) >= MAX_SEND_ATTEMPTS:
+            log.warning(
+                "alert %s skipped after %d failed attempts (last error: %s)",
+                alert["id"],
+                alert["send_attempts"],
+                alert.get("last_send_error"),
+            )
+            continue
+
         latest = prices.latest_for(alert["fuel_type"])
         if not latest:
             continue
@@ -109,6 +127,7 @@ def dispatch_pending() -> int:
         )
         if not triggered:
             continue
+
         manage_url = f"{s.site_url}/manage?token={alert['unsubscribe_token']}"
         subject = f"Octane alert: {alert['fuel_type']} @ LKR {price}"
         body = (
@@ -121,11 +140,26 @@ def dispatch_pending() -> int:
             f"{manage_url}\n\n"
             f"— Octane (octane.lk)"
         )
-        if _send_email(alert["email"], subject, body):
+        sent, error = _send_email(alert["email"], subject, body)
+        if sent:
             with cursor() as cur:
                 cur.execute(
-                    "UPDATE alerts SET last_fired_at = %s WHERE id = %s",
+                    """
+                    UPDATE alerts
+                    SET last_fired_at = %s, send_attempts = 0, last_send_error = NULL
+                    WHERE id = %s
+                    """,
                     (datetime.now(timezone.utc), alert["id"]),
                 )
             fired += 1
+        elif error:
+            with cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE alerts
+                    SET send_attempts = send_attempts + 1, last_send_error = %s
+                    WHERE id = %s
+                    """,
+                    (error, alert["id"]),
+                )
     return fired
