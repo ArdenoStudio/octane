@@ -85,14 +85,15 @@ export function Nav() {
     )}>
       <header
         className={cx(
-          "pointer-events-auto w-full",
-          // Transition bg/shadow/width but NOT border-radius — snapping corners
-          // instantly prevents the pill shape from clipping the expanding menu
-          "transition-[background-color,box-shadow,border-color,max-width,backdrop-filter] duration-500",
+          "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500",
           open ? "max-w-full rounded-b-3xl" : "max-w-2xl rounded-full",
-          scrolled || open
-            ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
-            : "bg-white/60 shadow-sm shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
+          // No backdrop-blur when open — blur clips to border-radius at the GPU
+          // compositing level, causing the circular clipping artifact
+          open
+            ? "bg-white shadow-xl shadow-black/[0.08] border border-black/[0.06]"
+            : scrolled
+              ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
+              : "bg-white/60 shadow-sm shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
         )}
       >
         <div className="flex h-11 items-center justify-between px-3">
