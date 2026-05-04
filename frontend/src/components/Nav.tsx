@@ -10,7 +10,7 @@ const LINKS = [
   { href: "#alerts", label: "Alerts" },
   { href: "/changes", label: "Changes" },
   { href: "/data", label: "Data" },
-  { href: "#api", label: "API" },
+  { href: "/developers", label: "Developers" },
 ]
 
 export function Nav() {
@@ -18,11 +18,14 @@ export function Nav() {
   const scrolled = useScroll(10)
 
   return (
-    <div className="sticky top-5 z-30 flex justify-center px-4 pointer-events-none">
+    <div className={cx(
+      "sticky z-30 flex pointer-events-none transition-all duration-500",
+      open ? "top-0 px-0 items-start" : "top-5 px-4 justify-center"
+    )}>
       <header
         className={cx(
-          "pointer-events-auto w-full max-w-2xl transition-all duration-500",
-          open ? "rounded-3xl" : "rounded-full",
+          "pointer-events-auto w-full transition-all duration-500",
+          open ? "max-w-full rounded-b-3xl" : "max-w-2xl rounded-full",
           scrolled || open
             ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
             : "bg-white/60 shadow-sm shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
