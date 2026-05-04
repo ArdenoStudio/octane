@@ -18,20 +18,26 @@ FUEL_TO_WORLD = {
 
 
 def _live_fx_rate(base: str = "USD", target: str = "LKR") -> float:
-    """Return the most recently scraped exchange rate, or the static fallback."""
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT rate FROM fx_rates
-                WHERE base = %s AND target = %s
-                ORDER BY recorded_at DESC
-                LIMIT 1
-                """,
-                (base, target),
-            )
-            r = cur.fetchone()
-    return float(r["rate"]) if r else USD_LKR_FALLBACK
+    """Return the most recently scraped exchange rate, or the static fallback.
+
+    Degrades gracefully if fx_rates table doesn't exist yet (migration pending).
+    """
+    try:
+        with connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT rate FROM fx_rates
+                    WHERE base = %s AND target = %s
+                    ORDER BY recorded_at DESC
+                    LIMIT 1
+                    """,
+                    (base, target),
+                )
+                r = cur.fetchone()
+        return float(r["rate"]) if r else USD_LKR_FALLBACK
+    except Exception:
+        return USD_LKR_FALLBACK
 
 
 def _world_latest(fuel_category: str) -> list[dict]:

@@ -9,6 +9,7 @@ from slowapi.util import get_remote_address
 
 from app.api import alerts, calculator, comparison, embed, meta, prices
 from app.config import get_settings
+from app.db import migrate
 
 settings = get_settings()
 
@@ -41,6 +42,12 @@ app.include_router(comparison.router)
 app.include_router(calculator.router)
 app.include_router(alerts.router)
 app.include_router(embed.router)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    """Apply any pending DB migrations when the API starts up."""
+    migrate.run()
 
 
 @app.get("/")
