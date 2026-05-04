@@ -5,6 +5,7 @@ import App from "./App";
 import { PageLoader } from "./components/PageLoader";
 import { ChangesPage } from "./pages/ChangesPage";
 import { DataPage } from "./pages/DataPage";
+import { DevelopersPage } from "./pages/DevelopersPage";
 import { ManageAlerts } from "./pages/ManageAlerts";
 import "./index.css";
 
@@ -25,6 +26,7 @@ function Root() {
           <Route path="/changes" element={<ChangesPage />} />
           <Route path="/manage" element={<ManageAlerts />} />
           <Route path="/data" element={<DataPage />} />
+          <Route path="/developers" element={<DevelopersPage />} />
         </Routes>
       </BrowserRouter>
     </>
