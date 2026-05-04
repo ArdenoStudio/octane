@@ -15,12 +15,20 @@ from typing import Iterable
 
 from bs4 import BeautifulSoup
 
+import httpx
+
 from app.scrapers.cpc import PricePoint
-from app.scrapers.http import client
 
 log = logging.getLogger(__name__)
 
 SOURCE = "news"
+
+# Browser UA so news sites don't 403 the OctaneBot agent
+_BROWSER_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
 
 # Sri Lankan news outlets with reliable RSS feeds
 FEEDS = [
@@ -28,12 +36,17 @@ FEEDS = [
     "https://economynext.com/feed/",
     "https://www.dailymirror.lk/rss/",
     "http://www.colombopage.com/rss.xml",
+    "https://www.newsfirst.lk/feed/",
 ]
 
+# Require revision-specific language so explainer/analysis articles are skipped
 FUEL_KEYWORDS = re.compile(
-    r"fuel\s+price|petrol\s+price|diesel\s+price|fuel\s+revision|"
-    r"fuel\s+hike|fuel\s+cut|fuel\s+reduc|price\s+revision|"
-    r"petroleum\s+price|fuel\s+increas|litre\s+price|fuel\s+rates?",
+    r"fuel\s+price[s]?\s+(?:revised?|increased?|reduced?|changed?|cut|hike|effective|up|down)|"
+    r"(?:revised?|new|updated?)\s+fuel\s+price|"
+    r"petrol\s+(?:price|rate)s?\s+(?:revised?|increased?|reduced?|up|down|hike|cut)|"
+    r"diesel\s+(?:price|rate)s?\s+(?:revised?|increased?|reduced?|up|down|hike|cut)|"
+    r"fuel\s+(?:price\s+)?revision|fuel\s+price\s+change|"
+    r"ceypetco\s+(?:price|fuel\s+price)|fuel\s+price\s+effective",
     re.IGNORECASE,
 )
 
@@ -128,7 +141,7 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
     cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
     results: list[tuple[str, datetime | None]] = []
     try:
-        with client(timeout=15.0) as c:
+        with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=15.0, follow_redirects=True) as c:
             r = c.get(feed_url)
             r.raise_for_status()
     except Exception as exc:
@@ -167,7 +180,7 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
 def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
     fallback_date = pub_date.date() if pub_date else date.today()
     try:
-        with client(timeout=20.0) as c:
+        with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
             r = c.get(url)
             r.raise_for_status()
     except Exception as exc:
