@@ -175,10 +175,22 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
         if pub_date and pub_date < cutoff:
             continue
 
+        # 1) Try <link> text (works for non-Google RSS feeds)
         url = link_tag.get_text(strip=True) if link_tag else None
-        if not url:
+        # 2) Try <guid> (often the Google CBMi URL)
+        if not url or "google.com" in url:
             guid = item.find("guid")
-            url = guid.get_text(strip=True) if guid else None
+            guid_url = guid.get_text(strip=True) if guid else None
+            if guid_url and "google.com" not in guid_url:
+                url = guid_url
+        # 3) Try <source url="..."> attribute (direct source domain isn't enough but log it)
+        # 4) Scan the raw item for any non-Google http URL (e.g. in href attributes)
+        if not url or "google.com" in url:
+            raw_item = str(item)
+            candidates = re.findall(r'https?://[^\s<>"\']+', raw_item)
+            real = next((u for u in candidates if "google.com" not in u), None)
+            if real:
+                url = real.rstrip("/.,;)")
         if url and url.startswith("http"):
             results.append((url, pub_date, summary))
 
