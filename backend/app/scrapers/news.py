@@ -141,9 +141,16 @@ def _extract_prices(text: str, fallback_date: date) -> list[PricePoint]:
     return [p for p in points if not (p.fuel_type in seen or seen.add(p.fuel_type))]  # type: ignore[func-returns-value]
 
 
-def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, datetime | None, str]]:
-    """Return (url, pub_date, summary_text) for recent fuel-related articles."""
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
+def _poll_feed(feed_url: str, max_age_hours: int = 0) -> list[tuple[str, datetime | None, str]]:
+    """Return (url, pub_date, summary_text) for recent fuel-related articles.
+
+    max_age_hours=0 means no age filter (log all matches regardless of date).
+    """
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
+        if max_age_hours > 0
+        else None
+    )
     results: list[tuple[str, datetime | None, str]] = []
     try:
         with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=15.0, follow_redirects=True) as c:
@@ -172,8 +179,10 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
         pub_date = _parse_rss_date(pub_tag.get_text(strip=True) if pub_tag else None)
         if pub_date and pub_date.tzinfo is None:
             pub_date = pub_date.replace(tzinfo=timezone.utc)
-        if pub_date and pub_date < cutoff:
+        if cutoff and pub_date and pub_date < cutoff:
             continue
+
+        log.info("news match: [%s] %s", pub_date.date() if pub_date else "?", title_text[:120])
 
         # 1) Try <link> text (works for non-Google RSS feeds)
         url = link_tag.get_text(strip=True) if link_tag else None
