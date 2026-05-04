@@ -141,10 +141,10 @@ def _extract_prices(text: str, fallback_date: date) -> list[PricePoint]:
     return [p for p in points if not (p.fuel_type in seen or seen.add(p.fuel_type))]  # type: ignore[func-returns-value]
 
 
-def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, datetime | None]]:
-    """Return (url, pub_date) for recent fuel-related articles in one RSS feed."""
+def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, datetime | None, str]]:
+    """Return (url, pub_date, summary_text) for recent fuel-related articles."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
-    results: list[tuple[str, datetime | None]] = []
+    results: list[tuple[str, datetime | None, str]] = []
     try:
         with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=15.0, follow_redirects=True) as c:
             r = c.get(feed_url)
@@ -160,10 +160,13 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
         link_tag = item.find("link")
         pub_tag = item.find("pubDate") or item.find("published")
 
-        combined = " ".join(
-            t.get_text(strip=True) for t in (title_tag, desc_tag) if t
-        )
-        if not FUEL_KEYWORDS.search(combined):
+        title_text = title_tag.get_text(strip=True) if title_tag else ""
+        desc_text = desc_tag.get_text(strip=True) if desc_tag else ""
+        # Google News descriptions are HTML-escaped — strip tags for text
+        desc_clean = BeautifulSoup(desc_text, "lxml").get_text(" ", strip=True)
+        summary = f"{title_text} {desc_clean}".strip()
+
+        if not FUEL_KEYWORDS.search(summary):
             continue
 
         pub_date = _parse_rss_date(pub_tag.get_text(strip=True) if pub_tag else None)
@@ -177,7 +180,7 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
             guid = item.find("guid")
             url = guid.get_text(strip=True) if guid else None
         if url and url.startswith("http"):
-            results.append((url, pub_date))
+            results.append((url, pub_date, summary))
 
     return results
 
@@ -185,21 +188,37 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
 def _decode_google_news_url(url: str) -> str | None:
     """Decode a Google News CBMi token to recover the original article URL.
 
-    Google News encodes article URLs as base64url protobuf in the path segment.
-    The original URL is the first http-prefixed byte sequence in the decoded blob.
+    The token is a two-level encoding:
+      outer = base64url(protobuf{ field1: int, field4: inner_token_bytes })
+      inner = base64url(structure containing the article URL)
     """
     m = re.search(r"/articles/([A-Za-z0-9_-]+)", url)
     if not m:
         return None
     token = m.group(1)
-    # Restore standard base64 padding
     pad = (4 - len(token) % 4) % 4
     try:
-        decoded = base64.b64decode(token.replace("-", "+").replace("_", "/") + "=" * pad)
+        outer = base64.urlsafe_b64decode(token + "=" * pad)
     except Exception:
         return None
-    # The original URL sits in the protobuf blob as a plain byte string
-    hit = re.search(rb"https?://[^\x00\x01-\x1f\x7f ]+", decoded)
+
+    # Protobuf header is typically 4 bytes:
+    # [field1 varint tag][varint value][field4 len-delim tag][field4 length]
+    # followed by the ASCII inner token.
+    if len(outer) < 5 or outer[2] != 0x22:
+        return None
+    inner_len = outer[3]
+    if len(outer) < 4 + inner_len:
+        return None
+    inner_token = outer[4 : 4 + inner_len].decode("ascii", errors="ignore")
+
+    pad2 = (4 - len(inner_token) % 4) % 4
+    try:
+        inner = base64.urlsafe_b64decode(inner_token + "=" * pad2)
+    except Exception:
+        return None
+
+    hit = re.search(rb"https?://[^\x00\x01-\x1f\x7f ]+", inner)
     if not hit:
         return None
     candidate = hit.group(0).decode("utf-8", errors="ignore").rstrip("/.,;)")
@@ -253,13 +272,22 @@ def run() -> Iterable[PricePoint]:
     for feed_url in FEEDS:
         articles = _poll_feed(feed_url)
         log.info("news feed %s → %d fuel articles", feed_url, len(articles))
-        for url, pub_date in articles:
+        for url, pub_date, summary in articles:
             if url in seen_urls:
                 continue
             seen_urls.add(url)
-            points = _scrape_article(url, pub_date)
+
+            fallback_date = pub_date.date() if pub_date else date.today()
+
+            # Try extracting prices from the RSS summary first (cheaper, no fetch needed)
+            points = _extract_prices(summary, fallback_date)
             if points:
-                log.info("news article %s → %d prices", url, len(points))
+                log.info("news summary hit %s → %d prices", url, len(points))
+            else:
+                # Fall back to fetching the full article
+                points = _scrape_article(url, pub_date)
+                if points:
+                    log.info("news article %s → %d prices", url, len(points))
             all_points.extend(points)
 
     # Final de-dup across outlets by (date, fuel_type) — CPC is authoritative;
