@@ -25,6 +25,14 @@
   from { opacity: 0; transform: translateY(8px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0)  scale(1); }
 }
+@keyframes mobile-menu-enter {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes mobile-menu-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-12px); }
+}
 @keyframes octane-bar {
   0%   { transform: translateX(-240%); }
   100% { transform: translateX(560%); }
