@@ -30,23 +30,27 @@ _BROWSER_UA = (
     "Chrome/124.0.0.0 Safari/537.36"
 )
 
-# Sri Lankan news outlets with reliable RSS feeds
+# Google News RSS aggregates SL outlets (Ada Derana, Daily Mirror, etc.)
+# without triggering their Cloudflare WAF. Two queries: one for revisions,
+# one for ceypetco announcements specifically.
 FEEDS = [
-    "https://www.adaderana.lk/rss.php",
+    "https://news.google.com/rss/search?q=Sri+Lanka+fuel+price+revised&hl=en-LK&gl=LK&ceid=LK:en",
+    "https://news.google.com/rss/search?q=ceypetco+fuel+price&hl=en-LK&gl=LK&ceid=LK:en",
     "https://economynext.com/feed/",
-    "https://www.dailymirror.lk/rss/",
     "http://www.colombopage.com/rss.xml",
-    "https://www.newsfirst.lk/feed/",
 ]
 
-# Require revision-specific language so explainer/analysis articles are skipped
+# Require revision/change language to skip explainer/analysis pieces.
+# Google News titles are short so also accept "fuel prices" alone as a match
+# when coming from a ceypetco-specific query.
 FUEL_KEYWORDS = re.compile(
-    r"fuel\s+price[s]?\s+(?:revised?|increased?|reduced?|changed?|cut|hike|effective|up|down)|"
-    r"(?:revised?|new|updated?)\s+fuel\s+price|"
+    r"fuel\s+prices?\s+(?:revised?|increased?|reduced?|changed?|cut|hike|effective|up|down|adjust)|"
+    r"(?:revised?|new|updated?)\s+fuel\s+prices?|"
     r"petrol\s+(?:price|rate)s?\s+(?:revised?|increased?|reduced?|up|down|hike|cut)|"
     r"diesel\s+(?:price|rate)s?\s+(?:revised?|increased?|reduced?|up|down|hike|cut)|"
     r"fuel\s+(?:price\s+)?revision|fuel\s+price\s+change|"
-    r"ceypetco\s+(?:price|fuel\s+price)|fuel\s+price\s+effective",
+    r"ceypetco\s+(?:price|fuel)|fuel\s+price\s+effective|"
+    r"fuel\s+prices?\s+in\s+sri\s+lanka",
     re.IGNORECASE,
 )
 
