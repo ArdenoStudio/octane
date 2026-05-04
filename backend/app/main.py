@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -10,6 +12,8 @@ from slowapi.util import get_remote_address
 from app.api import alerts, calculator, comparison, embed, meta, prices
 from app.config import get_settings
 from app.db import migrate
+
+log = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -46,8 +50,15 @@ app.include_router(embed.router)
 
 @app.on_event("startup")
 def on_startup() -> None:
-    """Apply any pending DB migrations when the API starts up."""
-    migrate.run()
+    """Apply any pending DB migrations when the API starts up.
+
+    Errors are caught and logged — a migration failure must never prevent
+    the API from serving requests (routes degrade gracefully instead).
+    """
+    try:
+        migrate.run()
+    except Exception:
+        log.exception("startup migration failed — app will continue without it")
 
 
 @app.get("/")
