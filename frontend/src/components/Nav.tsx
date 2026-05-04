@@ -72,9 +72,18 @@ function useActiveSection() {
 
 export function Nav() {
   const [open, setOpen] = React.useState(false)
+  const [closing, setClosing] = React.useState(false)
   const scrolled = useScroll(10)
   const activeSection = useActiveSection()
   const pathname = window.location.pathname
+
+  function close() {
+    setClosing(true)
+    setTimeout(() => {
+      setOpen(false)
+      setClosing(false)
+    }, 220)
+  }
 
   function isActive(href: string) {
     if (href.startsWith("#")) return activeSection === href
@@ -84,15 +93,19 @@ export function Nav() {
   return (
     <>
       {/* Mobile full-screen overlay — fixed so it's never clipped by the pill's border-radius */}
-      {open && (
+      {(open || closing) && (
         <div
           className="fixed inset-x-0 top-0 z-40 sm:hidden bg-white/95 backdrop-blur-xl border-b border-black/[0.06] shadow-xl shadow-black/[0.08]"
-          style={{ animation: "mobile-menu-enter 0.25s ease-out" }}
+          style={{
+            animation: closing
+              ? "mobile-menu-exit 0.22s ease-in forwards"
+              : "mobile-menu-enter 0.25s ease-out"
+          }}
         >
           <div className="flex h-14 items-center justify-between px-5">
             <a href="/" className="flex items-center">{LOGO_SVG}</a>
             <button
-              onClick={() => setOpen(false)}
+              onClick={close}
               className="rounded-full p-1.5 text-ink-400 hover:bg-ink-900 hover:text-ink-100 transition-all"
               aria-label="Close menu"
             >
@@ -105,7 +118,7 @@ export function Nav() {
                 <li key={href}>
                   <a
                     href={href}
-                    onClick={() => setOpen(false)}
+                    onClick={close}
                     className={cx(
                       "block rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                       isActive(href)
@@ -120,7 +133,7 @@ export function Nav() {
               <li className="pt-2">
                 <a
                   href="#alerts"
-                  onClick={() => setOpen(false)}
+                  onClick={close}
                   className="block rounded-xl px-3 py-2.5 text-sm font-semibold text-center bg-accent text-zinc-900 hover:bg-amber-400 transition-all"
                 >
                   Get Alerts
