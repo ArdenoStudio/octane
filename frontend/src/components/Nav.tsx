@@ -7,15 +7,54 @@ const LINKS = [
   { href: "#prices", label: "Prices" },
   { href: "#calc", label: "Calculator" },
   { href: "#history", label: "History" },
-  { href: "#alerts", label: "Alerts" },
   { href: "/changes", label: "Changes" },
   { href: "/data", label: "Data" },
   { href: "/developers", label: "Developers" },
 ]
 
+const ANCHOR_IDS = ["prices", "calc", "history"]
+
+function useActiveSection() {
+  const [active, setActive] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    function update() {
+      let best: string | null = null
+      let bestDist = Infinity
+
+      for (const id of ANCHOR_IDS) {
+        const el = document.getElementById(id)
+        if (!el) continue
+        const top = el.getBoundingClientRect().top
+        if (top <= 80) {
+          const dist = Math.abs(top)
+          if (dist < bestDist) {
+            bestDist = dist
+            best = `#${id}`
+          }
+        }
+      }
+      setActive(best)
+    }
+
+    window.addEventListener("scroll", update, { passive: true })
+    update()
+    return () => window.removeEventListener("scroll", update)
+  }, [])
+
+  return active
+}
+
 export function Nav() {
   const [open, setOpen] = React.useState(false)
   const scrolled = useScroll(10)
+  const activeSection = useActiveSection()
+  const pathname = window.location.pathname
+
+  function isActive(href: string) {
+    if (href.startsWith("#")) return activeSection === href
+    return pathname === href
+  }
 
   return (
     <div className={cx(
@@ -61,40 +100,78 @@ export function Nav() {
           {/* Desktop nav */}
           <nav className="hidden items-center gap-0.5 text-[13px] sm:flex">
             {LINKS.map(({ href, label }) => (
-              <a key={href} href={href} className="rounded-full px-3 py-1.5 text-ink-400 hover:text-ink-900 hover:bg-ink-100 transition-all duration-150 font-medium">
+              <a
+                key={href}
+                href={href}
+                className={cx(
+                  "rounded-full px-3 py-1.5 transition-all duration-150 font-medium",
+                  isActive(href)
+                    ? "bg-ink-100 text-ink-900"
+                    : "text-ink-400 hover:text-ink-900 hover:bg-ink-100"
+                )}
+              >
                 {label}
               </a>
             ))}
           </nav>
 
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setOpen(!open)}
-            className="rounded-full p-1.5 text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-all sm:hidden"
-            aria-label={open ? "Close menu" : "Open menu"}
-          >
-            {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
-          </button>
+          {/* CTA + Mobile hamburger */}
+          <div className="flex items-center gap-2">
+            <a
+              href="#alerts"
+              className="hidden sm:inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] font-semibold bg-accent text-zinc-900 hover:bg-amber-400 transition-all duration-150"
+            >
+              Get Alerts
+            </a>
+            <button
+              onClick={() => setOpen(!open)}
+              className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900 transition-all sm:hidden"
+              aria-label={open ? "Close menu" : "Open menu"}
+            >
+              {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
+            </button>
+          </div>
         </div>
 
-        {/* Mobile menu */}
-        {open && (
-          <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2 sm:hidden">
-            <ul className="flex flex-col gap-0.5">
-              {LINKS.map(({ href, label }) => (
-                <li key={href}>
+        {/* Mobile menu — animated with CSS grid trick */}
+        <div
+          className={cx(
+            "grid sm:hidden transition-all duration-300 ease-in-out",
+            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}
+        >
+          <div className="overflow-hidden">
+            <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2">
+              <ul className="flex flex-col gap-0.5">
+                {LINKS.map(({ href, label }) => (
+                  <li key={href}>
+                    <a
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className={cx(
+                        "block rounded-full px-3 py-2 text-sm font-medium transition-all",
+                        isActive(href)
+                          ? "bg-ink-100 text-ink-900"
+                          : "text-ink-400 hover:bg-ink-100 hover:text-ink-900"
+                      )}
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+                <li className="pt-1">
                   <a
-                    href={href}
+                    href="#alerts"
                     onClick={() => setOpen(false)}
-                    className="block rounded-full px-3 py-2 text-sm font-medium text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-all"
+                    className="block rounded-full px-3 py-2 text-sm font-semibold text-center bg-accent text-zinc-900 hover:bg-amber-400 transition-all"
                   >
-                    {label}
+                    Get Alerts
                   </a>
                 </li>
-              ))}
-            </ul>
-          </nav>
-        )}
+              </ul>
+            </nav>
+          </div>
+        </div>
       </header>
     </div>
   )
