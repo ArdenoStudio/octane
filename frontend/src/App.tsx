@@ -1,6 +1,4 @@
 import { AlertSignup } from "./components/AlertSignup";
-import { ApiSection } from "./components/ApiSection";
-import { EmbedSection } from "./components/EmbedSection";
 import { Footer } from "./components/Footer";
 import { HeroSection } from "./components/HeroSection";
 import { HistoryChart } from "./components/HistoryChart";
@@ -23,8 +21,6 @@ export default function App() {
         <WorldComparison />
         <TripCalculator />
         <HistoryChart />
-        <EmbedSection />
-        <ApiSection />
       </main>
       <Footer />
       <MobilePriceBar />

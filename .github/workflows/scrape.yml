@@ -2,8 +2,12 @@ name: Scrape fuel prices
 
 on:
   schedule:
-    - cron: '30 2 * * *'  # 8:00am Sri Lanka time (UTC+5:30)
-  workflow_dispatch:       # allow manual trigger
+    - cron: '30 2 * * *'   # 08:00 SL — morning baseline
+    - cron: '30 6 * * *'   # 12:00 SL — midday
+    - cron: '30 10 * * *'  # 16:00 SL — afternoon
+    - cron: '30 14 * * *'  # 20:00 SL — evening
+    - cron: '30 18 * * *'  # 00:00 SL — midnight (CPC revises at midnight)
+  workflow_dispatch:        # allow manual trigger
 
 jobs:
   scrape:

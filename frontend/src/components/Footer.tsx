@@ -36,11 +36,15 @@ export function Footer() {
       </div>
 
       {/* Full-width watermark logo */}
-      <div className="relative overflow-hidden pointer-events-none select-none" aria-hidden="true">
+      <div
+        className="relative overflow-hidden pointer-events-none select-none"
+        aria-hidden="true"
+        style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 95%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 95%)' }}
+      >
         <svg
-          viewBox="-300 400 2100 600"
+          viewBox="-300 585 2100 210"
           preserveAspectRatio="xMidYMid meet"
-          className="w-full h-auto fill-ink-50 opacity-[0.15] blur-lg"
+          className="w-full h-auto fill-ink-50 opacity-[0.15]"
         >
           <g transform="matrix(1, 0, 0, 1, 336, 590)">
             <g clipPath="url(#footer-wm-clip)">

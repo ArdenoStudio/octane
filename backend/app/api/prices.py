@@ -23,7 +23,7 @@ def latest():
 @router.get("/history")
 def history(
     fuel: str = Query(..., description="fuel type id, e.g. 'petrol_92'"),
-    days: int = Query(730, ge=1, le=3650),
+    days: int = Query(730, ge=1, le=36500),
     source: str = Query("cpc"),
 ):
     if fuel not in fuel_mod.ALL_FUELS:

@@ -24,7 +24,7 @@ export function AlertSignup() {
     try {
       await api.subscribe({ email, fuel_type: fuel, threshold: t, direction });
       setStatus("ok");
-      setMsg("You're subscribed. We'll email you when the threshold is met.");
+      setMsg("You're in. One email when prices cross your threshold — nothing else.");
       setEmail("");
     } catch (err) {
       setStatus("err");
@@ -44,9 +44,10 @@ export function AlertSignup() {
               Don't get caught by a price hike.
             </h2>
             <p className="mt-3 text-ink-300">
-              Set a threshold for any fuel type. We'll email you the moment a
-              revision crosses your line.
+              Set a price target. We'll send one email the moment the government
+              revises that fuel past your threshold. Free, no spam.
             </p>
+            <p className="mt-2 text-xs text-ink-500">Free · Unsubscribe anytime</p>
           </div>
 
           <form onSubmit={submit} className="lg:col-span-3">
