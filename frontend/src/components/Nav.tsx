@@ -46,22 +46,17 @@ function useActiveSection() {
     function update() {
       let best: string | null = null
       let bestDist = Infinity
-
       for (const id of ANCHOR_IDS) {
         const el = document.getElementById(id)
         if (!el) continue
         const top = el.getBoundingClientRect().top
         if (top <= 80) {
           const dist = Math.abs(top)
-          if (dist < bestDist) {
-            bestDist = dist
-            best = `#${id}`
-          }
+          if (dist < bestDist) { bestDist = dist; best = `#${id}` }
         }
       }
       setActive(best)
     }
-
     window.addEventListener("scroll", update, { passive: true })
     update()
     return () => window.removeEventListener("scroll", update)
@@ -72,18 +67,9 @@ function useActiveSection() {
 
 export function Nav() {
   const [open, setOpen] = React.useState(false)
-  const [closing, setClosing] = React.useState(false)
   const scrolled = useScroll(10)
   const activeSection = useActiveSection()
   const pathname = window.location.pathname
-
-  function close() {
-    setClosing(true)
-    setTimeout(() => {
-      setOpen(false)
-      setClosing(false)
-    }, 220)
-  }
 
   function isActive(href: string) {
     if (href.startsWith("#")) return activeSection === href
@@ -91,110 +77,104 @@ export function Nav() {
   }
 
   return (
-    <>
-      {/* Mobile full-screen overlay — fixed so it's never clipped by the pill's border-radius */}
-      {(open || closing) && (
-        <div
-          className="fixed inset-x-0 top-0 z-40 sm:hidden bg-white/95 backdrop-blur-xl border-b border-black/[0.06] shadow-xl shadow-black/[0.08]"
-          style={{
-            animation: closing
-              ? "mobile-menu-exit 0.22s ease-in forwards"
-              : "mobile-menu-enter 0.25s ease-out"
-          }}
-        >
-          <div className="flex h-14 items-center justify-between px-5">
-            <a href="/" className="flex items-center">{LOGO_SVG}</a>
-            <button
-              onClick={close}
-              className="rounded-full p-1.5 text-ink-400 hover:bg-ink-900 hover:text-ink-100 transition-all"
-              aria-label="Close menu"
+    <div className={cx(
+      "sticky z-30 flex pointer-events-none",
+      // Only transition position/padding — NOT when snapping open so border-radius
+      // change is instant (avoids backdrop-blur clipping mid-transition)
+      open ? "top-0 px-0 items-start" : "top-5 px-4 justify-center transition-[top,padding] duration-500"
+    )}>
+      <header
+        className={cx(
+          "pointer-events-auto w-full",
+          // Transition bg/shadow/width but NOT border-radius — snapping corners
+          // instantly prevents the pill shape from clipping the expanding menu
+          "transition-[background-color,box-shadow,border-color,max-width,backdrop-filter] duration-500",
+          open ? "max-w-full rounded-b-3xl" : "max-w-2xl rounded-full",
+          scrolled || open
+            ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
+            : "bg-white/60 shadow-sm shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
+        )}
+      >
+        <div className="flex h-11 items-center justify-between px-3">
+          {/* Logo */}
+          <a href="/" className="flex items-center pl-1">{LOGO_SVG}</a>
+
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-0.5 text-[13px] sm:flex">
+            {LINKS.map(({ href, label }) => (
+              <a
+                key={href}
+                href={href}
+                className={cx(
+                  "rounded-full px-3 py-1.5 transition-all duration-150 font-medium",
+                  isActive(href)
+                    ? "bg-ink-100 text-ink-900"
+                    : "text-ink-400 hover:text-ink-900 hover:bg-ink-100"
+                )}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+
+          {/* CTA + Mobile hamburger */}
+          <div className="flex items-center gap-2">
+            <a
+              href="#alerts"
+              className="hidden sm:inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] font-semibold bg-accent text-zinc-900 hover:bg-amber-400 transition-all duration-150"
             >
-              <RiCloseLine className="size-5" />
+              Get Alerts
+            </a>
+            <button
+              onClick={() => setOpen(!open)}
+              className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900 transition-all sm:hidden"
+              aria-label={open ? "Close menu" : "Open menu"}
+            >
+              {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
             </button>
           </div>
-          <nav className="px-4 pb-5">
-            <ul className="flex flex-col gap-0.5">
-              {LINKS.map(({ href, label }) => (
-                <li key={href}>
-                  <a
-                    href={href}
-                    onClick={close}
-                    className={cx(
-                      "block rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-                      isActive(href)
-                        ? "bg-ink-100 text-ink-900"
-                        : "text-ink-400 hover:bg-ink-900 hover:text-ink-100"
-                    )}
-                  >
-                    {label}
-                  </a>
-                </li>
-              ))}
-              <li className="pt-2">
-                <a
-                  href="#alerts"
-                  onClick={close}
-                  className="block rounded-xl px-3 py-2.5 text-sm font-semibold text-center bg-accent text-zinc-900 hover:bg-amber-400 transition-all"
-                >
-                  Get Alerts
-                </a>
-              </li>
-            </ul>
-          </nav>
         </div>
-      )}
 
-      {/* Floating pill — always visible on all screen sizes */}
-      <div className="sticky top-0 z-30 flex justify-center px-4 pt-5 pointer-events-none">
-        <header
+        {/* Mobile menu — grid-rows animates height, opacity fades content */}
+        <div
           className={cx(
-            "pointer-events-auto w-full max-w-2xl rounded-full transition-all duration-500",
-            scrolled
-              ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
-              : "bg-white/60 shadow-sm shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
+            "grid sm:hidden transition-[grid-template-rows,opacity] duration-300 ease-in-out",
+            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
           )}
         >
-          <div className="flex h-11 items-center justify-between px-3">
-            {/* Logo */}
-            <a href="/" className="flex items-center pl-1">{LOGO_SVG}</a>
-
-            {/* Desktop nav */}
-            <nav className="hidden items-center gap-0.5 text-[13px] sm:flex">
-              {LINKS.map(({ href, label }) => (
-                <a
-                  key={href}
-                  href={href}
-                  className={cx(
-                    "rounded-full px-3 py-1.5 transition-all duration-150 font-medium",
-                    isActive(href)
-                      ? "bg-ink-100 text-ink-900"
-                      : "text-ink-400 hover:text-ink-900 hover:bg-ink-100"
-                  )}
-                >
-                  {label}
-                </a>
-              ))}
+          <div className="overflow-hidden">
+            <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2">
+              <ul className="flex flex-col gap-0.5">
+                {LINKS.map(({ href, label }) => (
+                  <li key={href}>
+                    <a
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className={cx(
+                        "block rounded-full px-3 py-2 text-sm font-medium transition-all",
+                        isActive(href)
+                          ? "bg-ink-100 text-ink-900"
+                          : "text-ink-400 hover:bg-ink-100 hover:text-ink-900"
+                      )}
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+                <li className="pt-1">
+                  <a
+                    href="#alerts"
+                    onClick={() => setOpen(false)}
+                    className="block rounded-full px-3 py-2 text-sm font-semibold text-center bg-accent text-zinc-900 hover:bg-amber-400 transition-all"
+                  >
+                    Get Alerts
+                  </a>
+                </li>
+              </ul>
             </nav>
-
-            {/* CTA + Mobile hamburger */}
-            <div className="flex items-center gap-2">
-              <a
-                href="#alerts"
-                className="hidden sm:inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] font-semibold bg-accent text-zinc-900 hover:bg-amber-400 transition-all duration-150"
-              >
-                Get Alerts
-              </a>
-              <button
-                onClick={() => setOpen(true)}
-                className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900 transition-all sm:hidden"
-                aria-label="Open menu"
-              >
-                <RiMenuLine className="size-5" />
-              </button>
-            </div>
           </div>
-        </header>
-      </div>
-    </>
+        </div>
+      </header>
+    </div>
   )
 }
