@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import { AlertSignup } from "./components/AlertSignup";
 import { Footer } from "./components/Footer";
 import { HeroSection } from "./components/HeroSection";
@@ -23,6 +24,7 @@ export default function App() {
         <HistoryChart />
       </main>
       <Footer />
+      <Analytics />
       <MobilePriceBar />
     </div>
   );
