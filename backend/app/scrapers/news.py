@@ -7,6 +7,7 @@ entries without conflicting (unique constraint is on recorded_at+fuel_type+sourc
 """
 from __future__ import annotations
 
+import base64
 import logging
 import re
 from datetime import date, datetime, timedelta, timezone
@@ -181,30 +182,28 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
     return results
 
 
-def _resolve_google_news_url(html: str) -> str | None:
-    """Google News no longer redirects to the actual article — parse the page instead."""
-    soup = BeautifulSoup(html, "lxml")
-    # Meta refresh: <meta http-equiv="refresh" content="0;url=https://...">
-    meta = soup.find("meta", attrs={"http-equiv": re.compile("refresh", re.IGNORECASE)})
-    if meta:
-        content = meta.get("content", "")
-        m = re.search(r"url=(.+)", str(content), re.IGNORECASE)
-        if m:
-            target = m.group(1).strip("\"' ")
-            if target.startswith("http") and "google.com" not in target:
-                return target
-    # Canonical link
-    canonical = soup.find("link", rel="canonical")
-    if canonical:
-        href = canonical.get("href", "")
-        if href and href.startswith("http") and "google.com" not in href:
-            return href
-    # First non-Google anchor that looks like an article URL
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        if href.startswith("http") and "google.com" not in href and len(href) > 30:
-            return href
-    return None
+def _decode_google_news_url(url: str) -> str | None:
+    """Decode a Google News CBMi token to recover the original article URL.
+
+    Google News encodes article URLs as base64url protobuf in the path segment.
+    The original URL is the first http-prefixed byte sequence in the decoded blob.
+    """
+    m = re.search(r"/articles/([A-Za-z0-9_-]+)", url)
+    if not m:
+        return None
+    token = m.group(1)
+    # Restore standard base64 padding
+    pad = (4 - len(token) % 4) % 4
+    try:
+        decoded = base64.b64decode(token.replace("-", "+").replace("_", "/") + "=" * pad)
+    except Exception:
+        return None
+    # The original URL sits in the protobuf blob as a plain byte string
+    hit = re.search(rb"https?://[^\x00\x01-\x1f\x7f ]+", decoded)
+    if not hit:
+        return None
+    candidate = hit.group(0).decode("utf-8", errors="ignore").rstrip("/.,;)")
+    return candidate if "google.com" not in candidate else None
 
 
 def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
@@ -217,13 +216,13 @@ def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
         log.warning("article fetch failed %s: %s", url, exc)
         return []
 
-    # If we're still on Google's servers, extract the real article URL
+    # If we're still on Google's servers, decode the actual article URL
     if "news.google.com" in str(r.url):
-        actual_url = _resolve_google_news_url(r.text)
+        actual_url = _decode_google_news_url(url)
         if not actual_url:
-            log.warning("could not resolve google news redirect for %s", url)
+            log.warning("could not decode google news url: %s", url)
             return []
-        log.info("google news redirect resolved to %s", actual_url)
+        log.info("google news url decoded to %s", actual_url)
         try:
             with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
                 r = c.get(actual_url)
