@@ -14,6 +14,9 @@
   <img src="https://img.shields.io/badge/API-free%20%26%20open-f59e0b?style=flat-square" />
   <img src="https://img.shields.io/badge/stack-FastAPI%20%2B%20React-1b1b1b?style=flat-square" />
   <img src="https://img.shields.io/badge/deployed-Vercel%20%2B%20Fly.io-1b1b1b?style=flat-square" />
+  <br/>
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/deploy-backend.yml/badge.svg" alt="Deploy backend" />
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/scrape.yml/badge.svg" alt="Scrape fuel prices" />
 </p>
 
 ---
