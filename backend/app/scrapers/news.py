@@ -181,6 +181,32 @@ def _poll_feed(feed_url: str, max_age_hours: int = 48) -> list[tuple[str, dateti
     return results
 
 
+def _resolve_google_news_url(html: str) -> str | None:
+    """Google News no longer redirects to the actual article — parse the page instead."""
+    soup = BeautifulSoup(html, "lxml")
+    # Meta refresh: <meta http-equiv="refresh" content="0;url=https://...">
+    meta = soup.find("meta", attrs={"http-equiv": re.compile("refresh", re.IGNORECASE)})
+    if meta:
+        content = meta.get("content", "")
+        m = re.search(r"url=(.+)", str(content), re.IGNORECASE)
+        if m:
+            target = m.group(1).strip("\"' ")
+            if target.startswith("http") and "google.com" not in target:
+                return target
+    # Canonical link
+    canonical = soup.find("link", rel="canonical")
+    if canonical:
+        href = canonical.get("href", "")
+        if href and href.startswith("http") and "google.com" not in href:
+            return href
+    # First non-Google anchor that looks like an article URL
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if href.startswith("http") and "google.com" not in href and len(href) > 30:
+            return href
+    return None
+
+
 def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
     fallback_date = pub_date.date() if pub_date else date.today()
     try:
@@ -190,6 +216,21 @@ def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
     except Exception as exc:
         log.warning("article fetch failed %s: %s", url, exc)
         return []
+
+    # If we're still on Google's servers, extract the real article URL
+    if "news.google.com" in str(r.url):
+        actual_url = _resolve_google_news_url(r.text)
+        if not actual_url:
+            log.warning("could not resolve google news redirect for %s", url)
+            return []
+        log.info("google news redirect resolved to %s", actual_url)
+        try:
+            with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
+                r = c.get(actual_url)
+                r.raise_for_status()
+        except Exception as exc:
+            log.warning("article fetch failed %s: %s", actual_url, exc)
+            return []
 
     soup = BeautifulSoup(r.text, "lxml")
     body = (
