@@ -65,6 +65,6 @@ def world_comparison(fuel_type: str) -> dict:
         },
         "world_average_usd": world_avg["price_usd"] if world_avg else None,
         "delta_vs_world_pct": round(delta_pct, 1) if delta_pct is not None else None,
-        "neighbors": [r for r in world_rows if r["country"] != "World"],
+        "neighbors": [r for r in world_rows if r["country"] not in ("World", "Sri Lanka")],
         "fx_rate_used": USD_LKR_FALLBACK,
     }

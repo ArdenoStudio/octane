@@ -22,7 +22,7 @@ HISTORICAL_URL = "https://ceypetco.gov.lk/historical-prices/"
 LATEST_URL = "https://ceypetco.gov.lk/"
 
 PRICE_RE = re.compile(r"(\d{2,4}(?:\.\d{1,2})?)")
-DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d %B %Y", "%d %b %Y")
+DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%d %B %Y", "%d %b %Y")
 
 
 @dataclass(frozen=True)

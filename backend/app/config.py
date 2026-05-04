@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_pass: str = ""
     alert_from_email: str = "alerts@octane.lk"
+    site_url: str = "https://octane.lk"
     scraper_user_agent: str = "OctaneBot/1.0 (+https://octane.lk)"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

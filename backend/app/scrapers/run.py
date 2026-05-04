@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import logging
 
+from app.db import migrate
 from app.db.connection import cursor
-from app.scrapers import cpc, lanka_ioc, world
+from app.scrapers import cpc, lanka_ioc, news, world
 from app.services import alerts as alert_service
 
 log = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ def _persist_world(points: list[world.WorldPrice]) -> int:
 
 
 def run_all() -> dict[str, int]:
+    migrate.run()
     summary: dict[str, int] = {}
 
     try:
@@ -71,6 +73,13 @@ def run_all() -> dict[str, int]:
     except Exception as e:  # noqa: BLE001
         log.exception("lanka_ioc scraper failed: %s", e)
         summary["lanka_ioc"] = 0
+
+    try:
+        news_points = list(news.run())
+        summary["news"] = _persist_fuel(news_points)
+    except Exception as e:  # noqa: BLE001
+        log.exception("news scraper failed: %s", e)
+        summary["news"] = 0
 
     try:
         world_points = world.run()

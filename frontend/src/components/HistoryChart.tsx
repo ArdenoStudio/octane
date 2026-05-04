@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { RiDownload2Line } from "@remixicon/react";
 import {
   CartesianGrid,
   Line,
@@ -9,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, HistoryPoint } from "../lib/api";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
   petrol_92: "#f59e0b",
@@ -20,16 +22,16 @@ const COLORS: Record<FuelId, string> = {
 
 const RANGES = [
   { label: "1Y", days: 365 },
-  { label: "2Y", days: 730 },
   { label: "5Y", days: 365 * 5 },
-  { label: "All", days: 365 * 20 },
+  { label: "10Y", days: 365 * 10 },
+  { label: "All", days: 36500 },
 ];
 
 export function HistoryChart() {
   const [active, setActive] = useState<Set<FuelId>>(
     () => new Set(["petrol_92", "auto_diesel"])
   );
-  const [days, setDays] = useState<number>(730);
+  const [days, setDays] = useState<number>(365);
   const [series, setSeries] = useState<Record<FuelId, HistoryPoint[]>>({} as Record<FuelId, HistoryPoint[]>);
 
   useEffect(() => {
@@ -83,20 +85,43 @@ export function HistoryChart() {
               Every revision since the records begin.
             </h2>
           </div>
-          <div className="flex gap-1">
-            {RANGES.map((r) => (
-              <button
-                key={r.label}
-                onClick={() => setDays(r.days)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                  days === r.days
-                    ? "bg-ink-200 text-ink-950"
-                    : "border border-ink-700 text-ink-300 hover:bg-ink-800"
-                }`}
+          <div className="flex items-center gap-2">
+            <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
+              <RadioGroup
+                value={String(days)}
+                onValueChange={(v) => setDays(Number(v))}
+                className="relative inline-grid grid-cols-4 items-center gap-0 text-xs font-semibold"
               >
-                {r.label}
-              </button>
-            ))}
+                <div
+                  aria-hidden
+                  className="absolute inset-y-0 w-1/4 rounded-md bg-ink-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{
+                    transform: `translateX(${RANGES.findIndex((r) => r.days === days) * 100}%)`,
+                    boxShadow: "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
+                  }}
+                />
+                {RANGES.map((r) => (
+                  <label
+                    key={r.label}
+                    className={`relative z-10 inline-flex h-full min-w-8 cursor-pointer select-none items-center justify-center px-3 transition-colors ${
+                      days === r.days ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
+                    }`}
+                  >
+                    {r.label}
+                    <RadioGroupItem value={String(r.days)} className="sr-only" />
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+            <a
+              href={api.historyCsvUrl(Array.from(active), days)}
+              download
+              title="Download CSV"
+              className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
+            >
+              <RiDownload2Line className="size-3.5" />
+              CSV
+            </a>
           </div>
         </div>
 
@@ -109,8 +134,8 @@ export function HistoryChart() {
                 onClick={() => toggle(f)}
                 className={`flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                   on
-                    ? "border-ink-600 bg-ink-800 text-ink-100"
-                    : "border-ink-800 text-ink-400 hover:border-ink-700"
+                    ? "border-ink-700 bg-white text-ink-200 shadow-sm"
+                    : "border-ink-800 text-ink-600 hover:border-ink-700 hover:text-ink-400"
                 }`}
               >
                 <span
