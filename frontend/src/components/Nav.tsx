@@ -79,13 +79,15 @@ export function Nav() {
   return (
     <div className={cx(
       "sticky z-30 flex pointer-events-none",
-      // Only transition position/padding — NOT when snapping open so border-radius
-      // change is instant (avoids backdrop-blur clipping mid-transition)
-      open ? "top-0 px-0 items-start" : "top-5 px-4 justify-center transition-[top,padding] duration-500"
+      open
+        ? "top-0 px-0 items-start transition-[top,padding] duration-500 ease-out"
+        : "top-5 px-4 justify-center transition-[top,padding] duration-500 ease-in-out delay-[140ms]"
     )}>
       <header
         className={cx(
-          "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500",
+          open
+            ? "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-out"
+            : "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-in-out delay-[140ms]",
           open ? "max-w-full rounded-b-3xl" : "max-w-2xl rounded-full",
           // No backdrop-blur when open — blur clips to border-radius at the GPU
           // compositing level, causing the circular clipping artifact
@@ -139,8 +141,10 @@ export function Nav() {
         {/* Mobile menu — grid-rows animates height, opacity fades content */}
         <div
           className={cx(
-            "grid sm:hidden transition-[grid-template-rows,opacity] duration-300 ease-in-out",
-            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            "grid sm:hidden",
+            open
+              ? "grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out delay-100"
+              : "grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-[180ms] ease-in"
           )}
         >
           <div className="overflow-hidden">
