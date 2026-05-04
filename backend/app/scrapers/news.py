@@ -247,24 +247,32 @@ def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
         log.warning("article fetch failed %s: %s", url, exc)
         return []
 
-    # If we're still on Google's servers, decode the actual article URL
+    # If we're still on Google's servers, try two paths:
+    # 1) decode the CBMi token → fetch the real article
+    # 2) fall back to extracting from the Google News preview page itself
     if "news.google.com" in str(r.url):
         actual_url = _decode_google_news_url(url)
-        if not actual_url:
-            log.warning("could not decode google news url: %s", url)
-            return []
-        log.info("google news url decoded to %s", actual_url)
-        try:
-            with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
-                r = c.get(actual_url)
-                r.raise_for_status()
-        except Exception as exc:
-            log.warning("article fetch failed %s: %s", actual_url, exc)
-            return []
+        if actual_url:
+            log.info("google news url decoded to %s", actual_url)
+            try:
+                with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
+                    r2 = c.get(actual_url)
+                    r2.raise_for_status()
+                    r = r2
+            except Exception as exc:
+                log.warning("decoded article fetch failed %s: %s", actual_url, exc)
+                # Fall through and mine the Google preview page instead
+        else:
+            log.info("CBMi decode failed — mining Google News preview page for %s", url)
 
     soup = BeautifulSoup(r.text, "lxml")
+
+    # For Google News preview pages, the article text lives in a specific container.
+    # Try targeted selectors first, then fall back to broad body extraction.
     body = (
-        soup.find("article")
+        soup.find("div", attrs={"data-n-au": True})           # Google News article body attr
+        or soup.find(class_=re.compile(r"Da8qDe|article-body|JoGW1b", re.IGNORECASE))
+        or soup.find("article")
         or soup.find(class_=re.compile(r"article|story|content|post-body", re.IGNORECASE))
         or soup.find("main")
         or soup.body
