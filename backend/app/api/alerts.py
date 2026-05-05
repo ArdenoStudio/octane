@@ -18,6 +18,7 @@ def subscribe(payload: AlertSubscribeIn):
         fuel_type=payload.fuel_type,
         threshold=payload.threshold,
         direction=payload.direction,
+        telegram_chat_id=payload.telegram_chat_id,
     )
     return {"id": alert_id, "ok": True}
 

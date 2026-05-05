@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     site_url: str = "https://octane.lk"
     scraper_user_agent: str = "OctaneBot/1.0 (+https://octane.lk)"
     admin_email: str = ""
+    telegram_bot_token: str = ""
     rate_limit: str = "60/minute"
     # Regex for CORS — covers all Vercel preview deployments automatically.
     # Set CORS_ORIGIN_REGEX="" in production if you want to disable this.

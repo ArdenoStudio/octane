@@ -119,6 +119,7 @@ export const api = {
     fuel_type: FuelId;
     threshold: number;
     direction: "above" | "below";
+    telegram_chat_id?: string;
   }) => post<{ id: number; ok: boolean }>("/v1/alerts/subscribe", payload),
   changes: (limit = 200) =>
     get<{ source: string; changes: PriceChangeRow[] }>(
