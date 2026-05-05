@@ -9,7 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from app.api import alerts, calculator, comparison, embed, meta, prices
+from app.api import alerts, calculator, comparison, digest, embed, meta, prices
 from app.config import get_settings
 from app.db import migrate
 
@@ -45,6 +45,7 @@ app.include_router(prices.router)
 app.include_router(comparison.router)
 app.include_router(calculator.router)
 app.include_router(alerts.router)
+app.include_router(digest.router)
 app.include_router(embed.router)
 
 

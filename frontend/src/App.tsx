@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import { AlertSignup } from "./components/AlertSignup";
+import { DigestSignup } from "./components/DigestSignup";
 import { Footer } from "./components/Footer";
 import { HeroSection } from "./components/HeroSection";
 import { HistoryChart } from "./components/HistoryChart";
@@ -22,6 +23,7 @@ export default function App() {
         <WorldComparison />
         <TripCalculator />
         <HistoryChart />
+        <DigestSignup />
       </main>
       <Footer />
       <Analytics />

@@ -139,6 +139,8 @@ export const api = {
     params.set("days", String(days));
     return `${API_BASE}/v1/prices/history.csv?${params.toString()}`;
   },
+  subscribeDigest: (email: string) =>
+    post<{ ok: boolean; id: number }>("/v1/digest/subscribe", { email }),
   historyJsonUrl: (fuels: FuelId[], days: number): string => {
     const params = new URLSearchParams();
     fuels.forEach((f) => params.append("fuel", f));
