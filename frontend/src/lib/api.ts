@@ -57,6 +57,21 @@ export interface TripResp {
   price_recorded_at: string;
 }
 
+export interface ForecastPoint {
+  date: string;
+  price_lkr: number;
+}
+
+export interface ForecastResp {
+  fuel_type: FuelId;
+  source: string;
+  r_squared: number | null;
+  slope_lkr_per_day: number | null;
+  regression_points: ForecastPoint[];
+  forecast_points: ForecastPoint[];
+  error?: string;
+}
+
 export interface PriceChangeRow {
   fuel_type: FuelId;
   recorded_at: string;
@@ -121,6 +136,10 @@ export const api = {
     direction: "above" | "below";
     telegram_chat_id?: string;
   }) => post<{ id: number; ok: boolean }>("/v1/alerts/subscribe", payload),
+  forecast: (fuel: FuelId, historyDays = 365, horizonDays = 90) =>
+    get<ForecastResp>(
+      `/v1/prices/forecast?fuel=${fuel}&history_days=${historyDays}&horizon_days=${horizonDays}`
+    ),
   changes: (limit = 200) =>
     get<{ source: string; changes: PriceChangeRow[] }>(
       `/v1/prices/changes?limit=${limit}`

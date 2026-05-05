@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { RiDownload2Line } from "@remixicon/react";
+import { RiDownload2Line, RiLineChartLine } from "@remixicon/react";
 import {
   CartesianGrid,
   Line,
@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, HistoryPoint, PriceChangeRow } from "../lib/api";
+import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, ForecastResp, HistoryPoint, PriceChangeRow } from "../lib/api";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
@@ -45,6 +45,10 @@ export function HistoryChart() {
   const [revisionsLoading, setRevisionsLoading] = useState(false);
   const [revisionsError, setRevisionsError] = useState<string | null>(null);
 
+  // Forecast / trend overlay
+  const [showForecast, setShowForecast] = useState(false);
+  const [forecasts, setForecasts] = useState<Record<FuelId, ForecastResp>>({} as Record<FuelId, ForecastResp>);
+
   // Fetch daily series whenever active fuels, range, or mode changes
   useEffect(() => {
     if (mode !== "daily") return;
@@ -60,6 +64,23 @@ export function HistoryChart() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days, mode, Array.from(active).join(",")]);
 
+  // Fetch forecasts for active fuels when trend overlay is toggled on
+  useEffect(() => {
+    if (!showForecast) return;
+    const fuelsNeeded = Array.from(active).filter((f) => !forecasts[f]);
+    if (fuelsNeeded.length === 0) return;
+    Promise.all(
+      fuelsNeeded.map((f) =>
+        api.forecast(f, Math.min(days, 365), 90).then((r) => [f, r] as const)
+      )
+    ).then((entries) => {
+      const next = { ...forecasts };
+      for (const [f, r] of entries) next[f] = r;
+      setForecasts(next);
+    }).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showForecast, Array.from(active).join(",")]);
+
   // Fetch all revision events once when first switching to revisions mode
   useEffect(() => {
     if (mode !== "revisions" || allRevisions !== null) return;
@@ -74,6 +95,37 @@ export function HistoryChart() {
       })
       .finally(() => setRevisionsLoading(false));
   }, [mode, allRevisions]);
+
+  // Merge forecast regression + forward projection into chart data
+  const chartDataWithForecast = useMemo(() => {
+    if (!showForecast) return null;
+
+    const allDates = new Set<string>();
+    const regByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
+    const fwdByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
+
+    for (const f of active) {
+      const fc = forecasts[f];
+      if (!fc) continue;
+      regByFuel[f] = new Map(fc.regression_points.map((p) => [p.date, p.price_lkr]));
+      fwdByFuel[f] = new Map(fc.forecast_points.map((p) => [p.date, p.price_lkr]));
+      fc.regression_points.forEach((p) => allDates.add(p.date));
+      fc.forecast_points.forEach((p) => allDates.add(p.date));
+    }
+
+    return Array.from(allDates)
+      .sort()
+      .map((d) => {
+        const row: Record<string, string | number> = { date: d };
+        for (const f of active) {
+          const reg = regByFuel[f]?.get(d);
+          const fwd = fwdByFuel[f]?.get(d);
+          if (reg != null) row[`${f}_reg`] = reg;
+          if (fwd != null) row[`${f}_fwd`] = fwd;
+        }
+        return row;
+      });
+  }, [showForecast, forecasts, active]);
 
   const chartData = useMemo(() => {
     if (mode === "revisions" && allRevisions) {
@@ -130,6 +182,20 @@ export function HistoryChart() {
     if (next.size === 0) next.add(f);
     setActive(next);
   }
+
+  // Merge actual + forecast points by date for the combined chart
+  const mergedData = useMemo(() => {
+    if (!chartDataWithForecast) return chartData;
+    const map = new Map<string, Record<string, string | number>>();
+    for (const row of chartData) map.set(row.date as string, { ...row });
+    for (const row of chartDataWithForecast) {
+      const existing = map.get(row.date as string) ?? { date: row.date };
+      map.set(row.date as string, { ...existing, ...row });
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      (a.date as string).localeCompare(b.date as string)
+    );
+  }, [chartData, chartDataWithForecast]);
 
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
@@ -205,6 +271,20 @@ export function HistoryChart() {
               </RadioGroup>
             </div>
 
+            {/* Trend / forecast toggle */}
+            <button
+              onClick={() => setShowForecast((v) => !v)}
+              title="Toggle 90-day trend forecast"
+              className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                showForecast
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
+              }`}
+            >
+              <RiLineChartLine className="size-3.5" />
+              Trend
+            </button>
+
             <a
               href={api.historyCsvUrl(Array.from(active), days)}
               download
@@ -229,6 +309,17 @@ export function HistoryChart() {
         {mode === "revisions" && (
           <p className="mt-2 text-xs text-ink-500">
             Only dates when prices actually changed — no daily interpolation.
+          </p>
+        )}
+        {showForecast && (
+          <p className="mt-2 text-xs text-ink-500">
+            <span className="font-semibold text-accent">Trend</span>: dashed line shows a linear regression fit over the selected period. Projected 90 days ahead — for indicative purposes only.
+            {Object.keys(forecasts).length > 0 && (() => {
+              const f = Array.from(active).find((k) => forecasts[k]?.r_squared != null);
+              if (!f) return null;
+              const r2 = forecasts[f]?.r_squared;
+              return r2 != null ? <> R² = {(r2 * 100).toFixed(0)}%.</> : null;
+            })()}
           </p>
         )}
 
@@ -267,7 +358,7 @@ export function HistoryChart() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <LineChart data={mergedData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="date"
@@ -316,6 +407,43 @@ export function HistoryChart() {
                     isAnimationActive={false}
                   />
                 ))}
+
+                {/* Forecast: regression line over history */}
+                {showForecast && Array.from(active).map((f) =>
+                  forecasts[f] ? (
+                    <Line
+                      key={`${f}_reg`}
+                      type="linear"
+                      dataKey={`${f}_reg`}
+                      stroke={COLORS[f]}
+                      strokeWidth={1.5}
+                      strokeDasharray="6 3"
+                      dot={false}
+                      connectNulls
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                  ) : null
+                )}
+
+                {/* Forecast: forward projection (90 days ahead) */}
+                {showForecast && Array.from(active).map((f) =>
+                  forecasts[f] ? (
+                    <Line
+                      key={`${f}_fwd`}
+                      type="linear"
+                      dataKey={`${f}_fwd`}
+                      stroke={COLORS[f]}
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      strokeOpacity={0.6}
+                      dot={false}
+                      connectNulls
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                  ) : null
+                )}
               </LineChart>
             </ResponsiveContainer>
           )}

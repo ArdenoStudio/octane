@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 
 from app import fuel as fuel_mod
 from app.services import prices
+from app.services import forecast as forecast_svc
 
 router = APIRouter(prefix="/v1/prices", tags=["prices"])
 
@@ -126,3 +127,15 @@ def history_json(
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/forecast", summary="Linear-regression price trend + forecast")
+def forecast(
+    fuel: str = Query(..., description="Fuel type id, e.g. 'petrol_92'"),
+    source: str = Query("cpc"),
+    history_days: int = Query(365, ge=30, le=3650, description="Days of history to fit regression on"),
+    horizon_days: int = Query(90, ge=7, le=365, description="Days ahead to forecast"),
+):
+    if fuel not in fuel_mod.ALL_FUELS:
+        raise HTTPException(status_code=400, detail=f"unknown fuel '{fuel}'")
+    return forecast_svc.forecast(fuel, source, history_days, horizon_days)
