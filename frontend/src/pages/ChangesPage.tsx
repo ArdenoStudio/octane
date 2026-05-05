@@ -30,6 +30,11 @@ export function ChangesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    document.title = "Price Changes — Octane";
+    return () => { document.title = "Octane — Live Sri Lanka Fuel Prices"; };
+  }, []);
+
+  useEffect(() => {
     api
       .changes()
       .then((r) => setRows(r.changes))

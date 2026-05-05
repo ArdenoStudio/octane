@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
 import { Badge } from "../components/ui/Badge";
@@ -41,6 +42,11 @@ function Source({
 }
 
 export function DataPage() {
+  useEffect(() => {
+    document.title = "Data Sources — Octane";
+    return () => { document.title = "Octane — Live Sri Lanka Fuel Prices"; };
+  }, []);
+
   return (
     <div className="min-h-screen">
       <Nav />

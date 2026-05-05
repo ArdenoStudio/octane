@@ -35,4 +35,19 @@
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://octane.lk/data</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://octane.lk/developers</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://octane.lk/manage</loc>
+    <changefreq>never</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>

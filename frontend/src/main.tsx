@@ -7,6 +7,7 @@ import { ChangesPage } from "./pages/ChangesPage";
 import { DataPage } from "./pages/DataPage";
 import { DevelopersPage } from "./pages/DevelopersPage";
 import { ManageAlerts } from "./pages/ManageAlerts";
+import { DesignLabPage } from "./pages/__design_lab/page";
 import "./index.css";
 
 function Root() {
@@ -27,6 +28,7 @@ function Root() {
           <Route path="/manage" element={<ManageAlerts />} />
           <Route path="/data" element={<DataPage />} />
           <Route path="/developers" element={<DevelopersPage />} />
+          <Route path="/__design_lab" element={<DesignLabPage />} />
         </Routes>
       </BrowserRouter>
     </>

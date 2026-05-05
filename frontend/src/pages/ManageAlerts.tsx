@@ -9,6 +9,11 @@ import { Button } from "../components/ui/Button";
 export function ManageAlerts() {
   const token = new URLSearchParams(window.location.search).get("token") ?? "";
 
+  useEffect(() => {
+    document.title = "Manage Alerts — Octane";
+    return () => { document.title = "Octane — Live Sri Lanka Fuel Prices"; };
+  }, []);
+
   const [alert, setAlert] = useState<ManageAlertResp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
