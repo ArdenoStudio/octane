@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from datetime import date, timedelta
 from typing import List
 
@@ -77,5 +78,51 @@ def history_csv(
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get(
+    "/history.json",
+    response_class=StreamingResponse,
+    summary="Download price history as JSON",
+    responses={200: {"content": {"application/json": {}}}},
+)
+def history_json(
+    fuel: List[str] = Query(
+        default=list(fuel_mod.ALL_FUELS),
+        description="One or more fuel type ids. Defaults to all fuels.",
+    ),
+    days: int = Query(3650, ge=1, le=36500, description="Number of days of history to include."),
+    source: str = Query("cpc"),
+):
+    requested = [f for f in fuel if f in fuel_mod.ALL_FUELS]
+    if not requested:
+        raise HTTPException(status_code=400, detail="No valid fuel types specified.")
+
+    rows: list[dict] = []
+    for f in requested:
+        for point in prices.history(f, days, source):
+            rows.append({
+                "recorded_at": point["recorded_at"],
+                "fuel_type": f,
+                "source": source,
+                "price_lkr": point["price_lkr"],
+            })
+
+    rows.sort(key=lambda r: (r["recorded_at"], r["fuel_type"]))
+
+    payload = {
+        "generated_at": date.today().isoformat(),
+        "source": source,
+        "fuels": requested,
+        "days": days,
+        "data": rows,
+    }
+
+    filename = f"octane-fuel-prices-{date.today().isoformat()}.json"
+    return StreamingResponse(
+        iter([json.dumps(payload, indent=2)]),
+        media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

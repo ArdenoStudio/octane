@@ -214,6 +214,15 @@ export function HistoryChart() {
               <RiDownload2Line className="size-3.5" />
               CSV
             </a>
+            <a
+              href={api.historyJsonUrl(Array.from(active), days)}
+              download
+              title="Download JSON"
+              className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
+            >
+              <RiDownload2Line className="size-3.5" />
+              JSON
+            </a>
           </div>
         </div>
 
