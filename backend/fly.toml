@@ -16,9 +16,11 @@ primary_region = "sin"
 [http_service]
   internal_port = 8000
   force_https = true
+  # Keep at least one Machine warm in sin — min_machines_running=0 meant both could stop,
+  # so browsers hit long cold-start / gateway timeouts ("Failed to fetch").
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ["app"]
 
   [http_service.concurrency]
@@ -36,7 +38,7 @@ primary_region = "sin"
 [[vm]]
   cpus = 1
   cpu_kind = "shared"
-  memory = "256mb"
+  memory = "512mb"
 
 # Default deploy wait (~5m) was too tight when Machines API probes lag or cold starts spike.
 [deploy]
