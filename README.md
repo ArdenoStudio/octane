@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/stack-FastAPI%20%2B%20React-1b1b1b?style=flat-square" />
   <img src="https://img.shields.io/badge/deployed-Vercel%20%2B%20Fly.io-1b1b1b?style=flat-square" />
   <br/>
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/ci.yml/badge.svg" alt="CI" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/deploy-backend.yml/badge.svg" alt="Deploy backend" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/scrape.yml/badge.svg" alt="Scrape fuel prices" />
 </p>
@@ -47,9 +48,9 @@ Octane tracks CPC fuel prices daily the moment they're revised, and presents the
 
 ```
 octane/
+├── .github/        GitHub Actions — CI, deploy, scrape, digest
 ├── backend/        FastAPI app, scrapers, DB schema, alert mailer
-├── frontend/       React dashboard, embed widget, public API docs
-└── infra/          Railway + Vercel deploy configs
+└── frontend/       React dashboard, embed widget, Fly/Vercel configs
 ```
 
 ## Local dev
@@ -57,7 +58,8 @@ octane/
 ```bash
 # Backend
 cd backend
-python -m venv .venv && source .venv/Scripts/activate
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env          # set DATABASE_URL
 python -m app.db.init         # create tables
