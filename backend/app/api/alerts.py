@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from app import fuel as fuel_mod

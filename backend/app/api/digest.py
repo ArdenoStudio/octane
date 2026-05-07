@@ -1,7 +1,5 @@
 """Weekly digest subscription endpoints."""
 
-from __future__ import annotations
-
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, EmailStr
 
