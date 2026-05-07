@@ -1,6 +1,12 @@
-const API_BASE =
-  (import.meta.env.VITE_API_BASE as string | undefined) ||
-  "http://localhost:8000";
+/** Production default when env is absent at build time — avoids fetching localhost from HTTPS deployments. */
+const rawApiBase =
+  typeof import.meta.env.VITE_API_BASE === "string" && import.meta.env.VITE_API_BASE.trim()
+    ? import.meta.env.VITE_API_BASE.trim().replace(/\/$/, "")
+    : import.meta.env.PROD
+      ? "https://octane-api.fly.dev"
+      : "http://localhost:8000";
+
+const API_BASE = rawApiBase;
 
 export type FuelId =
   | "petrol_92"

@@ -60,6 +60,15 @@ export default defineConfig({
             },
           },
           {
+            urlPattern: /^https:\/\/octane-api\.fly\.dev\/v1\//,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "octane-api-fly",
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "google-fonts-stylesheets" },
