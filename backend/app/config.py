@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql://octane:octane@localhost:5432/octane"
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5173,https://octane.lk"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
@@ -17,9 +17,8 @@ class Settings(BaseSettings):
     rate_limit: str = "60/minute"
     # POST subscribe endpoints (alerts, digest) — prevent abuse (stricter than default).
     rate_limit_writes: str = "10/minute"
-    # Regex for CORS — covers all Vercel preview deployments automatically.
-    # Set CORS_ORIGIN_REGEX="" in production if you want to disable this.
-    cors_origin_regex: str = r"https://octane[a-z0-9-]*\.vercel\.app"
+    # Regex covers typical Vercel preview hostnames (*.vercel.app).
+    cors_origin_regex: str = r"https://[a-z0-9-]+\.vercel\.app"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
