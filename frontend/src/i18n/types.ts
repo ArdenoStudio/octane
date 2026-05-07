@@ -4,6 +4,8 @@ export type Locale = "en" | "si" | "ta";
 
 export interface Messages {
   nav: {
+    /** Landmark label for `<nav aria-label>` */
+    mainNavAria: string;
     prices: string;
     calculator: string;
     history: string;

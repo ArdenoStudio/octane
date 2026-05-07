@@ -2,6 +2,7 @@ import type { Messages } from "../types";
 
 export const SI: Messages = {
   nav: {
+    mainNavAria: "ප්‍රධාන මෙනුව",
     prices: "මිල ගණන්",
     calculator: "ගණකය",
     history: "ඉතිහාසය",

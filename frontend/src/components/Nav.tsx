@@ -11,6 +11,14 @@ const HREFS = ["#prices", "#calc", "#history", "/changes", "/data", "/developers
 
 const ANCHOR_IDS = ["prices", "calc", "history"]
 
+/** Two-line orb CTA label for English-like phrases; single word stays one line */
+function orbAlertLines(full: string): [string] | [string, string] {
+  const trimmed = full.trim()
+  const i = trimmed.indexOf(" ")
+  if (i === -1) return [trimmed]
+  return [trimmed.slice(0, i), trimmed.slice(i + 1)]
+}
+
 const LOGO_SVG = (
   <svg viewBox="300 560 890 370" className="h-6 w-auto" aria-label="Octane">
     <g transform="translate(336,590)" fill="#09090b">
@@ -79,148 +87,195 @@ export function Nav() {
     return pathname === href
   }
 
+  const orbLines = orbAlertLines(m.nav.getAlerts)
+
   return (
     <div className={cx(
-      "sticky z-30 flex pointer-events-none",
+      "sticky z-30 flex w-full justify-center pointer-events-none min-w-0",
       open
         ? "top-0 px-0 items-start transition-[top,padding] duration-500 ease-out"
-        : "top-5 px-4 justify-center transition-[top,padding] duration-500 ease-in-out delay-[140ms]"
+        : "top-5 px-4 transition-[top,padding] duration-500 ease-in-out delay-[140ms]",
     )}>
-      <header
-        className={cx(
-          open
-            ? "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-out"
-            : "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-in-out delay-[140ms]",
-          open ? "max-w-full rounded-b-3xl" : "max-w-2xl rounded-full",
-          // No backdrop-blur when open — blur clips to border-radius at the GPU
-          // compositing level, causing the circular clipping artifact
-          open
-            ? "bg-white shadow-xl shadow-black/[0.08] border border-black/[0.06]"
-            : scrolled
-              ? "bg-white/90 shadow-xl shadow-black/[0.08] backdrop-blur-xl border border-black/[0.06]"
-              : "bg-white/60 shadow-sm shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
-        )}
-      >
-        <div className="flex h-11 items-center justify-between px-3">
-          {/* Logo */}
-          <a href="/" className="flex items-center pl-1">{LOGO_SVG}</a>
-
-          {/* Desktop nav */}
-          <nav className="hidden items-center gap-0.5 text-[13px] sm:flex">
-            {links.map(({ href, label }) => (
-              <a
-                key={href}
-                href={href}
-                className={cx(
-                  "rounded-full px-3 py-1.5 transition-all duration-150 font-medium",
-                  isActive(href)
-                    ? "bg-ink-100 text-ink-900"
-                    : "text-ink-400 hover:text-ink-900 hover:bg-ink-100"
-                )}
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
-
-          {/* CTA + Mobile hamburger */}
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1 pl-2 border-l border-black/[0.08] ml-1">
-              {locales.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLocale(l)}
-                  className={cx(
-                    "rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors",
-                    l === locale
-                      ? "bg-ink-100 text-ink-900"
-                      : "text-ink-400 hover:text-ink-800 hover:bg-ink-50",
-                  )}
-                  aria-current={l === locale ? "true" : undefined}
-                  aria-label={localeShortLabel[l]}
-                >
-                  {localeShortLabel[l]}
-                </button>
-              ))}
-            </div>
-
-            <a
-              href="#alerts"
-              className="hidden sm:inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] font-semibold bg-accent text-zinc-900 hover:bg-amber-400 transition-all duration-150"
-            >
-              {m.nav.getAlerts}
-            </a>
-            <button
-              onClick={() => setOpen(!open)}
-              className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900 transition-all sm:hidden"
-              aria-label={open ? m.nav.menuClose : m.nav.menuOpen}
-            >
-              {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu — grid-rows animates height, opacity fades content */}
-        <div
+      <div className={cx(
+        "flex w-full min-w-0 pointer-events-none",
+        open ? "flex-col items-stretch" : "flex-row items-center justify-center gap-2.5 sm:gap-3.5 lg:gap-4",
+      )}>
+        <header
           className={cx(
-            "grid sm:hidden",
             open
-              ? "grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out delay-100"
-              : "grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-[180ms] ease-in"
+              ? "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-out"
+              : "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-in-out delay-[140ms]",
+            open ? "max-w-full rounded-b-3xl" : "max-w-full sm:max-w-4xl lg:max-w-5xl rounded-full",
+            // No backdrop-blur when open — blur clips to border-radius at the GPU
+            // compositing level, causing the circular clipping artifact
+            open
+              ? "bg-white shadow-xl shadow-black/[0.08] border border-black/[0.06]"
+              : scrolled
+                ? "bg-white/92 shadow-lg shadow-black/[0.07] backdrop-blur-xl border border-black/[0.055]"
+                : "bg-white/65 shadow-md shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
           )}
         >
-          <div className="overflow-hidden">
-            <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2">
-              <ul className="flex flex-col gap-0.5">
-                {links.map(({ href, label }) => (
-                  <li key={href}>
-                    <a
-                      href={href}
-                      onClick={() => setOpen(false)}
-                      className={cx(
-                        "block rounded-full px-3 py-2 text-sm font-medium transition-all",
-                        isActive(href)
-                          ? "bg-ink-100 text-ink-900"
-                          : "text-ink-400 hover:bg-ink-100 hover:text-ink-900"
-                      )}
-                    >
-                      {label}
-                    </a>
-                  </li>
-                ))}
-                <li className="pt-1">
-                  <a
-                    href="#alerts"
-                    onClick={() => setOpen(false)}
-                    className="block rounded-full px-3 py-2 text-sm font-semibold text-center bg-accent text-zinc-900 hover:bg-amber-400 transition-all"
-                  >
-                    {m.nav.getAlerts}
-                  </a>
-                </li>
-                <li className="flex flex-wrap gap-1 px-3 pt-2 border-t border-black/[0.05] mt-2">
+          <div className="flex h-12 w-full items-center gap-3 px-3 sm:gap-5 sm:px-5">
+            <a
+              href="/"
+              className="flex shrink-0 items-center rounded-md pl-1 text-zinc-900 outline-none ring-zinc-900/10 transition-opacity hover:opacity-80 focus-visible:ring-2"
+            >
+              {LOGO_SVG}
+            </a>
+
+            <nav
+              className="hidden min-h-12 min-w-0 flex-1 items-center justify-center gap-0 lg:gap-0.5 sm:flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              aria-label={m.nav.mainNavAria}
+            >
+              {links.map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  className={cx(
+                    "relative shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-medium tracking-tight text-zinc-500 outline-none transition-colors duration-150",
+                    "hover:bg-zinc-100/85 hover:text-zinc-900",
+                    "focus-visible:ring-2 focus-visible:ring-zinc-900/18 focus-visible:ring-offset-2",
+                    isActive(href) &&
+                      "font-semibold text-zinc-900 after:pointer-events-none after:absolute after:inset-x-2 after:bottom-1 after:h-0.5 after:rounded-full after:bg-accent after:opacity-[0.95]",
+                  )}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+
+            <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-2">
+              <div
+                className="relative hidden shrink-0 sm:flex ml-4 border-l border-zinc-200/90 pl-2.5"
+                role="group"
+                aria-label="Language"
+              >
+                <div className="flex gap-0.5 rounded-full border border-black/[0.065] bg-zinc-100/55 p-0.5 shadow-[inset_0_1px_2px_rgb(255_255_255/0.5)]">
                   {locales.map((l) => (
                     <button
                       key={l}
                       type="button"
-                      onClick={() => {
-                        setLocale(l)
-                        setOpen(false)
-                      }}
+                      onClick={() => setLocale(l)}
                       className={cx(
-                        "rounded-full px-2.5 py-1 text-xs font-semibold",
-                        l === locale ? "bg-ink-100 text-ink-900" : "text-ink-400 bg-ink-50",
+                        "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-150",
+                        l === "en" && "tracking-wide uppercase text-[10px]",
+                        l === locale
+                          ? "bg-zinc-900 text-white shadow-sm"
+                          : "text-zinc-500 hover:bg-white/95 hover:text-zinc-900",
                       )}
+                      aria-current={l === locale ? "true" : undefined}
+                      aria-label={localeShortLabel[l]}
                     >
                       {localeShortLabel[l]}
                     </button>
                   ))}
-                </li>
-              </ul>
-            </nav>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="rounded-full p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/15 sm:hidden"
+                aria-expanded={open}
+                aria-label={open ? m.nav.menuClose : m.nav.menuOpen}
+              >
+                {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
+
+          <div
+            className={cx(
+              "grid sm:hidden",
+              open
+                ? "grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out delay-100"
+                : "grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-[180ms] ease-in",
+            )}
+          >
+            <div className="overflow-hidden">
+              <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2">
+                <ul className="flex flex-col gap-0.5">
+                  {links.map(({ href, label }) => (
+                    <li key={href}>
+                      <a
+                        href={href}
+                        onClick={() => setOpen(false)}
+                        className={cx(
+                          "relative flex items-center rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
+                          "hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/15",
+                          isActive(href)
+                            ? "bg-zinc-100/85 pl-4 font-semibold text-zinc-900 before:absolute before:left-2 before:top-[0.6875rem] before:bottom-[0.6875rem] before:w-0.5 before:rounded-full before:bg-accent"
+                            : "text-zinc-500",
+                        )}
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                  <li className="pt-2">
+                    <a
+                      href="#alerts"
+                      onClick={() => setOpen(false)}
+                      className="block rounded-full px-4 py-2.5 text-center text-sm font-semibold tracking-tight shadow-sm bg-accent text-zinc-900 transition hover:bg-amber-400"
+                    >
+                      {m.nav.getAlerts}
+                    </a>
+                  </li>
+                  <li className="mt-3 border-t border-black/[0.05] pt-3">
+                    <div className="flex flex-wrap gap-1 rounded-xl border border-black/[0.055] bg-zinc-100/45 p-1">
+                      {locales.map((l) => (
+                        <button
+                          key={l}
+                          type="button"
+                          className={cx(
+                            "min-h-9 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                            l === "en" && "tracking-wide uppercase",
+                            l === locale
+                              ? "bg-zinc-900 text-white shadow-sm"
+                              : "text-zinc-500 hover:bg-white hover:text-zinc-900",
+                          )}
+                          onClick={() => {
+                            setLocale(l)
+                            setOpen(false)
+                          }}
+                        >
+                          {localeShortLabel[l]}
+                        </button>
+                      ))}
+                    </div>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </header>
+
+        {!open && (
+          <a
+            href="#alerts"
+            aria-label={m.nav.getAlerts}
+            className={cx(
+              "pointer-events-auto hidden shrink-0 sm:flex",
+              "aspect-square h-[3.625rem] w-[3.625rem] lg:h-[4rem] lg:w-[4rem]",
+              "flex-col items-center justify-center gap-px rounded-full px-2 text-center",
+              "border border-orange-950/25 bg-accent text-[10px] font-bold leading-snug tracking-tight text-zinc-900",
+              "shadow-lg shadow-accent/18 transition-all duration-200",
+              "hover:-translate-y-0.5 hover:bg-amber-400 hover:shadow-xl hover:shadow-accent/28",
+              "active:translate-y-0 active:scale-[0.96]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 focus-visible:ring-offset-2",
+            )}
+          >
+            {orbLines.length === 1 ? (
+              <span className="max-w-[5rem] text-balance">{orbLines[0]}</span>
+            ) : (
+              <>
+                <span className="leading-none">{orbLines[0]}</span>
+                <span className="leading-none">{orbLines[1]}</span>
+              </>
+            )}
+          </a>
+        )}
+      </div>
     </div>
   )
 }

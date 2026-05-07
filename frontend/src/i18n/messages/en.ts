@@ -2,6 +2,7 @@ import type { Messages } from "../types";
 
 export const EN: Messages = {
   nav: {
+    mainNavAria: "Main navigation",
     prices: "Prices",
     calculator: "Calculator",
     history: "History",

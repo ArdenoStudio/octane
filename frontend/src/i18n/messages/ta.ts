@@ -2,6 +2,7 @@ import type { Messages } from "../types";
 
 export const TA: Messages = {
   nav: {
+    mainNavAria: "முதன்மை வழிசெலுத்தல்",
     prices: "விலைகள்",
     calculator: "கணிப்பான்",
     history: "வரலாறு",
