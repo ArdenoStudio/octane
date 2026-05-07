@@ -27,9 +27,9 @@ primary_region = "sin"
     soft_limit = 20
 
   [[http_service.checks]]
-    interval = "30s"
+    interval = "15s"
     timeout = "10s"
-    grace_period = "30s"
+    grace_period = "60s"
     method = "GET"
     path = "/"
 
@@ -37,3 +37,7 @@ primary_region = "sin"
   cpus = 1
   cpu_kind = "shared"
   memory = "256mb"
+
+# Default deploy wait (~5m) was too tight when Machines API probes lag or cold starts spike.
+[deploy]
+  wait_timeout = "15m"
