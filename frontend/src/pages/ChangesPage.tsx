@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownLine, RiArrowUpLine } from "@remixicon/react";
-import { api, FUEL_DISPLAY, FuelId, PriceChangeRow } from "../lib/api";
+import { api, FuelId, PriceChangeRow } from "../lib/api";
+import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr, shortDate } from "../lib/format";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
@@ -26,6 +27,7 @@ function groupByDate(rows: PriceChangeRow[]): [string, PriceChangeRow[]][] {
 }
 
 export function ChangesPage() {
+  const fuelLabel = useFuelLabel();
   const [rows, setRows] = useState<PriceChangeRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +99,7 @@ export function ChangesPage() {
                             <span
                               className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-medium ${FUEL_ACCENT[r.fuel_type as FuelId]}`}
                             >
-                              {FUEL_DISPLAY[r.fuel_type as FuelId]}
+                              {fuelLabel(r.fuel_type as FuelId)}
                             </span>
                             <span className="font-display text-lg font-extrabold tracking-tightest text-ink-100">
                               {lkr(r.price_lkr, { showSymbol: false })}

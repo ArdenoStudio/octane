@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, TripResp } from "../lib/api";
+import { api, FUEL_ORDER, FuelId, TripResp } from "../lib/api";
+import { useFuelLabel } from "../i18n/LocaleProvider";
 import { compactLkr } from "../lib/format";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { ShareButtons } from "./ui/ShareButtons";
 
 export function TripCalculator() {
+  const fuelLabel = useFuelLabel();
   const [distance, setDistance] = useState("115");
   const [efficiency, setEfficiency] = useState("12");
   const [fuel, setFuel] = useState<FuelId>("petrol_92");
@@ -78,7 +80,7 @@ export function TripCalculator() {
                 onChange={(e) => setFuel(e.target.value as FuelId)}
               >
                 {FUEL_ORDER.map((f) => (
-                  <option key={f} value={f}>{FUEL_DISPLAY[f]}</option>
+                  <option key={f} value={f}>{fuelLabel(f)}</option>
                 ))}
               </select>
             </div>
@@ -99,11 +101,11 @@ export function TripCalculator() {
               </div>
               <div className="mt-2 text-sm text-ink-300">
                 {result.litres_needed.toFixed(2)} L · LKR{" "}
-                {result.price_lkr_per_l.toFixed(2)}/L · {FUEL_DISPLAY[result.fuel_type]}
+                {result.price_lkr_per_l.toFixed(2)}/L · {fuelLabel(result.fuel_type)}
               </div>
               <ShareButtons
                 className="mt-4"
-                text={`🚗 My ${result.distance_km} km trip will cost ${compactLkr(result.cost_lkr)} in Sri Lanka.\n(${result.litres_needed.toFixed(1)} L of ${FUEL_DISPLAY[result.fuel_type]} @ LKR ${result.price_lkr_per_l.toFixed(0)}/L)\n\nCalculate yours 👇`}
+                text={`🚗 My ${result.distance_km} km trip will cost ${compactLkr(result.cost_lkr)} in Sri Lanka.\n(${result.litres_needed.toFixed(1)} L of ${fuelLabel(result.fuel_type)} @ LKR ${result.price_lkr_per_l.toFixed(0)}/L)\n\nCalculate yours 👇`}
               />
             </div>
           )}

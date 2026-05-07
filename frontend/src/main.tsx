@@ -7,6 +7,7 @@ import { ChangesPage } from "./pages/ChangesPage";
 import { DataPage } from "./pages/DataPage";
 import { DevelopersPage } from "./pages/DevelopersPage";
 import { ManageAlerts } from "./pages/ManageAlerts";
+import { LocaleProvider } from "./i18n/LocaleProvider";
 import "./index.css";
 
 function Root() {
@@ -35,6 +36,8 @@ function Root() {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <Root />
-  </React.StrictMode>
+    <LocaleProvider>
+      <Root />
+    </LocaleProvider>
+  </React.StrictMode>,
 );

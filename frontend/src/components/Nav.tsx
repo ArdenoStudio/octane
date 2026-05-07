@@ -1,16 +1,13 @@
 import { RiCloseLine, RiMenuLine } from "@remixicon/react"
 import React from "react"
+import { useLocation } from "react-router-dom"
 import useScroll from "../lib/useScroll"
+import { useLocale } from "../i18n/LocaleProvider"
 import { cx } from "../lib/utils"
 
-const LINKS = [
-  { href: "#prices", label: "Prices" },
-  { href: "#calc", label: "Calculator" },
-  { href: "#history", label: "History" },
-  { href: "/changes", label: "Changes" },
-  { href: "/data", label: "Data" },
-  { href: "/developers", label: "Developers" },
-]
+const LINK_KEYS = ["prices", "calculator", "history", "changes", "data", "developers"] as const
+
+const HREFS = ["#prices", "#calc", "#history", "/changes", "/data", "/developers"] as const
 
 const ANCHOR_IDS = ["prices", "calc", "history"]
 
@@ -69,7 +66,13 @@ export function Nav() {
   const [open, setOpen] = React.useState(false)
   const scrolled = useScroll(10)
   const activeSection = useActiveSection()
-  const pathname = window.location.pathname
+  const pathname = useLocation().pathname
+  const { m, locale, setLocale, locales, localeShortLabel } = useLocale()
+
+  const links = LINK_KEYS.map((key, i) => ({
+    href: HREFS[i],
+    label: m.nav[key],
+  }))
 
   function isActive(href: string) {
     if (href.startsWith("#")) return activeSection === href
@@ -104,7 +107,7 @@ export function Nav() {
 
           {/* Desktop nav */}
           <nav className="hidden items-center gap-0.5 text-[13px] sm:flex">
-            {LINKS.map(({ href, label }) => (
+            {links.map(({ href, label }) => (
               <a
                 key={href}
                 href={href}
@@ -122,16 +125,36 @@ export function Nav() {
 
           {/* CTA + Mobile hamburger */}
           <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1 pl-2 border-l border-black/[0.08] ml-1">
+              {locales.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLocale(l)}
+                  className={cx(
+                    "rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors",
+                    l === locale
+                      ? "bg-ink-100 text-ink-900"
+                      : "text-ink-400 hover:text-ink-800 hover:bg-ink-50",
+                  )}
+                  aria-current={l === locale ? "true" : undefined}
+                  aria-label={localeShortLabel[l]}
+                >
+                  {localeShortLabel[l]}
+                </button>
+              ))}
+            </div>
+
             <a
               href="#alerts"
               className="hidden sm:inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] font-semibold bg-accent text-zinc-900 hover:bg-amber-400 transition-all duration-150"
             >
-              Get Alerts
+              {m.nav.getAlerts}
             </a>
             <button
               onClick={() => setOpen(!open)}
               className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900 transition-all sm:hidden"
-              aria-label={open ? "Close menu" : "Open menu"}
+              aria-label={open ? m.nav.menuClose : m.nav.menuOpen}
             >
               {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
             </button>
@@ -150,7 +173,7 @@ export function Nav() {
           <div className="overflow-hidden">
             <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2">
               <ul className="flex flex-col gap-0.5">
-                {LINKS.map(({ href, label }) => (
+                {links.map(({ href, label }) => (
                   <li key={href}>
                     <a
                       href={href}
@@ -172,8 +195,26 @@ export function Nav() {
                     onClick={() => setOpen(false)}
                     className="block rounded-full px-3 py-2 text-sm font-semibold text-center bg-accent text-zinc-900 hover:bg-amber-400 transition-all"
                   >
-                    Get Alerts
+                    {m.nav.getAlerts}
                   </a>
+                </li>
+                <li className="flex flex-wrap gap-1 px-3 pt-2 border-t border-black/[0.05] mt-2">
+                  {locales.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => {
+                        setLocale(l)
+                        setOpen(false)
+                      }}
+                      className={cx(
+                        "rounded-full px-2.5 py-1 text-xs font-semibold",
+                        l === locale ? "bg-ink-100 text-ink-900" : "text-ink-400 bg-ink-50",
+                      )}
+                    >
+                      {localeShortLabel[l]}
+                    </button>
+                  ))}
                 </li>
               </ul>
             </nav>

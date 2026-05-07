@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownSLine, RiArrowUpSLine, RiFlashlightLine } from "@remixicon/react";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
+import { api, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
+import { useLocale } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
 import { BadgeDelta } from "./ui/BadgeDelta";
@@ -50,6 +51,7 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 }
 
 export function PriceStrip() {
+  const { m, fuelLabel } = useLocale();
   const [rows, setRows] = useState<PriceRow[] | null>(null);
   const [changes, setChanges] = useState<PriceChangeRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export function PriceStrip() {
   function buildShareMessage(): string {
     const lines = FUEL_ORDER.map((f) => {
       const row = cpcByFuel[f];
-      return row ? `${FUEL_DISPLAY[f]}: LKR ${row.price_lkr}` : null;
+      return row ? `${fuelLabel(f)}: LKR ${row.price_lkr}` : null;
     }).filter(Boolean);
     return `🇱🇰 Sri Lanka fuel prices today:\n${lines.join(" · ")}\n\nTrack prices, set alerts & calculate trip costs 👇`;
   }
@@ -109,14 +111,14 @@ export function PriceStrip() {
       <FadeContainer>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <FadeDiv>
-            <Badge>Live prices · CPC</Badge>
+            <Badge>{m.prices.badge}</Badge>
             <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tightest sm:text-4xl">
-              Sri Lanka fuel prices, today.
+              {m.prices.title}
             </h1>
           </FadeDiv>
           {lastRevision && (
             <FadeDiv className="text-right text-sm text-ink-400">
-              Last revision{" "}
+              {m.prices.lastRevision}{" "}
               <span className="text-ink-200">{shortDate(lastRevision)}</span>
               <span className="ml-1 text-ink-400">· {relativeFromNow(lastRevision)}</span>
             </FadeDiv>
@@ -129,14 +131,14 @@ export function PriceStrip() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
               <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
                 <RiFlashlightLine className="size-4" />
-                Prices revised today
+                {m.prices.revisedToday}
               </span>
               <span className="flex flex-wrap gap-x-4 gap-y-1">
                 {todayRevisions.map((c) => {
                   const up = (c.delta_lkr ?? 0) > 0;
                   return (
                     <span key={c.fuel_type} className="flex items-center gap-1 text-sm text-ink-300">
-                      <span className="text-ink-500">{FUEL_DISPLAY[c.fuel_type as FuelId]}</span>
+                      <span className="text-ink-500">{fuelLabel(c.fuel_type as FuelId)}</span>
                       {up ? (
                         <RiArrowUpSLine className="size-4 text-red-400" />
                       ) : (
@@ -157,7 +159,7 @@ export function PriceStrip() {
 
         {error && (
           <FadeDiv className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-            Couldn't load prices. The API may be offline.{" "}
+            {m.prices.loadError}{" "}
             <span className="text-red-400">{error}</span>
           </FadeDiv>
         )}
@@ -182,7 +184,7 @@ export function PriceStrip() {
                   <div className="relative flex flex-col gap-3">
                     {/* Label + delta badge */}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="label">{FUEL_DISPLAY[fuel]}</div>
+                      <div className="label">{fuelLabel(fuel)}</div>
                       {hasDelta && (
                         <BadgeDelta
                           aria-label={flat ? "no change" : up ? `price up ${Math.round(delta!)} rupees` : `price down ${Math.abs(Math.round(delta!))} rupees`}
@@ -202,7 +204,7 @@ export function PriceStrip() {
                     {/* Date + sparkline */}
                     <div className="flex items-end justify-between">
                       <div className="text-xs text-ink-400">
-                        {row ? `LKR · ${shortDate(row.recorded_at)}` : "Awaiting data"}
+                        {row ? `${m.prices.lkrPer} ${shortDate(row.recorded_at)}` : m.prices.awaitingData}
                       </div>
                       {history && row && (
                         <Sparkline data={history} color={SPARK_COLOR[fuel]} />
@@ -218,7 +220,7 @@ export function PriceStrip() {
         {rows && (
           <FadeDiv className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-ink-400">
-              Source:{" "}
+              {m.prices.footerSource}{" "}
               <a
                 href="https://ceypetco.gov.lk"
                 target="_blank"
@@ -227,7 +229,7 @@ export function PriceStrip() {
               >
                 Ceylon Petroleum Corporation
               </a>
-              {" · "}Scraped daily at 8 AM · Independent, not affiliated.
+              {m.prices.footerLegal}
             </p>
             <ShareButtons text={buildShareMessage()} />
           </FadeDiv>

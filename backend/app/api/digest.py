@@ -1,12 +1,18 @@
 """Weekly digest subscription endpoints."""
+
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, EmailStr
 
+from app.config import get_settings
+from app.email_disposable import is_disposable_email
+from app.rate_limits import limiter
 from app.services import digest as digest_svc
 
 router = APIRouter(prefix="/v1/digest", tags=["digest"])
+
+_DIGEST_SUBSCRIBE_LIMIT = get_settings().rate_limit_writes
 
 
 class DigestSubscribeIn(BaseModel):
@@ -14,7 +20,13 @@ class DigestSubscribeIn(BaseModel):
 
 
 @router.post("/subscribe")
-def subscribe(payload: DigestSubscribeIn):
+@limiter.limit(_DIGEST_SUBSCRIBE_LIMIT)
+def subscribe(request: Request, payload: DigestSubscribeIn):
+    if is_disposable_email(str(payload.email)):
+        raise HTTPException(
+            status_code=400,
+            detail="Please use a permanent email address, not a disposable inbox.",
+        )
     result = digest_svc.subscribe(str(payload.email))
     return {"ok": True, "id": result["id"]}
 
