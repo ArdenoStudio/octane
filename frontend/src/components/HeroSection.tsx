@@ -5,9 +5,18 @@ import {
   RiCodeBoxLine,
   RiGasStationLine,
 } from "@remixicon/react";
+import React from "react";
+import { useLocale } from "../i18n/LocaleProvider";
 import { cx } from "../lib/utils";
 import { FadeContainer, FadeDiv, FadeSpan } from "./ui/Fade";
 import { HeroBackground } from "./HeroBackground";
+
+const FEATURE_ICON_HREFS = [
+  { Icon: RiGasStationLine, href: "#prices" },
+  { Icon: RiBellLine, href: "#alerts" },
+  { Icon: RiCarLine, href: "#calc" },
+  { Icon: RiCodeBoxLine, href: "#api" },
+] as const;
 
 interface FeatureCard {
   title: string;
@@ -15,33 +24,6 @@ interface FeatureCard {
   Icon: React.ElementType;
   href: string;
 }
-
-const FEATURES: FeatureCard[] = [
-  {
-    title: "Live prices",
-    description: "CPC fuel prices updated daily, the moment revisions are published.",
-    Icon: RiGasStationLine,
-    href: "#prices",
-  },
-  {
-    title: "Price alerts",
-    description: "Set a threshold. Get emailed the instant any fuel crosses it.",
-    Icon: RiBellLine,
-    href: "#alerts",
-  },
-  {
-    title: "Trip calculator",
-    description: "Distance + efficiency = your exact fuel cost at today's prices.",
-    Icon: RiCarLine,
-    href: "#calc",
-  },
-  {
-    title: "Free API",
-    description: "Open REST endpoints. No key needed for basics. Build something.",
-    Icon: RiCodeBoxLine,
-    href: "#api",
-  },
-];
 
 function Card({ title, description, Icon, href }: FeatureCard) {
   return (
@@ -85,6 +67,15 @@ function Card({ title, description, Icon, href }: FeatureCard) {
 }
 
 export function HeroSection() {
+  const { m } = useLocale();
+
+  const featureCards = m.hero.features.map((feature, i) => ({
+    ...FEATURE_ICON_HREFS[i],
+    title: feature.title,
+    description: feature.description,
+    href: FEATURE_ICON_HREFS[i].href,
+  }));
+
   return (
     <section
       aria-label="hero"
@@ -104,12 +95,10 @@ export function HeroSection() {
             className="inline-flex max-w-full items-center gap-3 rounded-full bg-white/60 px-2.5 py-0.5 pr-3 pl-0.5 text-sm font-medium text-ink-200 ring-1 ring-ink-800 shadow-lg shadow-accent/10 backdrop-blur-[1px] transition-colors hover:bg-accent/5"
           >
             <span className="shrink-0 truncate rounded-full bg-ink-900 px-2.5 py-1 text-xs text-ink-400">
-              Live
+              {m.hero.live}
             </span>
             <span className="flex items-center gap-1 truncate">
-              <span className="w-full truncate">
-                CPC prices updated daily
-              </span>
+              <span className="w-full truncate">{m.hero.cpcPricesDaily}</span>
               <RiArrowRightUpLine className="size-4 shrink-0 text-ink-400" />
             </span>
           </a>
@@ -117,22 +106,16 @@ export function HeroSection() {
 
         {/* Headline */}
         <h1 className="mt-8 font-display text-5xl font-extrabold tracking-tightest text-ink-100 sm:text-7xl sm:leading-[1.05]">
-          <FadeSpan delay={60}>Real</FadeSpan>{" "}
-          <FadeSpan delay={110}>prices.</FadeSpan>
+          <FadeSpan delay={60}>{m.hero.h1a}</FadeSpan>{" "}
+          <FadeSpan delay={110}>{m.hero.h1b}</FadeSpan>
           <br />
-          <FadeSpan delay={160}>Right</FadeSpan>{" "}
-          <FadeSpan delay={210}>now.</FadeSpan>
+          <FadeSpan delay={160}>{m.hero.h1c}</FadeSpan>{" "}
+          <FadeSpan delay={210}>{m.hero.h1d}</FadeSpan>
         </h1>
 
         {/* Subheadline */}
         <p className="mt-5 max-w-xl text-base text-balance text-ink-400 sm:mt-7 sm:text-xl">
-          <FadeSpan delay={270}>
-            Sri Lanka fuel prices tracked daily from CPC —
-          </FadeSpan>{" "}
-          <FadeSpan delay={310}>
-            with price history, alerts, a trip calculator,
-          </FadeSpan>{" "}
-          <FadeSpan delay={350}>and a free API.</FadeSpan>
+          <FadeSpan delay={290}>{m.hero.sublead}</FadeSpan>
         </p>
 
         {/* CTAs */}
@@ -141,13 +124,13 @@ export function HeroSection() {
             href="#prices"
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border-b-[1.5px] border-amber-600 bg-gradient-to-b from-amber-400 to-accent px-5 py-3 text-sm font-semibold leading-4 tracking-wide text-zinc-900 shadow-[0_0_0_2px_rgba(0,0,0,0.04),0_0_14px_0_rgba(255,255,255,0.19)] transition-all duration-200 ease-in-out hover:shadow-amber-300 whitespace-nowrap"
           >
-            Check today's prices
+            {m.hero.ctaPrices}
           </a>
           <a
             href="#alerts"
             className="inline-flex items-center gap-1 rounded-md border border-ink-700 px-5 py-3 text-sm font-semibold text-ink-300 transition-all duration-150 hover:bg-ink-900 hover:text-ink-200 whitespace-nowrap"
           >
-            Set a price alert
+            {m.hero.ctaAlerts}
             <RiArrowRightUpLine className="size-4 text-ink-400" />
           </a>
         </FadeDiv>
@@ -155,8 +138,8 @@ export function HeroSection() {
         {/* Feature cards */}
         <FadeDiv delay={500} className="mt-14 w-full">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            {FEATURES.map((f) => (
-              <Card key={f.title} {...f} />
+            {featureCards.map((f) => (
+              <Card key={f.href} {...f} />
             ))}
           </div>
         </FadeDiv>

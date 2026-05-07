@@ -44,7 +44,11 @@ def _parse_date(raw: str) -> date | None:
 
 
 def _parse_price(cell: str) -> float | None:
-    match = PRICE_RE.search(cell.replace(",", ""))
+    s = cell.strip()
+    # European-style decimal comma when no period is present (e.g. "317,00").
+    if "." not in s and s.count(",") == 1:
+        s = re.sub(r"(\d+)\,(\d{1,2})", r"\1.\2", s)
+    match = PRICE_RE.search(s.replace(",", ""))
     if not match:
         return None
     try:

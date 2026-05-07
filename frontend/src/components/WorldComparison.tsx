@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { api, ComparisonResp, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api"
+import { api, ComparisonResp, FUEL_ORDER, FuelId } from "../lib/api"
+import { useFuelLabel } from "../i18n/LocaleProvider"
 import { shortDate } from "../lib/format"
 
 const CODES: Record<string, string> = {
@@ -83,6 +84,7 @@ function AnimatedRow({
 }
 
 export function WorldComparison() {
+  const fuelLabel = useFuelLabel()
   const [fuel, setFuel] = useState<FuelId>("petrol_95")
   const [data, setData] = useState<ComparisonResp | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -162,7 +164,7 @@ export function WorldComparison() {
           </div>
 
           <p className="mt-3 text-sm text-ink-600 mb-6">
-            {FUEL_DISPLAY[fuel]} · price per litre in USD
+            {fuelLabel(fuel)} · price per litre in USD
           </p>
 
           {/* Sliding tab indicator */}
@@ -176,7 +178,7 @@ export function WorldComparison() {
                   fuel === f ? "text-ink-100" : "text-ink-600 hover:text-ink-400"
                 }`}
               >
-                {FUEL_DISPLAY[f]}
+                {fuelLabel(f)}
               </button>
             ))}
             <span

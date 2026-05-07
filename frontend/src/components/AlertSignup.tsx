@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { RiTelegramLine } from "@remixicon/react";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api";
+import { api, FUEL_ORDER, FuelId } from "../lib/api";
+import { useFuelLabel } from "../i18n/LocaleProvider";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 
 export function AlertSignup() {
+  const fuelLabel = useFuelLabel();
   const [email, setEmail] = useState("");
   const [fuel, setFuel] = useState<FuelId>("petrol_92");
   const [threshold, setThreshold] = useState("380");
@@ -90,7 +92,7 @@ export function AlertSignup() {
                   onChange={(e) => setFuel(e.target.value as FuelId)}
                 >
                   {FUEL_ORDER.map((f) => (
-                    <option key={f} value={f}>{FUEL_DISPLAY[f]}</option>
+                    <option key={f} value={f}>{fuelLabel(f)}</option>
                   ))}
                 </select>
               </div>

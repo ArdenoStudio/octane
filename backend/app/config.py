@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     admin_email: str = ""
     telegram_bot_token: str = ""
     rate_limit: str = "60/minute"
+    # POST subscribe endpoints (alerts, digest) — prevent abuse (stricter than default).
+    rate_limit_writes: str = "10/minute"
     # Regex for CORS — covers all Vercel preview deployments automatically.
     # Set CORS_ORIGIN_REGEX="" in production if you want to disable this.
     cors_origin_regex: str = r"https://octane[a-z0-9-]*\.vercel\.app"

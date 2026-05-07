@@ -1,16 +1,27 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from app import fuel as fuel_mod
 from app.api.schemas import AlertSubscribeIn
+from app.config import get_settings
+from app.email_disposable import is_disposable_email
+from app.rate_limits import limiter
 from app.services import alerts
 
 router = APIRouter(prefix="/v1/alerts", tags=["alerts"])
 
+_ALERT_SUBSCRIBE_LIMIT = get_settings().rate_limit_writes
+
 
 @router.post("/subscribe")
-def subscribe(payload: AlertSubscribeIn):
+@limiter.limit(_ALERT_SUBSCRIBE_LIMIT)
+def subscribe(request: Request, payload: AlertSubscribeIn):
+    if is_disposable_email(str(payload.email)):
+        raise HTTPException(
+            status_code=400,
+            detail="Please use a permanent email address, not a disposable inbox.",
+        )
     if payload.fuel_type not in fuel_mod.ALL_FUELS:
         raise HTTPException(status_code=400, detail=f"unknown fuel '{payload.fuel_type}'")
     alert_id = alerts.subscribe(

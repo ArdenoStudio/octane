@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { RiBellLine, RiCheckLine, RiExternalLinkLine } from "@remixicon/react";
-import { api, FUEL_DISPLAY, FuelId, ManageAlertResp } from "../lib/api";
+import { api, FuelId, ManageAlertResp } from "../lib/api";
+import { useFuelLabel } from "../i18n/LocaleProvider";
 import { shortDate } from "../lib/format";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
 import { Button } from "../components/ui/Button";
 
 export function ManageAlerts() {
+  const fuelLabel = useFuelLabel();
   const token = new URLSearchParams(window.location.search).get("token") ?? "";
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function ManageAlerts() {
             <div className="card p-6 sm:p-8">
               <div className="label">Manage alert</div>
               <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tightest text-ink-100 sm:text-3xl">
-                {FUEL_DISPLAY[alert.fuel_type as FuelId]} alert
+                {fuelLabel(alert.fuel_type as FuelId)} alert
               </h1>
 
               <dl className="mt-6 grid grid-cols-2 gap-4">
@@ -96,7 +98,7 @@ export function ManageAlerts() {
                 <div>
                   <dt className="label">Fuel</dt>
                   <dd className="mt-1 text-sm text-ink-200">
-                    {FUEL_DISPLAY[alert.fuel_type as FuelId]}
+                    {fuelLabel(alert.fuel_type as FuelId)}
                   </dd>
                 </div>
                 <div>

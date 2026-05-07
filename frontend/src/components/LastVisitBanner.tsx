@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownLine, RiArrowUpLine, RiCloseLine } from "@remixicon/react";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api";
+import { api, FUEL_ORDER, FuelId } from "../lib/api";
+import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow } from "../lib/format";
 
 interface StoredPrices {
@@ -18,6 +19,7 @@ const KEY_VISIT = "octane_last_visit";
 const KEY_PRICES = "octane_last_prices";
 
 export function LastVisitBanner() {
+  const fuelLabel = useFuelLabel();
   const [changes, setChanges] = useState<PriceChange[]>([]);
   const [since, setSince] = useState<string>("");
   const [dismissed, setDismissed] = useState(false);
@@ -78,7 +80,7 @@ export function LastVisitBanner() {
                 key={c.fuel}
                 className="flex items-center gap-1 text-ink-300"
               >
-                <span className="text-ink-400">{FUEL_DISPLAY[c.fuel]}</span>
+                <span className="text-ink-400">{fuelLabel(c.fuel)}</span>
                 {c.delta > 0 ? (
                   <RiArrowUpLine className="size-3.5 text-red-500" />
                 ) : (

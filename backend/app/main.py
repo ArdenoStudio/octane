@@ -4,23 +4,18 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 
 from app.api import alerts, calculator, comparison, digest, embed, meta, prices
 from app.config import get_settings
 from app.db import migrate
+from app.rate_limits import limiter
 
 log = logging.getLogger(__name__)
 
 settings = get_settings()
-
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=[settings.rate_limit],
-)
 
 app = FastAPI(
     title="Octane API",

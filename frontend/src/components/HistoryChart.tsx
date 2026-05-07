@@ -10,7 +10,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId, ForecastResp, HistoryPoint, PriceChangeRow } from "../lib/api";
+import { api, FUEL_ORDER, FuelId, ForecastResp, HistoryPoint, PriceChangeRow } from "../lib/api";
+import { useFuelLabel } from "../i18n/LocaleProvider";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
@@ -31,6 +32,7 @@ const RANGES = [
 type ChartMode = "daily" | "revisions";
 
 export function HistoryChart() {
+  const fuelLabel = useFuelLabel();
   const [active, setActive] = useState<Set<FuelId>>(
     () => new Set(["petrol_92", "auto_diesel"])
   );
@@ -341,7 +343,7 @@ export function HistoryChart() {
                   className="h-2 w-2 rounded-full"
                   style={{ background: on ? COLORS[f] : "#d4d4d8" }}
                 />
-                {FUEL_DISPLAY[f]}
+                {fuelLabel(f)}
               </button>
             );
           })}
@@ -383,7 +385,7 @@ export function HistoryChart() {
                   labelStyle={{ color: "#71717a" }}
                   formatter={(value: number, name: string) => [
                     `LKR ${value.toFixed(2)}`,
-                    FUEL_DISPLAY[name as FuelId] ?? name,
+                    FUEL_ORDER.includes(name as FuelId) ? fuelLabel(name as FuelId) : name,
                   ]}
                 />
                 {mode === "revisions" &&

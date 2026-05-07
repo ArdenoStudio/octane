@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { api, FUEL_DISPLAY, FUEL_ORDER, FuelId } from "../lib/api";
+import { api, FUEL_ORDER, FuelId } from "../lib/api";
+import { useFuelLabel } from "../i18n/LocaleProvider";
 
 export function EmbedSection() {
+  const fuelLabel = useFuelLabel();
   const [fuel, setFuel] = useState<FuelId>("petrol_92");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [copied, setCopied] = useState(false);
@@ -41,7 +43,7 @@ export function EmbedSection() {
             >
               {FUEL_ORDER.map((f) => (
                 <option key={f} value={f}>
-                  {FUEL_DISPLAY[f]}
+                  {fuelLabel(f)}
                 </option>
               ))}
             </select>
