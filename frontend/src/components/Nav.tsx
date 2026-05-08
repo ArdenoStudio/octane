@@ -99,8 +99,8 @@ export function Nav() {
           className={cx(
             "relative isolate overflow-hidden pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-500",
             scrolled
-              ? "border border-black/[0.06] bg-white/90 shadow-[0_18px_55px_rgba(24,24,27,0.09)] backdrop-blur-xl"
-              : "border border-white/70 bg-white/72 shadow-[0_16px_44px_rgba(24,24,27,0.06)] backdrop-blur-md",
+              ? "border border-black/[0.07] bg-white/95 shadow-[0_18px_55px_rgba(24,24,27,0.1)] backdrop-blur-xl"
+              : "border border-black/[0.06] bg-white/85 shadow-[0_8px_32px_rgba(24,24,27,0.07)] backdrop-blur-lg",
             "before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white before:to-transparent before:content-['']",
             "after:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] after:content-['']",
           )}
