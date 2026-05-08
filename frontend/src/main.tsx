@@ -6,6 +6,7 @@ import { PageLoader } from "./components/PageLoader";
 import { ChangesPage } from "./pages/ChangesPage";
 import { DataPage } from "./pages/DataPage";
 import { DevelopersPage } from "./pages/DevelopersPage";
+import { DesignLabPage } from "./pages/DesignLabPage";
 import { ManageAlerts } from "./pages/ManageAlerts";
 import { LocaleProvider } from "./i18n/LocaleProvider";
 import "./index.css";
@@ -28,6 +29,7 @@ function Root() {
           <Route path="/manage" element={<ManageAlerts />} />
           <Route path="/data" element={<DataPage />} />
           <Route path="/developers" element={<DevelopersPage />} />
+          <Route path="/design-lab" element={<DesignLabPage />} />
         </Routes>
       </BrowserRouter>
     </>
