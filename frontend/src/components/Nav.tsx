@@ -1,4 +1,4 @@
-import { RiCloseLine, RiMenuLine } from "@remixicon/react"
+import { RiBellLine, RiCloseLine, RiMenuLine } from "@remixicon/react"
 import React from "react"
 import { useLocation } from "react-router-dom"
 import useScroll from "../lib/useScroll"
@@ -102,6 +102,7 @@ export function Nav() {
       )}>
         <header
           className={cx(
+            "relative isolate overflow-hidden",
             open
               ? "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-out"
               : "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-in-out delay-[140ms]",
@@ -109,16 +110,19 @@ export function Nav() {
             // No backdrop-blur when open — blur clips to border-radius at the GPU
             // compositing level, causing the circular clipping artifact
             open
-              ? "bg-white shadow-xl shadow-black/[0.08] border border-black/[0.06]"
+              ? "border border-black/[0.06] bg-white shadow-xl shadow-black/[0.08]"
               : scrolled
-                ? "bg-white/92 shadow-lg shadow-black/[0.07] backdrop-blur-xl border border-black/[0.055]"
-                : "bg-white/65 shadow-md shadow-black/[0.04] backdrop-blur-md border border-black/[0.05]",
+                ? "border border-black/[0.06] bg-white/90 shadow-[0_18px_55px_rgba(24,24,27,0.09)] backdrop-blur-xl"
+                : "border border-white/70 bg-white/72 shadow-[0_16px_44px_rgba(24,24,27,0.06)] backdrop-blur-md",
+            !open &&
+              "before:pointer-events-none before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white before:to-transparent before:content-['']",
+            !open && "after:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] after:content-['']",
           )}
         >
-          <div className="flex h-12 w-full items-center gap-3 px-3 sm:gap-5 sm:px-5">
+          <div className="relative z-10 flex h-12 w-full items-center gap-3 px-3 sm:gap-5 sm:px-5">
             <a
               href="/"
-              className="flex shrink-0 items-center rounded-md pl-1 text-zinc-900 outline-none ring-zinc-900/10 transition-opacity hover:opacity-80 focus-visible:ring-2"
+              className="flex shrink-0 items-center rounded-md pl-1 text-zinc-900 outline-none ring-zinc-900/10 transition-all duration-150 hover:-translate-y-px hover:opacity-85 focus-visible:ring-2"
             >
               {LOGO_SVG}
             </a>
@@ -132,11 +136,10 @@ export function Nav() {
                   key={href}
                   href={href}
                   className={cx(
-                    "relative shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-medium tracking-tight text-zinc-500 outline-none transition-colors duration-150",
-                    "hover:bg-zinc-100/85 hover:text-zinc-900",
-                    "focus-visible:ring-2 focus-visible:ring-zinc-900/18 focus-visible:ring-offset-2",
-                    isActive(href) &&
-                      "font-semibold text-zinc-900 after:pointer-events-none after:absolute after:inset-x-2 after:bottom-1 after:h-0.5 after:rounded-full after:bg-accent after:opacity-[0.95]",
+                    "relative shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-medium tracking-tight outline-none transition-all duration-150",
+                    "text-zinc-500 hover:-translate-y-px hover:bg-white/85 hover:text-zinc-900 hover:shadow-sm hover:shadow-black/[0.03]",
+                    "focus-visible:ring-2 focus-visible:ring-zinc-900/18 focus-visible:ring-offset-2 focus-visible:ring-offset-white/70",
+                    isActive(href) && "bg-zinc-900 text-white shadow-sm shadow-black/10 hover:bg-zinc-900 hover:text-white",
                   )}
                 >
                   {label}
@@ -146,11 +149,11 @@ export function Nav() {
 
             <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-2">
               <div
-                className="relative hidden shrink-0 sm:flex ml-4 border-l border-zinc-200/90 pl-2.5"
+                className="relative ml-3 hidden shrink-0 border-l border-zinc-200/80 pl-2.5 sm:flex"
                 role="group"
                 aria-label="Language"
               >
-                <div className="flex gap-0.5 rounded-full border border-black/[0.065] bg-zinc-100/55 p-0.5 shadow-[inset_0_1px_2px_rgb(255_255_255/0.5)]">
+                <div className="flex gap-0.5 rounded-full border border-black/[0.07] bg-white/55 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(24,24,27,0.04)]">
                   {locales.map((l) => (
                     <button
                       key={l}
@@ -160,8 +163,8 @@ export function Nav() {
                         "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-150",
                         l === "en" && "tracking-wide uppercase text-[10px]",
                         l === locale
-                          ? "bg-zinc-900 text-white shadow-sm"
-                          : "text-zinc-500 hover:bg-white/95 hover:text-zinc-900",
+                          ? "bg-zinc-900 text-white shadow-[0_2px_8px_rgba(24,24,27,0.16)]"
+                          : "text-zinc-500 hover:bg-white hover:text-zinc-900",
                       )}
                       aria-current={l === locale ? "true" : undefined}
                       aria-label={localeShortLabel[l]}
@@ -201,10 +204,10 @@ export function Nav() {
                         href={href}
                         onClick={() => setOpen(false)}
                         className={cx(
-                          "relative flex items-center rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
+                          "relative flex items-center rounded-xl px-3 py-2.5 text-sm font-medium outline-none transition-all",
                           "hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/15",
                           isActive(href)
-                            ? "bg-zinc-100/85 pl-4 font-semibold text-zinc-900 before:absolute before:left-2 before:top-[0.6875rem] before:bottom-[0.6875rem] before:w-0.5 before:rounded-full before:bg-accent"
+                            ? "bg-zinc-900 pl-4 font-semibold text-white shadow-sm before:absolute before:left-2 before:top-[0.6875rem] before:bottom-[0.6875rem] before:w-0.5 before:rounded-full before:bg-accent"
                             : "text-zinc-500",
                         )}
                       >
@@ -216,8 +219,9 @@ export function Nav() {
                     <a
                       href="#alerts"
                       onClick={() => setOpen(false)}
-                      className="block rounded-full px-4 py-2.5 text-center text-sm font-semibold tracking-tight shadow-sm bg-accent text-zinc-900 transition hover:bg-amber-400"
+                      className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-amber-300 to-accent px-4 py-2.5 text-center text-sm font-semibold tracking-tight text-zinc-900 shadow-sm shadow-accent/25 transition hover:-translate-y-px hover:shadow-md hover:shadow-accent/30"
                     >
+                      <RiBellLine className="size-4" />
                       {m.nav.getAlerts}
                     </a>
                   </li>
@@ -255,16 +259,18 @@ export function Nav() {
             href="#alerts"
             aria-label={m.nav.getAlerts}
             className={cx(
-              "pointer-events-auto hidden shrink-0 sm:flex",
+              "group pointer-events-auto relative hidden shrink-0 overflow-hidden sm:flex",
               "aspect-square h-[3.625rem] w-[3.625rem] lg:h-[4rem] lg:w-[4rem]",
               "flex-col items-center justify-center gap-px rounded-full px-2 text-center",
-              "border border-orange-950/25 bg-accent text-[10px] font-bold leading-snug tracking-tight text-zinc-900",
-              "shadow-lg shadow-accent/18 transition-all duration-200",
-              "hover:-translate-y-0.5 hover:bg-amber-400 hover:shadow-xl hover:shadow-accent/28",
+              "border border-amber-700/30 bg-gradient-to-br from-amber-300 via-accent to-amber-600 text-[10px] font-bold leading-snug tracking-tight text-zinc-950",
+              "shadow-[0_16px_35px_rgba(245,158,11,0.22),inset_0_1px_0_rgba(255,255,255,0.42)] transition-all duration-200",
+              "before:pointer-events-none before:absolute before:left-2 before:top-1.5 before:h-3 before:w-6 before:rotate-[-24deg] before:rounded-full before:bg-white/35 before:blur-[1px] before:content-['']",
+              "hover:-translate-y-1 hover:shadow-[0_20px_42px_rgba(245,158,11,0.32),inset_0_1px_0_rgba(255,255,255,0.45)]",
               "active:translate-y-0 active:scale-[0.96]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 focus-visible:ring-offset-2",
             )}
           >
+            <RiBellLine className="mb-0.5 size-3.5 opacity-85 transition-transform duration-200 group-hover:-rotate-12" />
             {orbLines.length === 1 ? (
               <span className="max-w-[5rem] text-balance">{orbLines[0]}</span>
             ) : (
