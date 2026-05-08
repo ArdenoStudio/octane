@@ -11,14 +11,6 @@ const HREFS = ["#prices", "#calc", "#history", "/changes", "/data", "/developers
 
 const ANCHOR_IDS = ["prices", "calc", "history"]
 
-/** Two-line orb CTA label for English-like phrases; single word stays one line */
-function orbAlertLines(full: string): [string] | [string, string] {
-  const trimmed = full.trim()
-  const i = trimmed.indexOf(" ")
-  if (i === -1) return [trimmed]
-  return [trimmed.slice(0, i), trimmed.slice(i + 1)]
-}
-
 const LOGO_SVG = (
   <svg viewBox="300 560 890 370" className="h-6 w-auto" aria-label="Octane">
     <g transform="translate(336,590)" fill="#09090b">
@@ -35,7 +27,7 @@ const LOGO_SVG = (
         <path d="M 97.4375 -143.1875 C 103.082031 -143.1875 108.203125 -141.253906 112.796875 -137.390625 C 117.390625 -133.523438 120.210938 -128.148438 121.265625 -121.265625 L 121.890625 -121.265625 L 126.890625 -139.75 L 151.65625 -143.1875 L 119.375 -30.078125 C 119.164062 -29.660156 118.644531 -28.09375 117.8125 -25.375 C 116.976562 -22.664062 116.5625 -19.953125 116.5625 -17.234375 C 116.5625 -15.554688 116.976562 -14.25 117.8125 -13.3125 C 118.644531 -12.375 119.582031 -11.90625 120.625 -11.90625 C 123.34375 -11.90625 126.789062 -13.785156 130.96875 -17.546875 C 135.144531 -21.304688 139.113281 -26.53125 142.875 -33.21875 L 147.578125 -30.078125 C 141.941406 -19.628906 134.785156 -11.375 126.109375 -5.3125 C 117.441406 0.738281 109.765625 3.765625 103.078125 3.765625 C 99.316406 3.765625 96.5 2.40625 94.625 -0.3125 C 92.75 -3.03125 91.8125 -6.375 91.8125 -10.34375 C 91.8125 -13.050781 92.382812 -17.488281 93.53125 -23.65625 C 94.675781 -29.820312 96.503906 -36.035156 99.015625 -42.296875 L 98.390625 -42.921875 C 74.992188 -11.796875 53.789062 3.765625 34.78125 3.765625 C 26.425781 3.765625 19.789062 0.160156 14.875 -7.046875 C 9.96875 -14.253906 7.515625 -22.554688 7.515625 -31.953125 C 7.515625 -48.253906 12.265625 -65.125 21.765625 -82.5625 C 31.273438 -100 43.078125 -114.460938 57.171875 -125.953125 C 71.273438 -137.441406 84.695312 -143.1875 97.4375 -143.1875 Z M 32.59375 -37.90625 C 32.59375 -29.757812 34.46875 -23.804688 38.21875 -20.046875 C 41.976562 -16.285156 46.367188 -14.40625 51.390625 -14.40625 C 57.859375 -14.40625 64.851562 -17.328125 72.375 -23.171875 C 79.894531 -29.023438 86.835938 -36.492188 93.203125 -45.578125 C 99.578125 -54.671875 104.332031 -63.914062 107.46875 -73.3125 C 110.601562 -82.507812 112.898438 -90.082031 114.359375 -96.03125 C 115.828125 -101.988281 116.5625 -107.785156 116.5625 -113.421875 C 116.5625 -121.566406 114.679688 -127.570312 110.921875 -131.4375 C 107.160156 -135.300781 102.773438 -137.234375 97.765625 -137.234375 C 87.941406 -137.234375 77.960938 -131.226562 67.828125 -119.21875 C 57.703125 -107.207031 49.296875 -93.160156 42.609375 -77.078125 C 35.929688 -60.992188 32.59375 -47.9375 32.59375 -37.90625 Z" />
       </g>
       <g transform="translate(554.036135,225.654816)">
-        <path d="M 49.1875 -70.5 C 62.351562 -92.21875 75.617188 -109.757812 88.984375 -123.125 C 102.347656 -136.5 114.773438 -143.1875 126.265625 -143.1875 C 131.078125 -143.1875 135.097656 -141.566406 138.328125 -138.328125 C 141.566406 -135.097656 143.1875 -130.453125 143.1875 -124.390625 C 143.1875 -118.753906 141.722656 -110.609375 138.796875 -99.953125 L 119.0625 -32.265625 C 117.1875 -25.585938 116.25 -20.992188 116.25 -18.484375 C 116.25 -16.609375 116.71875 -15.25 117.65625 -14.40625 C 118.59375 -13.570312 119.582031 -13.15625 120.625 -13.15625 C 123.132812 -13.15625 127 -15.867188 132.21875 -21.296875 C 137.445312 -26.734375 141 -31.019531 142.875 -34.15625 L 147.578125 -30.390625 C 141.097656 -21.410156 133.835938 -13.472656 125.796875 -6.578125 C 117.753906 0.316406 110.179688 3.765625 103.078125 3.765625 C 99.742188 3.765625 96.925781 2.457031 94.625 -0.15625 C 92.320312 -2.769531 91.171875 -6.269531 91.171875 -10.65625 C 91.171875 -15.25 92.320312 -21.410156 94.625 -29.140625 L 115.9375 -104.03125 C 116.144531 -104.65625 116.664062 -106.375 117.5 -109.1875 C 118.332031 -112.007812 118.75 -114.78125 118.75 -117.5 C 118.75 -120.21875 118.015625 -122.304688 116.546875 -123.765625 C 115.085938 -125.222656 113.523438 -125.953125 111.859375 -125.953125 C 107.054688 -125.953125 100.109375 -121.878906 91.015625 -113.734375 C 81.929688 -105.585938 73.109375 -95.351562 64.546875 -83.03125 C 57.234375 -72.789062 51.332031 -63.335938 46.84375 -54.671875 C 42.351562 -46.003906 38.332031 -35.507812 34.78125 -23.1875 C 32.0625 -14.207031 29.867188 -6.476562 28.203125 0 L 4.078125 0 L 33.84375 -104.34375 C 34.050781 -104.96875 34.78125 -107.628906 36.03125 -112.328125 C 37.28125 -117.023438 37.90625 -120.421875 37.90625 -122.515625 C 37.90625 -125.015625 37.019531 -126.941406 35.25 -128.296875 C 33.476562 -129.660156 31.128906 -130.34375 28.203125 -130.34375 C 25.273438 -130.34375 21.097656 -130.132812 15.671875 -129.71875 L 15.671875 -135.359375 L 63.609375 -143.1875 L 69.25 -143.1875 L 48.5625 -71.125 Z" />
+        <path d="M 49.1875 -70.5 C 62.351562 -92.21875 75.617188 -109.757812 88.984375 -123.125 C 102.347656 -136.5 114.773438 -143.1875 126.265625 -143.1875 C 131.078125 -143.1875 135.097656 -141.566406 138.328125 -138.328125 C 141.566406 -135.097656 143.1875 -130.453125 143.1875 -124.390625 C 143.1875 -118.753906 141.722656 -110.609375 138.796875 -99.953125 L 119.0625 -32.265625 C 117.1875 -25.585938 116.25 -20.992188 116.25 -18.484375 C 116.25 -16.609375 116.71875 -15.25 117.65625 -14.40625 C 118.59375 -13.570312 119.582031 -11.90625 120.625 -11.90625 C 123.132812 -11.90625 127 -15.867188 132.21875 -21.296875 C 137.445312 -26.734375 141 -31.019531 142.875 -34.15625 L 147.578125 -30.390625 C 141.097656 -21.410156 133.835938 -13.472656 125.796875 -6.578125 C 117.753906 0.316406 110.179688 3.765625 103.078125 3.765625 C 99.742188 3.765625 96.925781 2.457031 94.625 -0.15625 C 92.320312 -2.769531 91.171875 -6.269531 91.171875 -10.65625 C 91.171875 -15.25 92.320312 -21.410156 94.625 -29.140625 L 115.9375 -104.03125 C 116.144531 -104.65625 116.664062 -106.375 117.5 -109.1875 C 118.332031 -112.007812 118.75 -114.78125 118.75 -117.5 C 118.75 -120.21875 118.015625 -122.304688 116.546875 -123.765625 C 115.085938 -125.222656 113.523438 -125.953125 111.859375 -125.953125 C 107.054688 -125.953125 100.109375 -121.878906 91.015625 -113.734375 C 81.929688 -105.585938 73.109375 -95.351562 64.546875 -83.03125 C 57.234375 -72.789062 51.332031 -63.335938 46.84375 -54.671875 C 42.351562 -46.003906 38.332031 -35.507812 34.78125 -23.1875 C 32.0625 -14.207031 29.867188 -6.476562 28.203125 0 L 4.078125 0 L 33.84375 -104.34375 C 34.050781 -104.96875 34.78125 -107.628906 36.03125 -112.328125 C 37.28125 -117.023438 37.90625 -120.421875 37.90625 -122.515625 C 37.90625 -125.015625 37.019531 -126.941406 35.25 -128.296875 C 33.476562 -129.660156 31.128906 -130.34375 28.203125 -130.34375 C 25.273438 -130.34375 21.097656 -130.132812 15.671875 -129.71875 L 15.671875 -135.359375 L 63.609375 -143.1875 L 69.25 -143.1875 L 48.5625 -71.125 Z" />
       </g>
       <g transform="translate(688.761999,225.654816)">
         <path d="M 101.515625 -143.1875 C 110.285156 -143.1875 117.644531 -140.992188 123.59375 -136.609375 C 129.550781 -132.222656 132.53125 -126.582031 132.53125 -119.6875 C 132.53125 -113.007812 129.394531 -105.382812 123.125 -96.8125 C 116.863281 -88.25 106.679688 -80.675781 92.578125 -74.09375 C 78.484375 -67.519531 60.578125 -63.921875 38.859375 -63.296875 C 37.597656 -59.117188 36.96875 -54 36.96875 -47.9375 C 36.96875 -35.195312 40.414062 -25.953125 47.3125 -20.203125 C 54.207031 -14.460938 61.832031 -11.59375 70.1875 -11.59375 C 84.175781 -11.59375 98.378906 -18.59375 112.796875 -32.59375 L 116.875 -28.828125 C 94.519531 -7.097656 72.898438 3.765625 52.015625 3.765625 C 43.453125 3.765625 35.984375 1.625 29.609375 -2.65625 C 23.234375 -6.945312 18.425781 -12.535156 15.1875 -19.421875 C 11.957031 -26.316406 10.34375 -33.421875 10.34375 -40.734375 C 10.34375 -55.359375 14.570312 -70.710938 23.03125 -86.796875 C 31.488281 -102.878906 42.765625 -116.296875 56.859375 -127.046875 C 70.960938 -137.804688 85.847656 -143.1875 101.515625 -143.1875 Z M 40.734375 -69.25 C 54.929688 -70.289062 66.421875 -72.691406 75.203125 -76.453125 C 83.765625 -80.210938 90.707031 -85.066406 96.03125 -91.015625 C 101.363281 -96.972656 105.175781 -102.820312 107.46875 -108.5625 C 109.769531 -114.3125 110.921875 -119.066406 110.921875 -122.828125 C 110.921875 -126.378906 109.613281 -129.664062 107 -132.6875 C 104.382812 -135.71875 100.675781 -137.234375 95.875 -137.234375 C 87.519531 -137.234375 79.425781 -133.367188 71.59375 -125.640625 C 63.757812 -117.910156 57.070312 -108.71875 51.53125 -98.0625 C 46 -87.414062 42.398438 -77.8125 40.734375 -69.25 Z" />
@@ -82,205 +74,189 @@ export function Nav() {
     label: m.nav[key],
   }))
 
+  const leftLinks = links.slice(0, 3)
+  const rightLinks = links.slice(3)
+
   function isActive(href: string) {
     if (href.startsWith("#")) return activeSection === href
     return pathname === href
   }
 
-  const orbLines = orbAlertLines(m.nav.getAlerts)
+  const linkCls = (href: string) => cx(
+    "relative shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-medium tracking-tight outline-none transition-all duration-150",
+    "focus-visible:ring-2 focus-visible:ring-zinc-900/18 focus-visible:ring-offset-2 focus-visible:ring-offset-white/70",
+    isActive(href)
+      ? "bg-zinc-900 text-white shadow-sm shadow-black/10 hover:bg-zinc-900 hover:text-white"
+      : "text-zinc-500 hover:-translate-y-px hover:bg-white/85 hover:text-zinc-900 hover:shadow-sm hover:shadow-black/[0.03]",
+  )
 
   return (
-    <div className={cx(
-      "sticky z-30 flex w-full justify-center pointer-events-none min-w-0",
-      open
-        ? "top-0 px-0 items-start transition-[top,padding] duration-500 ease-out"
-        : "top-5 px-4 transition-[top,padding] duration-500 ease-in-out delay-[140ms]",
-    )}>
-      <div className={cx(
-        "flex w-full min-w-0 pointer-events-none",
-        open ? "flex-col items-stretch" : "flex-row items-center justify-center gap-2.5 sm:gap-3.5 lg:gap-4",
-      )}>
+    <div className="sticky top-5 z-30 flex w-full min-w-0 justify-center px-4 pointer-events-none">
+      <div className="flex w-full min-w-0 flex-col items-center gap-2 pointer-events-none">
+
+        {/* Main pill — always rounded-full, never morphs */}
         <header
           className={cx(
-            "relative isolate overflow-hidden",
-            open
-              ? "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-out"
-              : "pointer-events-auto w-full transition-[background-color,box-shadow,border-color,max-width] duration-500 ease-in-out delay-[140ms]",
-            open ? "max-w-full rounded-b-3xl" : "max-w-full sm:max-w-4xl lg:max-w-5xl rounded-full",
-            // No backdrop-blur when open — blur clips to border-radius at the GPU
-            // compositing level, causing the circular clipping artifact
-            open
-              ? "border border-black/[0.06] bg-white shadow-xl shadow-black/[0.08]"
-              : scrolled
-                ? "border border-black/[0.06] bg-white/90 shadow-[0_18px_55px_rgba(24,24,27,0.09)] backdrop-blur-xl"
-                : "border border-white/70 bg-white/72 shadow-[0_16px_44px_rgba(24,24,27,0.06)] backdrop-blur-md",
-            !open &&
-              "before:pointer-events-none before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white before:to-transparent before:content-['']",
-            !open && "after:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] after:content-['']",
+            "relative isolate overflow-hidden pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-500",
+            scrolled
+              ? "border border-black/[0.06] bg-white/90 shadow-[0_18px_55px_rgba(24,24,27,0.09)] backdrop-blur-xl"
+              : "border border-white/70 bg-white/72 shadow-[0_16px_44px_rgba(24,24,27,0.06)] backdrop-blur-md",
+            "before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white before:to-transparent before:content-['']",
+            "after:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] after:content-['']",
           )}
         >
-          <div className="relative z-10 flex h-12 w-full items-center gap-3 px-3 sm:gap-5 sm:px-5">
+          <div className="relative z-10 flex h-12 w-full items-center px-3 sm:px-4">
+
+            {/* Left links */}
+            <nav
+              className="hidden min-h-12 flex-1 items-center justify-end gap-0 sm:flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              aria-label={m.nav.mainNavAria}
+            >
+              {leftLinks.map(({ href, label }) => (
+                <a key={href} href={href} className={linkCls(href)}>{label}</a>
+              ))}
+            </nav>
+
+            {/* Centered logo */}
             <a
               href="/"
-              className="flex shrink-0 items-center rounded-md pl-1 text-zinc-900 outline-none ring-zinc-900/10 transition-all duration-150 hover:-translate-y-px hover:opacity-85 focus-visible:ring-2"
+              className="mx-3 flex shrink-0 items-center rounded-md text-zinc-900 outline-none ring-zinc-900/10 transition-all duration-150 hover:-translate-y-px hover:opacity-85 focus-visible:ring-2"
             >
               {LOGO_SVG}
             </a>
 
+            {/* Right links */}
             <nav
-              className="hidden min-h-12 min-w-0 flex-1 items-center justify-center gap-0 lg:gap-0.5 sm:flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              className="hidden min-h-12 flex-1 items-center justify-start gap-0 sm:flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               aria-label={m.nav.mainNavAria}
             >
-              {links.map(({ href, label }) => (
-                <a
-                  key={href}
-                  href={href}
-                  className={cx(
-                    "relative shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-medium tracking-tight outline-none transition-all duration-150",
-                    "text-zinc-500 hover:-translate-y-px hover:bg-white/85 hover:text-zinc-900 hover:shadow-sm hover:shadow-black/[0.03]",
-                    "focus-visible:ring-2 focus-visible:ring-zinc-900/18 focus-visible:ring-offset-2 focus-visible:ring-offset-white/70",
-                    isActive(href) && "bg-zinc-900 text-white shadow-sm shadow-black/10 hover:bg-zinc-900 hover:text-white",
-                  )}
-                >
-                  {label}
-                </a>
+              {rightLinks.map(({ href, label }) => (
+                <a key={href} href={href} className={linkCls(href)}>{label}</a>
               ))}
             </nav>
 
-            <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-2">
-              <div
-                className="relative ml-3 hidden shrink-0 border-l border-zinc-200/80 pl-2.5 sm:flex"
-                role="group"
-                aria-label="Language"
-              >
-                <div className="flex gap-0.5 rounded-full border border-black/[0.07] bg-white/55 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(24,24,27,0.04)]">
-                  {locales.map((l) => (
-                    <button
-                      key={l}
-                      type="button"
-                      onClick={() => setLocale(l)}
-                      className={cx(
-                        "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-150",
-                        l === "en" && "tracking-wide uppercase text-[10px]",
-                        l === locale
-                          ? "bg-zinc-900 text-white shadow-[0_2px_8px_rgba(24,24,27,0.16)]"
-                          : "text-zinc-500 hover:bg-white hover:text-zinc-900",
-                      )}
-                      aria-current={l === locale ? "true" : undefined}
-                      aria-label={localeShortLabel[l]}
-                    >
-                      {localeShortLabel[l]}
-                    </button>
-                  ))}
-                </div>
+            {/* Language + CTA (desktop) */}
+            <div
+              className="ml-2 hidden shrink-0 items-center gap-2 border-l border-zinc-200/80 pl-3 sm:flex"
+              role="group"
+              aria-label="Language and alerts"
+            >
+              <div className="flex gap-0.5 rounded-full border border-black/[0.07] bg-white/55 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(24,24,27,0.04)]">
+                {locales.map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setLocale(l)}
+                    className={cx(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-150",
+                      l === "en" && "tracking-wide uppercase text-[10px]",
+                      l === locale
+                        ? "bg-zinc-900 text-white shadow-[0_2px_8px_rgba(24,24,27,0.16)]"
+                        : "text-zinc-500 hover:bg-white hover:text-zinc-900",
+                    )}
+                    aria-current={l === locale ? "true" : undefined}
+                    aria-label={localeShortLabel[l]}
+                  >
+                    {localeShortLabel[l]}
+                  </button>
+                ))}
               </div>
-
-              <button
-                type="button"
-                onClick={() => setOpen(!open)}
-                className="rounded-full p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/15 sm:hidden"
-                aria-expanded={open}
-                aria-label={open ? m.nav.menuClose : m.nav.menuOpen}
+              <a
+                href="#alerts"
+                className={cx(
+                  "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold tracking-tight text-zinc-950",
+                  "bg-gradient-to-b from-amber-300 to-accent",
+                  "shadow-[0_2px_10px_rgba(245,158,11,0.28),inset_0_1px_0_rgba(255,255,255,0.45)]",
+                  "transition-all duration-200 hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(245,158,11,0.4)] active:translate-y-0 active:scale-95",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 focus-visible:ring-offset-2",
+                )}
               >
-                {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
-              </button>
+                <RiBellLine className="size-3.5" />
+                {m.nav.getAlerts}
+              </a>
             </div>
-          </div>
 
-          <div
-            className={cx(
-              "grid sm:hidden",
-              open
-                ? "grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out delay-100"
-                : "grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-[180ms] ease-in",
-            )}
-          >
-            <div className="overflow-hidden">
-              <nav className="border-t border-black/[0.05] px-3 pb-3 pt-2">
-                <ul className="flex flex-col gap-0.5">
-                  {links.map(({ href, label }) => (
-                    <li key={href}>
-                      <a
-                        href={href}
-                        onClick={() => setOpen(false)}
-                        className={cx(
-                          "relative flex items-center rounded-xl px-3 py-2.5 text-sm font-medium outline-none transition-all",
-                          "hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/15",
-                          isActive(href)
-                            ? "bg-zinc-900 pl-4 font-semibold text-white shadow-sm before:absolute before:left-2 before:top-[0.6875rem] before:bottom-[0.6875rem] before:w-0.5 before:rounded-full before:bg-accent"
-                            : "text-zinc-500",
-                        )}
-                      >
-                        {label}
-                      </a>
-                    </li>
-                  ))}
-                  <li className="pt-2">
-                    <a
-                      href="#alerts"
-                      onClick={() => setOpen(false)}
-                      className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-amber-300 to-accent px-4 py-2.5 text-center text-sm font-semibold tracking-tight text-zinc-900 shadow-sm shadow-accent/25 transition hover:-translate-y-px hover:shadow-md hover:shadow-accent/30"
-                    >
-                      <RiBellLine className="size-4" />
-                      {m.nav.getAlerts}
-                    </a>
-                  </li>
-                  <li className="mt-3 border-t border-black/[0.05] pt-3">
-                    <div className="flex flex-wrap gap-1 rounded-xl border border-black/[0.055] bg-zinc-100/45 p-1">
-                      {locales.map((l) => (
-                        <button
-                          key={l}
-                          type="button"
-                          className={cx(
-                            "min-h-9 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
-                            l === "en" && "tracking-wide uppercase",
-                            l === locale
-                              ? "bg-zinc-900 text-white shadow-sm"
-                              : "text-zinc-500 hover:bg-white hover:text-zinc-900",
-                          )}
-                          onClick={() => {
-                            setLocale(l)
-                            setOpen(false)
-                          }}
-                        >
-                          {localeShortLabel[l]}
-                        </button>
-                      ))}
-                    </div>
-                  </li>
-                </ul>
-              </nav>
-            </div>
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              onClick={() => setOpen(!open)}
+              className="ml-auto rounded-full p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/15 sm:hidden"
+              aria-expanded={open}
+              aria-label={open ? m.nav.menuClose : m.nav.menuOpen}
+            >
+              {open ? <RiCloseLine className="size-5" /> : <RiMenuLine className="size-5" />}
+            </button>
           </div>
         </header>
 
-        {!open && (
-          <a
-            href="#alerts"
-            aria-label={m.nav.getAlerts}
-            className={cx(
-              "group pointer-events-auto relative hidden shrink-0 overflow-hidden sm:flex",
-              "aspect-square h-[3.625rem] w-[3.625rem] lg:h-[4rem] lg:w-[4rem]",
-              "flex-col items-center justify-center gap-px rounded-full px-2 text-center",
-              "border border-amber-700/30 bg-gradient-to-br from-amber-300 via-accent to-amber-600 text-[10px] font-bold leading-snug tracking-tight text-zinc-950",
-              "shadow-[0_16px_35px_rgba(245,158,11,0.22),inset_0_1px_0_rgba(255,255,255,0.42)] transition-all duration-200",
-              "before:pointer-events-none before:absolute before:left-2 before:top-1.5 before:h-3 before:w-6 before:rotate-[-24deg] before:rounded-full before:bg-white/35 before:blur-[1px] before:content-['']",
-              "hover:-translate-y-1 hover:shadow-[0_20px_42px_rgba(245,158,11,0.32),inset_0_1px_0_rgba(255,255,255,0.45)]",
-              "active:translate-y-0 active:scale-[0.96]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 focus-visible:ring-offset-2",
-            )}
-          >
-            <RiBellLine className="mb-0.5 size-3.5 opacity-85 transition-transform duration-200 group-hover:-rotate-12" />
-            {orbLines.length === 1 ? (
-              <span className="max-w-[5rem] text-balance">{orbLines[0]}</span>
-            ) : (
-              <>
-                <span className="leading-none">{orbLines[0]}</span>
-                <span className="leading-none">{orbLines[1]}</span>
-              </>
-            )}
-          </a>
-        )}
+        {/* Mobile dropdown — separate card below pill, no shape morphing */}
+        <div
+          className={cx(
+            "w-full max-w-5xl sm:hidden grid",
+            open
+              ? "pointer-events-auto grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out"
+              : "pointer-events-none grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-[180ms] ease-in",
+          )}
+        >
+          <div className="overflow-hidden">
+            <div className="rounded-2xl border border-black/[0.06] bg-white shadow-xl shadow-black/[0.08]">
+              <nav className="px-3 pb-3 pt-2">
+                <div className="grid grid-cols-2 gap-0.5">
+                  {links.map(({ href, label }) => (
+                    <a
+                      key={href}
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className={cx(
+                        "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium outline-none transition-all",
+                        "hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/15",
+                        isActive(href)
+                          ? "bg-zinc-900 font-semibold text-white shadow-sm"
+                          : "text-zinc-500",
+                      )}
+                    >
+                      {label}
+                    </a>
+                  ))}
+                </div>
+                <div className="mt-2">
+                  <a
+                    href="#alerts"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-amber-300 to-accent px-4 py-2.5 text-center text-sm font-semibold tracking-tight text-zinc-900 shadow-sm shadow-accent/25 transition hover:-translate-y-px hover:shadow-md hover:shadow-accent/30"
+                  >
+                    <RiBellLine className="size-4" />
+                    {m.nav.getAlerts}
+                  </a>
+                </div>
+                <div className="mt-3 border-t border-black/[0.05] pt-3">
+                  <div className="flex flex-wrap gap-1 rounded-xl border border-black/[0.055] bg-zinc-100/45 p-1">
+                    {locales.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        className={cx(
+                          "min-h-9 flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                          l === "en" && "tracking-wide uppercase",
+                          l === locale
+                            ? "bg-zinc-900 text-white shadow-sm"
+                            : "text-zinc-500 hover:bg-white hover:text-zinc-900",
+                        )}
+                        onClick={() => {
+                          setLocale(l)
+                          setOpen(false)
+                        }}
+                      >
+                        {localeShortLabel[l]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </nav>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   )
