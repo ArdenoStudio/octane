@@ -109,86 +109,86 @@ _EMAIL_HTML = """\
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;">
+<body style="margin:0;padding:0;background:#0c0c0d;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0c0c0d;">
   <tr><td align="center" style="padding:40px 16px;">
-    <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e4e4e7;border-radius:16px;overflow:hidden;max-width:100%;">
+    <table width="560" cellpadding="0" cellspacing="0" style="max-width:100%;">
 
       <!-- Header -->
       <tr>
-        <td style="padding:24px 32px 20px;border-bottom:3px solid #f59e0b;">
-          <span style="font-size:20px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">Octane</span>
-          <span style="font-size:11px;font-weight:500;color:#a1a1aa;margin-left:8px;">octane.lk</span>
+        <td style="padding:0 0 24px;">
+          <span style="font-size:18px;font-weight:800;letter-spacing:-0.04em;color:#ffffff;">Octane</span>
         </td>
       </tr>
 
-      <!-- Label -->
+      <!-- Card -->
       <tr>
-        <td style="padding:28px 32px 0;">
-          <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">Price alert triggered</p>
-        </td>
-      </tr>
+        <td style="background:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden;">
+          <table width="100%" cellpadding="0" cellspacing="0">
 
-      <!-- Headline -->
-      <tr>
-        <td style="padding:8px 32px 24px;">
-          <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">{fuel_name} is now LKR&nbsp;{price}</h1>
-        </td>
-      </tr>
-
-      <!-- Price card -->
-      <tr>
-        <td style="padding:0 32px 24px;">
-          <table cellpadding="0" cellspacing="0" width="100%" style="background:#f9f9f9;border:1px solid #e4e4e7;border-radius:12px;">
+            <!-- Amber accent bar -->
             <tr>
-              <td style="padding:20px 24px;">
-                <table cellpadding="0" cellspacing="0" width="100%">
+              <td style="background:#f59e0b;height:3px;font-size:0;line-height:0;">&nbsp;</td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:32px 32px 28px;">
+
+                <!-- Badge -->
+                <table cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
                   <tr>
-                    <td>
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Current price</p>
-                      <p style="margin:0;font-size:30px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">LKR&nbsp;{price}</p>
-                    </td>
-                    <td align="right" style="vertical-align:top;">
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Your threshold</p>
-                      <p style="margin:0;font-size:16px;font-weight:700;color:#3f3f46;">{direction_cap} LKR&nbsp;{threshold}</p>
+                    <td style="background:#292524;border:1px solid #44403c;border-radius:6px;padding:4px 10px;">
+                      <span style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#f59e0b;">&#9679;&nbsp; Price alert triggered</span>
                     </td>
                   </tr>
                 </table>
+
+                <!-- Headline -->
+                <p style="margin:0 0 6px;font-size:13px;font-weight:500;color:#71717a;">{fuel_name}</p>
+                <p style="margin:0 0 28px;font-size:42px;font-weight:800;letter-spacing:-0.04em;color:#ffffff;line-height:1;">LKR&nbsp;{price}</p>
+
+                <!-- Divider -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                  <tr><td style="background:#27272a;height:1px;font-size:0;line-height:0;"></td></tr>
+                </table>
+
+                <!-- Stats row -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                  <tr>
+                    <td width="50%" style="vertical-align:top;">
+                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#52525b;">Your threshold</p>
+                      <p style="margin:0;font-size:15px;font-weight:700;color:#a1a1aa;">{direction_cap} LKR&nbsp;{threshold}</p>
+                    </td>
+                    <td width="50%" style="vertical-align:top;">
+                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#52525b;">Recorded on</p>
+                      <p style="margin:0;font-size:15px;font-weight:700;color:#a1a1aa;">{recorded_at}</p>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- CTA -->
+                <a href="{manage_url}"
+                   style="display:inline-block;background:#f59e0b;color:#0c0c0d;text-decoration:none;font-size:13px;font-weight:700;padding:11px 22px;border-radius:8px;letter-spacing:-0.01em;">
+                  Manage this alert &rarr;
+                </a>
+
               </td>
             </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:16px 32px;background:#111113;border-top:1px solid #27272a;">
+                <p style="margin:0;font-size:11px;color:#52525b;line-height:1.6;">
+                  You set up this alert on
+                  <a href="https://octane-smoky.vercel.app" style="color:#71717a;text-decoration:none;">Octane</a>.
+                  &nbsp;&middot;&nbsp;
+                  <a href="{manage_url}" style="color:#71717a;text-decoration:underline;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>
+
           </table>
-        </td>
-      </tr>
-
-      <!-- Meta note -->
-      <tr>
-        <td style="padding:0 32px 28px;">
-          <p style="margin:0;font-size:13px;color:#71717a;">
-            Recorded on <strong style="color:#3f3f46;">{recorded_at}</strong>
-            by the Ceylon Petroleum Corporation.
-          </p>
-        </td>
-      </tr>
-
-      <!-- CTA -->
-      <tr>
-        <td style="padding:0 32px 32px;">
-          <a href="{manage_url}"
-             style="display:inline-block;background:#09090b;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;">
-            Manage this alert →
-          </a>
-        </td>
-      </tr>
-
-      <!-- Footer -->
-      <tr>
-        <td style="padding:18px 32px;background:#f9f9f9;border-top:1px solid #e4e4e7;">
-          <p style="margin:0;font-size:11px;color:#a1a1aa;line-height:1.6;">
-            You're receiving this because you set up a price alert on
-            <a href="https://octane.lk" style="color:#f59e0b;text-decoration:none;">octane.lk</a>.
-            &nbsp;·&nbsp;
-            <a href="{manage_url}" style="color:#a1a1aa;text-decoration:underline;">Unsubscribe</a>
-          </p>
         </td>
       </tr>
 
@@ -336,23 +336,25 @@ def dispatch_pending() -> int:
         fuel_name = _FUEL_LABELS.get(alert["fuel_type"], alert["fuel_type"])
         manage_url = f"{s.site_url}/manage?token={alert['unsubscribe_token']}"
         recorded_at = latest["recorded_at"]
+        price_fmt = int(price) if price == int(price) else price
+        threshold_fmt = int(threshold) if threshold == int(threshold) else threshold
 
         # ── Email ────────────────────────────────────────────────────────────
-        subject = f"Octane alert: {fuel_name} is now LKR {price}"
+        subject = f"Octane alert: {fuel_name} is now LKR {price_fmt}"
         html_body = _EMAIL_HTML.format(
             fuel_name=fuel_name,
-            price=price,
+            price=price_fmt,
             direction=alert["direction"],
             direction_cap=alert["direction"].capitalize(),
-            threshold=threshold,
+            threshold=threshold_fmt,
             recorded_at=recorded_at,
             manage_url=manage_url,
         )
         text_body = _EMAIL_TEXT.format(
             fuel_name=fuel_name,
-            price=price,
+            price=price_fmt,
             direction=alert["direction"],
-            threshold=threshold,
+            threshold=threshold_fmt,
             recorded_at=recorded_at,
             manage_url=manage_url,
         )
