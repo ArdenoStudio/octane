@@ -74,9 +74,6 @@ export function Nav() {
     label: m.nav[key],
   }))
 
-  const leftLinks = links.slice(0, 3)
-  const rightLinks = links.slice(3)
-
   function isActive(href: string) {
     if (href.startsWith("#")) return activeSection === href
     return pathname === href
@@ -94,50 +91,40 @@ export function Nav() {
     <div className="sticky top-5 z-30 flex w-full min-w-0 justify-center px-4 pointer-events-none">
       <div className="flex w-full min-w-0 flex-col items-center gap-2 pointer-events-none">
 
-        {/* Main pill — always rounded-full, never morphs */}
+        {/* Main pill */}
         <header
           className={cx(
-            "relative isolate overflow-hidden pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-500",
+            "relative isolate overflow-hidden pointer-events-auto w-full max-w-4xl rounded-full transition-all duration-500",
             scrolled
-              ? "border border-black/[0.07] bg-white/95 shadow-[0_18px_55px_rgba(24,24,27,0.1)] backdrop-blur-xl"
-              : "border border-black/[0.06] bg-white/85 shadow-[0_8px_32px_rgba(24,24,27,0.07)] backdrop-blur-lg",
+              ? "border border-black/[0.08] bg-white shadow-[0_8px_40px_rgba(24,24,27,0.12),0_2px_8px_rgba(24,24,27,0.06)] backdrop-blur-xl"
+              : "border border-black/[0.06] bg-white/95 shadow-[0_4px_24px_rgba(24,24,27,0.08),0_1px_4px_rgba(24,24,27,0.04)] backdrop-blur-lg",
             "before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white before:to-transparent before:content-['']",
-            "after:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] after:content-['']",
+            "after:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] after:content-['']",
           )}
         >
-          <div className="relative z-10 flex h-12 w-full items-center px-3 sm:px-4">
+          <div className="relative z-10 flex h-12 w-full items-center gap-2 px-3 sm:px-4">
 
-            {/* Left links */}
-            <nav
-              className="hidden min-h-12 flex-1 items-center justify-end gap-0 sm:flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-              aria-label={m.nav.mainNavAria}
-            >
-              {leftLinks.map(({ href, label }) => (
-                <a key={href} href={href} className={linkCls(href)}>{label}</a>
-              ))}
-            </nav>
-
-            {/* Centered logo */}
+            {/* Logo — left */}
             <a
               href="/"
-              className="mx-3 flex shrink-0 items-center rounded-md text-zinc-900 outline-none ring-zinc-900/10 transition-all duration-150 hover:-translate-y-px hover:opacity-85 focus-visible:ring-2"
+              className="flex shrink-0 items-center rounded-md text-zinc-900 outline-none transition-all duration-150 hover:opacity-75 focus-visible:ring-2 focus-visible:ring-zinc-900/10"
             >
               {LOGO_SVG}
             </a>
 
-            {/* Right links */}
+            {/* Nav links — centered */}
             <nav
-              className="hidden min-h-12 flex-1 items-center justify-start gap-0 sm:flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              className="hidden min-h-12 flex-1 items-center justify-center gap-0 sm:flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               aria-label={m.nav.mainNavAria}
             >
-              {rightLinks.map(({ href, label }) => (
+              {links.map(({ href, label }) => (
                 <a key={href} href={href} className={linkCls(href)}>{label}</a>
               ))}
             </nav>
 
-            {/* Language + CTA (desktop) */}
+            {/* Language + CTA — right */}
             <div
-              className="ml-2 hidden shrink-0 items-center gap-2 border-l border-zinc-200/80 pl-3 sm:flex"
+              className="ml-auto hidden shrink-0 items-center gap-2 sm:flex"
               role="group"
               aria-label="Language and alerts"
             >
