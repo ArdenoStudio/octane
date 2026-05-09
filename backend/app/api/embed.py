@@ -1,4 +1,4 @@
-"""Embeddable widget — returns a self-contained HTML page suitable for iframe."""
+"""Embeddable widget — returns a self-contained HTML page suitable for iframe embedding."""
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
