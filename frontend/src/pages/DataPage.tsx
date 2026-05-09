@@ -174,10 +174,10 @@ export function DataPage() {
                 For higher rate limits, bulk data exports, or commercial
                 licensing, contact{" "}
                 <a
-                  href="mailto:hello@ardeno.studio"
+                  href="mailto:ardenostudio@gmail.com"
                   className="text-accent hover:underline"
                 >
-                  hello@ardeno.studio
+                  ardenostudio@gmail.com
                 </a>
                 .
               </p>
