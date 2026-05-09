@@ -1,0 +1,17 @@
+name: Dispatch price alerts
+
+on:
+  schedule:
+    - cron: "0 * * * *"  # every hour
+  workflow_dispatch:      # allow manual trigger
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger alert dispatch
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST https://octane-api.fly.dev/v1/alerts/dispatch \
+            -H "x-dispatch-secret: ${{ secrets.DISPATCH_SECRET }}" \
+            | grep -q "^200$"

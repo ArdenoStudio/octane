@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Header, HTTPException, Query, Request
 
 from app import fuel as fuel_mod
 from app.api.schemas import AlertSubscribeIn
@@ -30,6 +30,15 @@ def subscribe(request: Request, payload: AlertSubscribeIn):
         telegram_chat_id=payload.telegram_chat_id,
     )
     return {"id": alert_id, "ok": True}
+
+
+@router.post("/dispatch")
+def dispatch(x_dispatch_secret: str | None = Header(None)):
+    s = get_settings()
+    if not s.dispatch_secret or x_dispatch_secret != s.dispatch_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    fired = alerts.dispatch_pending()
+    return {"ok": True, "fired": fired}
 
 
 @router.get("/manage")

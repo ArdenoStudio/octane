@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     scraper_user_agent: str = "OctaneBot/1.0 (+https://octane.lk)"
     admin_email: str = ""
     telegram_bot_token: str = ""
+    dispatch_secret: str = ""
     rate_limit: str = "60/minute"
     # POST subscribe endpoints (alerts, digest) — prevent abuse (stricter than default).
     rate_limit_writes: str = "10/minute"
