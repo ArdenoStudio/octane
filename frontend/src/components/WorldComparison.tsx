@@ -139,9 +139,15 @@ export function WorldComparison() {
           </span>
 
           {/* Headline */}
-          <div className="mt-4 flex items-baseline gap-3 flex-wrap min-h-[4rem]">
+          <div className="mt-4 flex items-baseline gap-3 flex-wrap">
             {!data && !error && (
-              <div className="h-16 w-64 animate-pulse rounded-xl bg-ink-900/40" />
+              <div className="flex items-baseline gap-3">
+                <div className="h-20 w-44 animate-pulse rounded-xl bg-ink-900/40" />
+                <div className="flex flex-col gap-2">
+                  <div className="h-6 w-16 animate-pulse rounded bg-ink-900/40" />
+                  <div className="h-6 w-28 animate-pulse rounded bg-ink-900/40" />
+                </div>
+              </div>
             )}
             {error && (
               <p className="text-lg text-red-500">Could not load comparison data</p>
@@ -195,11 +201,14 @@ export function WorldComparison() {
         {/* Bar chart */}
         <div className="px-8 py-6 sm:px-12">
           {!data && !error && (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-24 h-4 animate-pulse rounded bg-ink-900/40" />
-                  <div className="flex-1 h-7 animate-pulse rounded-lg bg-ink-900/40" style={{ maxWidth: `${30 + i * 12}%` }} />
+            <div className="space-y-2.5">
+              {[75, 52, 42, 62, 63, 100].map((pct, i) => (
+                <div key={i}>
+                  {i === 5 && <div className="my-3 border-t border-ink-900" />}
+                  <div className="flex items-center gap-3">
+                    <div className="w-28 sm:w-36 h-4 animate-pulse rounded bg-ink-900/40 shrink-0" />
+                    <div className="h-7 animate-pulse rounded-lg bg-ink-900/40" style={{ width: `${pct}%` }} />
+                  </div>
                 </div>
               ))}
             </div>
