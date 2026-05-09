@@ -109,81 +109,91 @@ _EMAIL_HTML = """\
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0c0c0d;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#0c0c0d;">
-  <tr><td align="center" style="padding:40px 16px;">
+<body style="margin:0;padding:0;background:#fafafa;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;">
+  <tr><td align="center" style="padding:40px 16px 48px;">
     <table width="560" cellpadding="0" cellspacing="0" style="max-width:100%;">
 
-      <!-- Header -->
+      <!-- Logo -->
       <tr>
-        <td style="padding:0 0 24px;">
-          <span style="font-size:18px;font-weight:800;letter-spacing:-0.04em;color:#ffffff;">Octane</span>
+        <td align="center" style="padding-bottom:24px;">
+          <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
+               width="100" height="38" alt="Octane"
+               style="display:block;border:0;outline:none;">
         </td>
       </tr>
 
       <!-- Card -->
       <tr>
-        <td style="background:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden;">
+        <td style="background:#ffffff;border:1px solid #e4e4e7;border-radius:20px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);">
           <table width="100%" cellpadding="0" cellspacing="0">
 
-            <!-- Amber accent bar -->
+            <!-- Amber top bar -->
             <tr>
-              <td style="background:#f59e0b;height:3px;font-size:0;line-height:0;">&nbsp;</td>
+              <td style="background:#f59e0b;height:4px;font-size:0;line-height:0;">&nbsp;</td>
             </tr>
 
-            <!-- Body -->
+            <!-- Hero price section -->
             <tr>
-              <td style="padding:32px 32px 28px;">
+              <td style="padding:36px 36px 28px;background:#ffffff;">
+                <!-- Eyebrow -->
+                <p style="margin:0 0 20px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">Price alert triggered</p>
 
-                <!-- Badge -->
-                <table cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                <!-- Fuel name -->
+                <p style="margin:0 0 6px;font-size:14px;font-weight:500;color:#71717a;">{fuel_name}</p>
+
+                <!-- Big price — dominant element (weight-hierarchy + visual-hierarchy) -->
+                <p style="margin:0;font-size:52px;font-weight:800;letter-spacing:-0.04em;color:#09090b;line-height:1;font-variant-numeric:tabular-nums;">
+                  LKR&nbsp;{price}
+                </p>
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td style="padding:0 36px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td style="background:#f4f4f5;height:1px;font-size:0;line-height:0;"></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Details row (whitespace-balance + consistent spacing) -->
+            <tr>
+              <td style="padding:24px 36px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="background:#292524;border:1px solid #44403c;border-radius:6px;padding:4px 10px;">
-                      <span style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#f59e0b;">&#9679;&nbsp; Price alert triggered</span>
+                    <td width="50%" style="vertical-align:top;padding-right:16px;">
+                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Your threshold</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#3f3f46;">{direction_cap} LKR&nbsp;{threshold}</p>
+                    </td>
+                    <td width="50%" style="vertical-align:top;">
+                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Recorded on</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#3f3f46;">{recorded_at}</p>
                     </td>
                   </tr>
                 </table>
+              </td>
+            </tr>
 
-                <!-- Headline -->
-                <p style="margin:0 0 6px;font-size:13px;font-weight:500;color:#71717a;">{fuel_name}</p>
-                <p style="margin:0 0 28px;font-size:42px;font-weight:800;letter-spacing:-0.04em;color:#ffffff;line-height:1;">LKR&nbsp;{price}</p>
-
-                <!-- Divider -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                  <tr><td style="background:#27272a;height:1px;font-size:0;line-height:0;"></td></tr>
-                </table>
-
-                <!-- Stats row -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-                  <tr>
-                    <td width="50%" style="vertical-align:top;">
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#52525b;">Your threshold</p>
-                      <p style="margin:0;font-size:15px;font-weight:700;color:#a1a1aa;">{direction_cap} LKR&nbsp;{threshold}</p>
-                    </td>
-                    <td width="50%" style="vertical-align:top;">
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#52525b;">Recorded on</p>
-                      <p style="margin:0;font-size:15px;font-weight:700;color:#a1a1aa;">{recorded_at}</p>
-                    </td>
-                  </tr>
-                </table>
-
-                <!-- CTA -->
+            <!-- CTA (primary-action: one clear button, amber for brand consistency) -->
+            <tr>
+              <td style="padding:4px 36px 36px;">
                 <a href="{manage_url}"
-                   style="display:inline-block;background:#f59e0b;color:#0c0c0d;text-decoration:none;font-size:13px;font-weight:700;padding:11px 22px;border-radius:8px;letter-spacing:-0.01em;">
+                   style="display:inline-block;background:#f59e0b;color:#09090b;text-decoration:none;font-size:13px;font-weight:700;padding:12px 24px;border-radius:10px;letter-spacing:-0.01em;">
                   Manage this alert &rarr;
                 </a>
-
               </td>
             </tr>
 
             <!-- Footer -->
             <tr>
-              <td style="padding:16px 32px;background:#111113;border-top:1px solid #27272a;">
-                <p style="margin:0;font-size:11px;color:#52525b;line-height:1.6;">
+              <td style="padding:16px 36px;background:#fafafa;border-top:1px solid #f4f4f5;">
+                <p style="margin:0;font-size:11px;color:#a1a1aa;line-height:1.7;">
                   You set up this alert on
-                  <a href="https://octane-smoky.vercel.app" style="color:#71717a;text-decoration:none;">Octane</a>.
+                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:500;">Octane</a>.
                   &nbsp;&middot;&nbsp;
-                  <a href="{manage_url}" style="color:#71717a;text-decoration:underline;">Unsubscribe</a>
+                  <a href="{manage_url}" style="color:#a1a1aa;text-decoration:underline;">Unsubscribe</a>
                 </p>
               </td>
             </tr>
