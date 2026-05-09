@@ -27,7 +27,7 @@ jobs:
         run: |
           flyctl machines list --json | \
             jq -r '.[].id' | \
-            xargs -r -I{} sh -c 'flyctl machine release-lease {} 2>/dev/null || true'
+            xargs -r -I{} sh -c 'flyctl machine leases clear {} 2>/dev/null || true'
 
       - name: Deploy
         working-directory: backend
