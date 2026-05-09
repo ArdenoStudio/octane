@@ -87,6 +87,11 @@ export interface PriceChangeRow {
   delta_pct: number | null;
 }
 
+export interface AlertFire {
+  fired_at: string;
+  price_lkr: number;
+}
+
 export interface ManageAlertResp {
   id: number;
   email: string;
@@ -94,7 +99,9 @@ export interface ManageAlertResp {
   threshold: number;
   direction: "above" | "below";
   active: boolean;
+  confirmed: boolean;
   created_at: string;
+  fire_history: AlertFire[];
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -106,6 +113,19 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error(`${path}: ${r.status} ${text}`);
+  }
+  return r.json() as Promise<T>;
+}
+
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const r = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
@@ -150,9 +170,18 @@ export const api = {
     get<{ source: string; changes: PriceChangeRow[] }>(
       `/v1/prices/changes?limit=${limit}`
     ),
+  confirmAlert: (token: string) =>
+    get<{ ok: boolean; message: string }>(
+      `/v1/alerts/confirm?token=${encodeURIComponent(token)}`
+    ),
   manageAlert: (token: string) =>
     get<ManageAlertResp>(
       `/v1/alerts/manage?token=${encodeURIComponent(token)}`
+    ),
+  updateAlert: (token: string, payload: { threshold: number; direction: "above" | "below" }) =>
+    patch<{ ok: boolean }>(
+      `/v1/alerts/manage?token=${encodeURIComponent(token)}`,
+      payload,
     ),
   unsubscribeAlert: (token: string) =>
     del<{ ok: boolean; message: string }>(

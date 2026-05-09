@@ -6,6 +6,7 @@ import { PageLoader } from "./components/PageLoader";
 import { ChangesPage } from "./pages/ChangesPage";
 import { DataPage } from "./pages/DataPage";
 import { DevelopersPage } from "./pages/DevelopersPage";
+import { ConfirmAlert } from "./pages/ConfirmAlert";
 import { ManageAlerts } from "./pages/ManageAlerts";
 import { LocaleProvider } from "./i18n/LocaleProvider";
 import "./index.css";
@@ -25,6 +26,7 @@ function Root() {
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/changes" element={<ChangesPage />} />
+          <Route path="/confirm" element={<ConfirmAlert />} />
           <Route path="/manage" element={<ManageAlerts />} />
           <Route path="/data" element={<DataPage />} />
           <Route path="/developers" element={<DevelopersPage />} />

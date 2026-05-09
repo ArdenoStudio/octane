@@ -31,7 +31,7 @@ export function AlertSignup() {
         direction,
       });
       setStatus("ok");
-      setMsg("You're in. You'll be notified the moment prices cross your threshold.");
+      setMsg("Check your email — we've sent a confirmation link to activate your alert.");
       setEmail("");
     } catch (err) {
       setStatus("err");

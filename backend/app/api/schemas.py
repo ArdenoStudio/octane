@@ -17,3 +17,8 @@ class AlertOut(BaseModel):
     fuel_type: str
     threshold: float
     direction: str
+
+
+class AlertUpdateIn(BaseModel):
+    threshold: float = Field(..., gt=0)
+    direction: str = Field(..., pattern="^(above|below)$")
