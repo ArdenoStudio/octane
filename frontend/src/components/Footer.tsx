@@ -7,8 +7,23 @@ const logoPaths = [
   { translate: "688.761999, 225.654816", d: "M 101.515625 -143.1875 C 110.285156 -143.1875 117.644531 -140.992188 123.59375 -136.609375 C 129.550781 -132.222656 132.53125 -126.582031 132.53125 -119.6875 C 132.53125 -113.007812 129.394531 -105.382812 123.125 -96.8125 C 116.863281 -88.25 106.679688 -80.675781 92.578125 -74.09375 C 78.484375 -67.519531 60.578125 -63.921875 38.859375 -63.296875 C 37.597656 -59.117188 36.96875 -54 36.96875 -47.9375 C 36.96875 -35.195312 40.414062 -25.953125 47.3125 -20.203125 C 54.207031 -14.460938 61.832031 -11.59375 70.1875 -11.59375 C 84.175781 -11.59375 98.378906 -18.59375 112.796875 -32.59375 L 116.875 -28.828125 C 94.519531 -7.097656 72.898438 3.765625 52.015625 3.765625 C 43.453125 3.765625 35.984375 1.625 29.609375 -2.65625 C 23.234375 -6.945312 18.425781 -12.535156 15.1875 -19.421875 C 11.957031 -26.316406 10.34375 -33.421875 10.34375 -40.734375 C 10.34375 -55.359375 14.570312 -70.710938 23.03125 -86.796875 C 31.488281 -102.878906 42.765625 -116.296875 56.859375 -127.046875 C 70.960938 -137.804688 85.847656 -143.1875 101.515625 -143.1875 Z M 40.734375 -69.25 C 54.929688 -70.289062 66.421875 -72.691406 75.203125 -76.453125 C 83.765625 -80.210938 90.707031 -85.066406 96.03125 -91.015625 C 101.363281 -96.972656 105.175781 -102.820312 107.46875 -108.5625 C 109.769531 -114.3125 110.921875 -119.066406 110.921875 -122.828125 C 110.921875 -126.378906 109.613281 -129.664062 107 -132.6875 C 104.382812 -135.71875 100.675781 -137.234375 95.875 -137.234375 C 87.519531 -137.234375 79.425781 -133.367188 71.59375 -125.640625 C 63.757812 -117.910156 57.070312 -108.71875 51.53125 -98.0625 C 46 -87.414062 42.398438 -77.8125 40.734375 -69.25 Z" },
 ]
 
+import React from "react"
+import { RiStarLine } from "@remixicon/react"
+
+function useGithubStars(repo: string) {
+  const [stars, setStars] = React.useState<number | null>(null)
+  React.useEffect(() => {
+    fetch(`https://api.github.com/repos/${repo}`)
+      .then(r => r.json())
+      .then(d => setStars(d.stargazers_count ?? null))
+      .catch(() => {})
+  }, [repo])
+  return stars
+}
+
 export function Footer() {
   const year = new Date().getFullYear()
+  const stars = useGithubStars("ArdenoStudio/octane")
   return (
     <footer className="mt-20">
       {/* Content bar */}
@@ -24,8 +39,12 @@ export function Footer() {
           <div className="flex gap-4">
             <a href="#prices" className="hover:text-ink-200 transition-colors">Prices</a>
             <a href="#api" className="hover:text-ink-200 transition-colors">API</a>
-            <a href="https://github.com" target="_blank" rel="noopener" className="hover:text-ink-200 transition-colors">
+            <a href="https://github.com/ArdenoStudio/octane" target="_blank" rel="noopener" className="flex items-center gap-1.5 hover:text-ink-200 transition-colors">
+              <RiStarLine className="size-3.5" />
               GitHub
+              {stars !== null && (
+                <span className="text-ink-600">{stars.toLocaleString()}</span>
+              )}
             </a>
           </div>
         </div>
