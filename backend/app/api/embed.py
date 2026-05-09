@@ -88,4 +88,4 @@ def widget(
         recorded_at=latest["recorded_at"],
         **_theme(theme),
     )
-    return HTMLResponse(html, headers={"X-Frame-Options": "ALLOWALL"})
+    return HTMLResponse(html, headers={"Content-Security-Policy": "frame-ancestors *"})
