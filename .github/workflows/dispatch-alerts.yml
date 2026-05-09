@@ -11,7 +11,9 @@ jobs:
     steps:
       - name: Trigger alert dispatch
         run: |
-          curl -s -o /dev/null -w "%{http_code}" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
             -X POST https://octane-api.fly.dev/v1/alerts/dispatch \
-            -H "x-dispatch-secret: ${{ secrets.DISPATCH_SECRET }}" \
-            | grep -q "^200$"
+            -H "x-dispatch-secret: ${{ secrets.DISPATCH_SECRET }}")
+          echo "$RESPONSE"
+          STATUS=$(echo "$RESPONSE" | tail -1)
+          [ "$STATUS" = "200" ]
