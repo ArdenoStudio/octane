@@ -108,79 +108,94 @@ def list_active() -> list[dict]:
 _EMAIL_HTML = """\
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#fafafa;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;">
-  <tr><td align="center" style="padding:40px 16px 48px;">
-    <table width="560" cellpadding="0" cellspacing="0" style="max-width:100%;">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
+  <tr><td align="center" style="padding:48px 16px 56px;">
+    <table width="580" cellpadding="0" cellspacing="0" style="max-width:100%;">
 
       <!-- Logo -->
       <tr>
-        <td align="center" style="padding-bottom:24px;">
+        <td align="center" style="padding-bottom:28px;">
           <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
-               width="100" height="38" alt="Octane"
+               width="96" height="36" alt="Octane"
                style="display:block;border:0;outline:none;">
         </td>
       </tr>
 
       <!-- Card -->
       <tr>
-        <td style="background:#ffffff;border:1px solid #e4e4e7;border-radius:20px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);">
+        <td style="background:#ffffff;border-radius:20px;overflow:hidden;
+                   box-shadow:0 2px 4px rgba(80,60,20,0.06),0 16px 56px rgba(80,60,20,0.12);">
           <table width="100%" cellpadding="0" cellspacing="0">
 
-            <!-- Amber top bar -->
-            <tr>
-              <td style="background:#f59e0b;height:4px;font-size:0;line-height:0;">&nbsp;</td>
-            </tr>
+            <!-- Amber bar -->
+            <tr><td style="background:#f59e0b;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
-            <!-- Hero price section -->
+            <!-- Hero -->
             <tr>
-              <td style="padding:36px 36px 28px;background:#ffffff;">
+              <td style="padding:36px 40px 24px;">
+
                 <!-- Eyebrow -->
-                <p style="margin:0 0 20px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">Price alert triggered</p>
+                <p style="margin:0 0 22px;font-size:10px;font-weight:600;letter-spacing:0.16em;
+                           text-transform:uppercase;color:#c4b99a;text-align:center;">Price alert triggered</p>
 
-                <!-- Fuel name -->
-                <p style="margin:0 0 6px;font-size:14px;font-weight:500;color:#71717a;">{fuel_name}</p>
-
-                <!-- Big price — dominant element (weight-hierarchy + visual-hierarchy) -->
-                <p style="margin:0;font-size:52px;font-weight:800;letter-spacing:-0.04em;color:#09090b;line-height:1;font-variant-numeric:tabular-nums;">
-                  LKR&nbsp;{price}
-                </p>
-              </td>
-            </tr>
-
-            <!-- Divider -->
-            <tr>
-              <td style="padding:0 36px;">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr><td style="background:#f4f4f5;height:1px;font-size:0;line-height:0;"></td></tr>
+                <!-- Fuel + delta -->
+                <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:10px;">
+                  <tr>
+                    <td style="vertical-align:middle;">
+                      <p style="margin:0;font-size:14px;font-weight:500;color:#8c7d66;letter-spacing:-0.01em;">{fuel_name}</p>
+                    </td>
+                    <td align="right" style="vertical-align:middle;">{delta_badge}</td>
+                  </tr>
                 </table>
+
+                <!-- Price -->
+                <p style="margin:0 0 28px;font-size:76px;font-weight:800;
+                           color:#1a1208;line-height:0.9;font-variant-numeric:tabular-nums;">
+                  <span style="font-size:28px;font-weight:700;color:#c4b99a;
+                               vertical-align:middle;margin-right:6px;">LKR</span>{price}</p>
+
               </td>
             </tr>
 
-            <!-- Details row (whitespace-balance + consistent spacing) -->
+            <!-- Chart — full bleed -->
             <tr>
-              <td style="padding:24px 36px;">
+              <td style="padding:0;line-height:0;font-size:0;background:#fffcf5;">{chart_html}</td>
+            </tr>
+
+            <!-- Warm divider -->
+            <tr><td style="background:#ede8df;height:1px;font-size:0;line-height:0;"></td></tr>
+
+            <!-- Details -->
+            <tr>
+              <td style="padding:26px 40px 28px;">
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td width="50%" style="vertical-align:top;padding-right:16px;">
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Your threshold</p>
-                      <p style="margin:0;font-size:15px;font-weight:600;color:#3f3f46;">{direction_cap} LKR&nbsp;{threshold}</p>
+                    <td width="50%" style="vertical-align:top;">
+                      <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
+                                 text-transform:uppercase;color:#c4b99a;">Your threshold</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;">{direction_cap} LKR&nbsp;{threshold}</p>
                     </td>
                     <td width="50%" style="vertical-align:top;">
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Recorded on</p>
-                      <p style="margin:0;font-size:15px;font-weight:600;color:#3f3f46;">{recorded_at}</p>
+                      <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
+                                 text-transform:uppercase;color:#c4b99a;">Recorded on</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;">{recorded_at}</p>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
 
-            <!-- CTA (primary-action: one clear button, amber for brand consistency) -->
+            <!-- CTA -->
             <tr>
-              <td style="padding:4px 36px 36px;">
+              <td style="padding:0 40px 38px;">
                 <a href="{manage_url}"
-                   style="display:inline-block;background:#f59e0b;color:#09090b;text-decoration:none;font-size:13px;font-weight:700;padding:12px 24px;border-radius:10px;letter-spacing:-0.01em;">
+                   style="display:inline-block;background:#f59e0b;color:#1a0f00;text-decoration:none;
+                          font-size:13px;font-weight:700;padding:13px 28px;border-radius:10px;
+                          letter-spacing:0.01em;">
                   Manage this alert &rarr;
                 </a>
               </td>
@@ -188,12 +203,12 @@ _EMAIL_HTML = """\
 
             <!-- Footer -->
             <tr>
-              <td style="padding:16px 36px;background:#fafafa;border-top:1px solid #f4f4f5;">
-                <p style="margin:0;font-size:11px;color:#a1a1aa;line-height:1.7;">
+              <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
+                <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;">
                   You set up this alert on
-                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:500;">Octane</a>.
+                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
                   &nbsp;&middot;&nbsp;
-                  <a href="{manage_url}" style="color:#a1a1aa;text-decoration:underline;">Unsubscribe</a>
+                  <a href="{manage_url}" style="color:#c4b99a;text-decoration:underline;">Unsubscribe</a>
                 </p>
               </td>
             </tr>
@@ -314,6 +329,103 @@ def _send_telegram(chat_id: str, text: str) -> tuple[bool, str | None]:
 
 
 # ---------------------------------------------------------------------------
+# Mini chart
+# ---------------------------------------------------------------------------
+
+def _mini_chart(fuel_type: str, threshold: float) -> tuple[str, float | None]:
+    """Return (svg_html, delta_lkr). Uses 12-month history with a threshold line."""
+    delta: float | None = None
+    vals: list[float] = []
+
+    # Primary: 12-month history, deduplicated by price change
+    hist = prices.history(fuel_type, days=365)
+    if len(hist) >= 2:
+        deduped = [hist[0]]
+        for r in hist[1:]:
+            if r["price_lkr"] != deduped[-1]["price_lkr"]:
+                deduped.append(r)
+        if hist[-1]["price_lkr"] != deduped[-1]["price_lkr"]:
+            deduped.append(hist[-1])
+        if len(deduped) >= 2:
+            vals = [r["price_lkr"] for r in deduped[-8:]]
+            delta = vals[-1] - vals[-2]
+
+    # Fallback: change events
+    if len(vals) < 2:
+        all_changes = prices.changes(limit=200)
+        fuel_changes = [r for r in all_changes if r["fuel_type"] == fuel_type]
+        fuel_changes = list(reversed(fuel_changes))[-8:]
+        if len(fuel_changes) < 2:
+            return "", None
+        vals = [r["price_lkr"] for r in fuel_changes]
+        delta = fuel_changes[-1]["delta_lkr"]
+
+    W, H, PAD = 580, 72, 10
+    raw_lo = min(min(vals), threshold)
+    raw_hi = max(max(vals), threshold)
+    pad_amt = (raw_hi - raw_lo) * 0.18 or 15
+    lo, hi = raw_lo - pad_amt, raw_hi + pad_amt
+    span = hi - lo
+    n = len(vals)
+
+    def px(i: int) -> float:
+        return PAD + i * (W - 2 * PAD) / (n - 1)
+
+    def py(v: float) -> float:
+        return PAD + (1 - (v - lo) / span) * (H - 2 * PAD)
+
+    pts = " ".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(vals))
+    lx, ly = f"{px(n - 1):.1f}", f"{py(vals[-1]):.1f}"
+    fill = (
+        f"M{px(0):.1f},{py(vals[0]):.1f} "
+        + " ".join(f"L{px(i):.1f},{py(v):.1f}" for i, v in enumerate(vals))
+        + f" L{px(n - 1):.1f},{H} L{px(0):.1f},{H} Z"
+    )
+    ty = py(threshold)
+    t_label = int(threshold) if threshold == int(threshold) else threshold
+
+    svg = (
+        f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
+        f'style="display:block;width:100%;" xmlns="http://www.w3.org/2000/svg">'
+        f'<defs>'
+        f'<linearGradient id="oct-g" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="#f59e0b" stop-opacity="0.22"/>'
+        f'<stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>'
+        f'</linearGradient>'
+        f'</defs>'
+        # Threshold dashed line
+        f'<line x1="{PAD}" y1="{ty:.1f}" x2="{W - PAD}" y2="{ty:.1f}" '
+        f'stroke="#c4b99a" stroke-width="1" stroke-dasharray="4 3"/>'
+        # Threshold label (right-aligned, above the line)
+        f'<text x="{W - PAD - 3}" y="{ty - 4:.1f}" font-size="8.5" fill="#c4b99a" '
+        f'text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,sans-serif">'
+        f'LKR {t_label}</text>'
+        # Gradient fill + line
+        f'<path d="{fill}" fill="url(#oct-g)"/>'
+        f'<polyline points="{pts}" fill="none" stroke="#f59e0b" stroke-width="2" '
+        f'stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<circle cx="{lx}" cy="{ly}" r="4.5" fill="#fffcf5" stroke="#f59e0b" stroke-width="2"/>'
+        f'</svg>'
+    )
+    return svg, delta
+
+
+def _delta_badge(delta: float | None) -> str:
+    if delta is None:
+        return ""
+    delta_fmt = int(delta) if delta == int(delta) else delta
+    sign = "+" if delta >= 0 else ""
+    arrow = "&#9650;" if delta >= 0 else "&#9660;"
+    bg = "#fef2f2" if delta >= 0 else "#f0fdf4"
+    fg = "#dc2626" if delta >= 0 else "#16a34a"
+    return (
+        f'<span style="display:inline-block;font-size:11px;font-weight:700;'
+        f'color:{fg};background:{bg};padding:3px 8px;border-radius:6px;'
+        f'letter-spacing:-0.01em;">{arrow}&nbsp;{sign}{delta_fmt}</span>'
+    )
+
+
+# ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
 
@@ -348,6 +460,13 @@ def dispatch_pending() -> int:
         recorded_at = latest["recorded_at"]
         price_fmt = int(price) if price == int(price) else price
         threshold_fmt = int(threshold) if threshold == int(threshold) else threshold
+        chart_html, delta = _mini_chart(alert["fuel_type"], threshold)
+        try:
+            from datetime import datetime as _dt
+            _d = _dt.strptime(recorded_at, "%Y-%m-%d")
+            recorded_at_fmt = f"{_d.day} {_d.strftime('%B %Y')}"
+        except Exception:
+            recorded_at_fmt = recorded_at
 
         # ── Email ────────────────────────────────────────────────────────────
         subject = f"Octane alert: {fuel_name} is now LKR {price_fmt}"
@@ -357,8 +476,10 @@ def dispatch_pending() -> int:
             direction=alert["direction"],
             direction_cap=alert["direction"].capitalize(),
             threshold=threshold_fmt,
-            recorded_at=recorded_at,
+            recorded_at=recorded_at_fmt,
             manage_url=manage_url,
+            chart_html=chart_html,
+            delta_badge=_delta_badge(delta),
         )
         text_body = _EMAIL_TEXT.format(
             fuel_name=fuel_name,
