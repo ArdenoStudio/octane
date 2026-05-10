@@ -7,7 +7,7 @@ import { cx } from "../lib/utils"
 
 const LINK_KEYS = ["prices", "calculator", "history", "changes", "data", "developers"] as const
 
-const HREFS = ["#prices", "#calc", "#history", "/changes", "/data", "/developers"] as const
+const HREFS = ["/#prices", "/#calc", "/#history", "/changes", "/data", "/developers"] as const
 
 const ANCHOR_IDS = ["prices", "calc", "history"]
 
@@ -75,7 +75,7 @@ export function Nav() {
   }))
 
   function isActive(href: string) {
-    if (href.startsWith("#")) return activeSection === href
+    if (href.startsWith("/#")) return pathname === "/" && activeSection === href.slice(1)
     return pathname === href
   }
 
@@ -149,7 +149,7 @@ export function Nav() {
                 ))}
               </div>
               <a
-                href="#alerts"
+                href="/#alerts"
                 className={cx(
                   "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold tracking-tight text-zinc-950",
                   "bg-gradient-to-b from-amber-300 to-accent",
@@ -208,7 +208,7 @@ export function Nav() {
                 </div>
                 <div className="mt-2">
                   <a
-                    href="#alerts"
+                    href="/#alerts"
                     onClick={() => setOpen(false)}
                     className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-amber-300 to-accent px-4 py-2.5 text-center text-sm font-semibold tracking-tight text-zinc-900 shadow-sm shadow-accent/25 transition hover:-translate-y-px hover:shadow-md hover:shadow-accent/30"
                   >
