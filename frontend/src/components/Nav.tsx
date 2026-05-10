@@ -151,6 +151,7 @@ export function Nav() {
               <a
                 href="/#alerts"
                 className={cx(
+                  "btn-shine",
                   "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold tracking-tight text-zinc-950",
                   "bg-gradient-to-b from-amber-300 to-accent",
                   "shadow-[0_2px_10px_rgba(245,158,11,0.28),inset_0_1px_0_rgba(255,255,255,0.45)]",
