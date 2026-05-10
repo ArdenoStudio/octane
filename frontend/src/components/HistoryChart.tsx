@@ -387,6 +387,7 @@ export function HistoryChart() {
                     `LKR ${value.toFixed(2)}`,
                     FUEL_ORDER.includes(name as FuelId) ? fuelLabel(name as FuelId) : name,
                   ]}
+                  itemSorter={(item) => FUEL_ORDER.indexOf(item.dataKey as FuelId)}
                 />
                 {mode === "revisions" &&
                   chartData.map((d) => (
