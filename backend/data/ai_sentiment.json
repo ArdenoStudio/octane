@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T15:21:12.050586+00:00",
+  "generated_at": "2026-05-10T15:22:11.517855+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
@@ -11,10 +11,10 @@
   "direction": "up",
   "confidence": 0.8,
   "magnitude_lkr": 25.0,
-  "summary": "Fuel prices likely to increase due to ongoing US-Iran war tensions",
+  "summary": "Fuel prices likely to increase due to Middle East tensions and global oil prices.",
   "signals": [
-    "US-Iran war impact: What are the latest petrol, diesel prices in India, South Asian countries?",
-    "Sri Lanka hikes fuel prices by up to 25 pc amid Middle East crisis; 2nd increase in 2 weeks",
-    "Sri Lanka Raises Fuel Prices in Midnight Revision Amid Economic Pressures"
+    "US-Iran war impact on global oil prices",
+    "India among select few countries with zero petrol, diesel price changes amid US-Iran war volatility",
+    "Sri Lanka Raises Fuel Prices By 25% As US-Israel War With Iran Bites"
   ]
 }
