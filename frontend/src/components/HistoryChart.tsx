@@ -62,6 +62,11 @@ export function HistoryChart() {
   const [days, setDays] = useState<number>(365);
   const [mode, setMode] = useState<ChartMode>("daily");
 
+  function switchMode(m: ChartMode) {
+    setMode(m);
+    if (m === "revisions") setShowForecast(false);
+  }
+
   // Daily mode: per-fuel time-series from /v1/prices/history
   const [series, setSeries] = useState<Record<FuelId, HistoryPoint[]>>({} as Record<FuelId, HistoryPoint[]>);
 
@@ -306,7 +311,7 @@ export function HistoryChart() {
             <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
               <RadioGroup
                 value={mode}
-                onValueChange={(v) => setMode(v as ChartMode)}
+                onValueChange={(v) => switchMode(v as ChartMode)}
                 className="relative inline-grid grid-cols-2 items-center gap-0 text-xs font-semibold"
               >
                 <div
@@ -362,19 +367,21 @@ export function HistoryChart() {
               </RadioGroup>
             </div>
 
-            {/* Trend / forecast toggle */}
-            <button
-              onClick={() => setShowForecast((v) => !v)}
-              title="Toggle 60-day trend forecast"
-              className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                showForecast
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
-              }`}
-            >
-              <RiLineChartLine className="size-3.5" />
-              Trend
-            </button>
+            {/* Trend / forecast toggle — daily mode only */}
+            {mode === "daily" && (
+              <button
+                onClick={() => setShowForecast((v) => !v)}
+                title="Toggle 60-day trend forecast"
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                  showForecast
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
+                }`}
+              >
+                <RiLineChartLine className="size-3.5" />
+                Trend
+              </button>
+            )}
 
             <a
               href={api.historyCsvUrl(Array.from(active), days)}
