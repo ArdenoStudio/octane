@@ -158,7 +158,7 @@ export function WorldComparison() {
                   {animatedMagnitude.toFixed(1)}%
                 </span>
                 <span className="text-2xl font-bold text-ink-200 tracking-tight leading-tight">
-                  {direction}<br />world average
+                  {direction} world average
                 </span>
               </>
             )}
