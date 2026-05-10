@@ -472,25 +472,35 @@ export function HistoryChart() {
                   domain={["auto", "auto"]}
                 />
                 <Tooltip
-                  contentStyle={{
-                    background: "#ffffff",
-                    border: "1px solid #e4e4e7",
-                    borderRadius: 12,
-                    fontSize: 12,
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const items = payload.filter((p) => {
+                      const key = p.dataKey as string;
+                      return FUEL_ORDER.includes(key as FuelId) || key.endsWith("_ai_fwd");
+                    });
+                    if (!items.length) return null;
+                    return (
+                      <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, fontSize: 12, padding: "8px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+                        <div style={{ color: "#71717a", marginBottom: 6 }}>{label}</div>
+                        {items.map((p) => {
+                          const key = p.dataKey as string;
+                          const isAI = key.endsWith("_ai_fwd");
+                          const fuel = (isAI ? key.replace("_ai_fwd", "") : key) as FuelId;
+                          return (
+                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                              <span style={{ color: p.color, fontSize: 8 }}>●</span>
+                              <span style={{ color: "#3f3f46" }}>
+                                {fuelLabel(fuel)}{isAI ? <span style={{ color: "#a1a1aa" }}> · AI</span> : null}
+                              </span>
+                              <span style={{ marginLeft: "auto", paddingLeft: 12, fontWeight: 500 }}>
+                                LKR {(p.value as number).toFixed(2)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
                   }}
-                  labelStyle={{ color: "#71717a" }}
-                  formatter={(value: number, name: string) => {
-                    if (name.endsWith("_ai_fwd")) {
-                      const fuel = name.replace("_ai_fwd", "") as FuelId;
-                      return [`LKR ${value.toFixed(2)}`, `${fuelLabel(fuel)} (AI)`];
-                    }
-                    if (name.endsWith("_fwd")) return null;
-                    return [
-                      `LKR ${value.toFixed(2)}`,
-                      FUEL_ORDER.includes(name as FuelId) ? fuelLabel(name as FuelId) : name,
-                    ];
-                  }}
-                  itemSorter={(item) => FUEL_ORDER.indexOf(item.dataKey as FuelId)}
                 />
                 {mode === "revisions" &&
                   chartData.map((d) => (
