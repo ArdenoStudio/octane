@@ -60,7 +60,7 @@ export function DataPage() {
             <p className="mt-3 text-ink-300">
               Octane is an independent data project by{" "}
               <a
-                href="https://ardeno.studio"
+                href="https://ardeno-studio-website.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-ink-200 hover:text-accent transition-colors underline-offset-2 hover:underline"
