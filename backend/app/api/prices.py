@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from app import fuel as fuel_mod
 from app.services import prices
 from app.services import forecast as forecast_svc
+from app.services import sentiment as sentiment_svc
 
 router = APIRouter(prefix="/v1/prices", tags=["prices"])
 
@@ -129,7 +130,7 @@ def history_json(
     )
 
 
-@router.get("/forecast", summary="Linear-regression price trend + forecast")
+@router.get("/forecast", summary="Linear-regression price trend + AI-adjusted forecast")
 def forecast(
     fuel: str = Query(..., description="Fuel type id, e.g. 'petrol_92'"),
     source: str = Query("cpc"),
@@ -139,3 +140,22 @@ def forecast(
     if fuel not in fuel_mod.ALL_FUELS:
         raise HTTPException(status_code=400, detail=f"unknown fuel '{fuel}'")
     return forecast_svc.forecast(fuel, source, history_days, horizon_days)
+
+
+@router.get("/sentiment", summary="Latest AI news sentiment for fuel price direction")
+def sentiment():
+    sent = sentiment_svc.load()
+    if sent is None:
+        return {"available": False, "sentiment": None}
+    return {
+        "available": True,
+        "sentiment": {
+            "direction": sent.direction,
+            "confidence": sent.confidence,
+            "magnitude_lkr": sent.magnitude_lkr,
+            "summary": sent.summary,
+            "generated_at": sent.generated_at,
+            "headlines_analyzed": sent.headlines_analyzed,
+            "signals": sent.signals,
+        },
+    }

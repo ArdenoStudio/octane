@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, FUEL_ORDER, FuelId, ForecastResp, HistoryPoint, PriceChangeRow } from "../lib/api";
+import { api, FUEL_ORDER, FuelId, ForecastResp, HistoryPoint, PriceChangeRow, SentimentData } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
@@ -30,6 +30,29 @@ const RANGES = [
 ];
 
 type ChartMode = "daily" | "revisions";
+
+function SentimentBadge({ sentiment }: { sentiment: SentimentData }) {
+  const arrow = sentiment.direction === "up" ? "↑" : sentiment.direction === "down" ? "↓" : "→";
+  const label = sentiment.direction === "up" ? "Bullish" : sentiment.direction === "down" ? "Bearish" : "Neutral";
+  const colorClass =
+    sentiment.direction === "up"
+      ? "text-red-400 border-red-400/30 bg-red-400/10"
+      : sentiment.direction === "down"
+      ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
+      : "text-ink-400 border-ink-600 bg-ink-800/40";
+
+  return (
+    <span
+      title={`${sentiment.summary} (${sentiment.headlines_analyzed} headlines analysed)`}
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold ${colorClass}`}
+    >
+      <span>{arrow}</span>
+      <span>AI {label}</span>
+      <span className="opacity-60">·</span>
+      <span className="opacity-80">{(sentiment.confidence * 100).toFixed(0)}%</span>
+    </span>
+  );
+}
 
 export function HistoryChart() {
   const fuelLabel = useFuelLabel();
@@ -98,6 +121,16 @@ export function HistoryChart() {
       .finally(() => setRevisionsLoading(false));
   }, [mode, allRevisions]);
 
+  // Pull the sentiment snapshot off the first available forecast result
+  const sentiment: SentimentData | null = useMemo(() => {
+    if (!showForecast) return null;
+    for (const f of FUEL_ORDER) {
+      const s = forecasts[f]?.sentiment;
+      if (s) return s;
+    }
+    return null;
+  }, [showForecast, forecasts]);
+
   // Merge forecast regression + forward projection into chart data
   const chartDataWithForecast = useMemo(() => {
     if (!showForecast) return null;
@@ -105,14 +138,17 @@ export function HistoryChart() {
     const allDates = new Set<string>();
     const regByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
     const fwdByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
+    const aiFwdByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
 
     for (const f of active) {
       const fc = forecasts[f];
       if (!fc) continue;
       regByFuel[f] = new Map(fc.regression_points.map((p) => [p.date, p.price_lkr]));
       fwdByFuel[f] = new Map(fc.forecast_points.map((p) => [p.date, p.price_lkr]));
+      aiFwdByFuel[f] = new Map((fc.ai_forecast_points ?? []).map((p) => [p.date, p.price_lkr]));
       fc.regression_points.forEach((p) => allDates.add(p.date));
       fc.forecast_points.forEach((p) => allDates.add(p.date));
+      (fc.ai_forecast_points ?? []).forEach((p) => allDates.add(p.date));
     }
 
     return Array.from(allDates)
@@ -122,8 +158,10 @@ export function HistoryChart() {
         for (const f of active) {
           const reg = regByFuel[f]?.get(d);
           const fwd = fwdByFuel[f]?.get(d);
+          const aiFwd = aiFwdByFuel[f]?.get(d);
           if (reg != null) row[`${f}_reg`] = reg;
           if (fwd != null) row[`${f}_fwd`] = fwd;
+          if (aiFwd != null) row[`${f}_ai_fwd`] = aiFwd;
         }
         return row;
       });
@@ -198,8 +236,8 @@ export function HistoryChart() {
       (a.date as string).localeCompare(b.date as string)
     );
 
-    // Anchor each fuel's trend to its last actual price and hide the projection
-    // for any dates that fall inside the historical period.
+    // Anchor each fuel's trend lines to its last actual price and hide any
+    // projected points that fall inside the historical period.
     const offsets: Partial<Record<FuelId, number>> = {};
     const anchorIndices: Partial<Record<FuelId, number>> = {};
     for (const f of active) {
@@ -219,14 +257,26 @@ export function HistoryChart() {
         const off = offsets[f];
         const anchor = anchorIndices[f];
         if (off == null || anchor == null) continue;
+
+        // Linear regression forward projection
         if (i === anchor) {
-          // Inject connector so the dashed line starts exactly at the actual price
           next[`${f}_fwd`] = next[f] as number;
         } else if (next[`${f}_fwd`] != null) {
           if (i > anchor) {
             next[`${f}_fwd`] = (next[`${f}_fwd`] as number) + off;
           } else {
             delete next[`${f}_fwd`];
+          }
+        }
+
+        // AI forward projection (same offset/anchor logic)
+        if (i === anchor) {
+          next[`${f}_ai_fwd`] = next[f] as number;
+        } else if (next[`${f}_ai_fwd`] != null) {
+          if (i > anchor) {
+            next[`${f}_ai_fwd`] = (next[`${f}_ai_fwd`] as number) + off;
+          } else {
+            delete next[`${f}_ai_fwd`];
           }
         }
       }
@@ -236,6 +286,10 @@ export function HistoryChart() {
 
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
+  const hasSentiment = sentiment !== null;
+  const hasAiForecast = showForecast && Object.values(forecasts).some(
+    (f) => (f.ai_forecast_points ?? []).length > 0
+  );
 
   return (
     <section id="history" className="container-x pt-16">
@@ -311,7 +365,7 @@ export function HistoryChart() {
             {/* Trend / forecast toggle */}
             <button
               onClick={() => setShowForecast((v) => !v)}
-              title="Toggle 90-day trend forecast"
+              title="Toggle 60-day trend forecast"
               className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
                 showForecast
                   ? "border-accent bg-accent/10 text-accent"
@@ -349,15 +403,22 @@ export function HistoryChart() {
           </p>
         )}
         {showForecast && (
-          <p className="mt-2 text-xs text-ink-500">
-            <span className="font-semibold text-accent">Trend</span>: dashed line projects 60 days ahead from the current price using linear regression — for indicative purposes only.
-            {Object.keys(forecasts).length > 0 && (() => {
-              const f = Array.from(active).find((k) => forecasts[k]?.r_squared != null);
-              if (!f) return null;
-              const r2 = forecasts[f]?.r_squared;
-              return r2 != null ? <> R² = {(r2 * 100).toFixed(0)}%.</> : null;
-            })()}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-ink-500">
+              <span className="font-semibold text-accent">Trend</span>: dashed line projects 60 days ahead using linear regression —{" "}
+              {hasAiForecast && (
+                <>bright dashed line is the <span className="font-semibold text-ink-300">AI forecast</span> (Groq · Llama 3.1) based on news sentiment — </>
+              )}
+              for indicative purposes only.
+              {Object.keys(forecasts).length > 0 && (() => {
+                const f = Array.from(active).find((k) => forecasts[k]?.r_squared != null);
+                if (!f) return null;
+                const r2 = forecasts[f]?.r_squared;
+                return r2 != null ? <> R² = {(r2 * 100).toFixed(0)}%.</> : null;
+              })()}
+            </p>
+            {hasSentiment && <SentimentBadge sentiment={sentiment!} />}
+          </div>
         )}
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -418,10 +479,17 @@ export function HistoryChart() {
                     fontSize: 12,
                   }}
                   labelStyle={{ color: "#71717a" }}
-                  formatter={(value: number, name: string) => [
-                    `LKR ${value.toFixed(2)}`,
-                    FUEL_ORDER.includes(name as FuelId) ? fuelLabel(name as FuelId) : name,
-                  ]}
+                  formatter={(value: number, name: string) => {
+                    if (name.endsWith("_ai_fwd")) {
+                      const fuel = name.replace("_ai_fwd", "") as FuelId;
+                      return [`LKR ${value.toFixed(2)}`, `${fuelLabel(fuel)} (AI)`];
+                    }
+                    if (name.endsWith("_fwd")) return null;
+                    return [
+                      `LKR ${value.toFixed(2)}`,
+                      FUEL_ORDER.includes(name as FuelId) ? fuelLabel(name as FuelId) : name,
+                    ];
+                  }}
                   itemSorter={(item) => FUEL_ORDER.indexOf(item.dataKey as FuelId)}
                 />
                 {mode === "revisions" &&
@@ -446,8 +514,7 @@ export function HistoryChart() {
                   />
                 ))}
 
-
-                {/* Forecast: forward projection (90 days ahead) */}
+                {/* Linear regression forward projection — dim dashed */}
                 {showForecast && Array.from(active).map((f) =>
                   forecasts[f] ? (
                     <Line
@@ -457,7 +524,26 @@ export function HistoryChart() {
                       stroke={COLORS[f]}
                       strokeWidth={1.5}
                       strokeDasharray="4 4"
-                      strokeOpacity={0.45}
+                      strokeOpacity={0.35}
+                      dot={false}
+                      connectNulls
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                  ) : null
+                )}
+
+                {/* AI-adjusted forward projection — brighter dashed */}
+                {showForecast && hasAiForecast && Array.from(active).map((f) =>
+                  (forecasts[f]?.ai_forecast_points ?? []).length > 0 ? (
+                    <Line
+                      key={`${f}_ai_fwd`}
+                      type="linear"
+                      dataKey={`${f}_ai_fwd`}
+                      stroke={COLORS[f]}
+                      strokeWidth={2}
+                      strokeDasharray="6 3"
+                      strokeOpacity={0.75}
                       dot={false}
                       connectNulls
                       isAnimationActive={false}

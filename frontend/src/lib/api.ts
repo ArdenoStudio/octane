@@ -68,6 +68,16 @@ export interface ForecastPoint {
   price_lkr: number;
 }
 
+export interface SentimentData {
+  direction: "up" | "down" | "stable";
+  confidence: number;
+  magnitude_lkr: number;
+  summary: string;
+  generated_at: string;
+  headlines_analyzed: number;
+  signals: string[];
+}
+
 export interface ForecastResp {
   fuel_type: FuelId;
   source: string;
@@ -75,6 +85,8 @@ export interface ForecastResp {
   slope_lkr_per_day: number | null;
   regression_points: ForecastPoint[];
   forecast_points: ForecastPoint[];
+  ai_forecast_points: ForecastPoint[];
+  sentiment: SentimentData | null;
   error?: string;
 }
 
@@ -166,6 +178,8 @@ export const api = {
     get<ForecastResp>(
       `/v1/prices/forecast?fuel=${fuel}&history_days=${historyDays}&horizon_days=${horizonDays}`
     ),
+  sentiment: () =>
+    get<{ available: boolean; sentiment: SentimentData | null }>("/v1/prices/sentiment"),
   changes: (limit = 200) =>
     get<{ source: string; changes: PriceChangeRow[] }>(
       `/v1/prices/changes?limit=${limit}`
