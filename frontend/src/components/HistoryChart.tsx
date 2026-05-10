@@ -194,10 +194,35 @@ export function HistoryChart() {
       const existing = map.get(row.date as string) ?? { date: row.date };
       map.set(row.date as string, { ...existing, ...row });
     }
-    return Array.from(map.values()).sort((a, b) =>
+    const merged = Array.from(map.values()).sort((a, b) =>
       (a.date as string).localeCompare(b.date as string)
     );
-  }, [chartData, chartDataWithForecast]);
+
+    // Anchor each fuel's trend to its last actual price.
+    // Scan backwards to find the last row where both the actual price and
+    // the regression value are present, then shift all trend rows by the delta.
+    const offsets: Partial<Record<FuelId, number>> = {};
+    for (const f of active) {
+      for (let i = merged.length - 1; i >= 0; i--) {
+        const row = merged[i];
+        if (row[f] != null && row[`${f}_reg`] != null) {
+          offsets[f] = (row[f] as number) - (row[`${f}_reg`] as number);
+          break;
+        }
+      }
+    }
+
+    return merged.map((row) => {
+      const next = { ...row };
+      for (const f of active) {
+        const off = offsets[f];
+        if (!off) continue;
+        if (next[`${f}_reg`] != null) next[`${f}_reg`] = (next[`${f}_reg`] as number) + off;
+        if (next[`${f}_fwd`] != null) next[`${f}_fwd`] = (next[`${f}_fwd`] as number) + off;
+      }
+      return next;
+    });
+  }, [chartData, chartDataWithForecast, active]);
 
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
