@@ -262,8 +262,9 @@ _EMAIL_HTML = """\
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>@import url('https://fonts.cdnfonts.com/css/cal-sans');</style>
 </head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+<body style="margin:0;padding:0;background:#ffffff;font-family:'Cal Sans',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
   <tr><td align="center" style="padding:48px 16px 56px;">
     <table width="580" cellpadding="0" cellspacing="0" style="max-width:100%;">
@@ -292,13 +293,13 @@ _EMAIL_HTML = """\
 
                 <!-- Eyebrow -->
                 <p style="margin:0 0 22px;font-size:10px;font-weight:600;letter-spacing:0.16em;
-                           text-transform:uppercase;color:#c4b99a;text-align:center;">Price alert triggered</p>
+                           text-transform:uppercase;color:#c4b99a;text-align:center;font-family:'Cal Sans',-apple-system,sans-serif;">Price alert triggered</p>
 
                 <!-- Fuel + delta -->
                 <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:10px;">
                   <tr>
                     <td style="vertical-align:middle;">
-                      <p style="margin:0;font-size:14px;font-weight:500;color:#8c7d66;letter-spacing:-0.01em;">{fuel_name}</p>
+                      <p style="margin:0;font-size:14px;font-weight:500;color:#8c7d66;letter-spacing:-0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">{fuel_name}</p>
                     </td>
                     <td align="right" style="vertical-align:middle;">{delta_badge}</td>
                   </tr>
@@ -306,7 +307,7 @@ _EMAIL_HTML = """\
 
                 <!-- Price -->
                 <p style="margin:0 0 28px;font-size:76px;font-weight:800;
-                           color:#1a1208;line-height:0.9;font-variant-numeric:tabular-nums;">
+                           color:#1a1208;line-height:0.9;font-variant-numeric:tabular-nums;font-family:'Cal Sans',-apple-system,sans-serif;">
                   <span style="font-size:28px;font-weight:700;color:#c4b99a;
                                vertical-align:middle;margin-right:6px;">LKR</span>{price}</p>
 
@@ -328,13 +329,13 @@ _EMAIL_HTML = """\
                   <tr>
                     <td width="50%" style="vertical-align:top;">
                       <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
-                                 text-transform:uppercase;color:#c4b99a;">Your threshold</p>
-                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;">{direction_cap} LKR&nbsp;{threshold}</p>
+                                 text-transform:uppercase;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Your threshold</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;font-family:'Cal Sans',-apple-system,sans-serif;">{direction_cap} LKR&nbsp;{threshold}</p>
                     </td>
                     <td width="50%" style="vertical-align:top;">
                       <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
-                                 text-transform:uppercase;color:#c4b99a;">Recorded on</p>
-                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;">{recorded_at}</p>
+                                 text-transform:uppercase;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Recorded on</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;font-family:'Cal Sans',-apple-system,sans-serif;">{recorded_at}</p>
                     </td>
                   </tr>
                 </table>
@@ -347,7 +348,7 @@ _EMAIL_HTML = """\
                 <a href="{manage_url}"
                    style="display:inline-block;background:#f59e0b;color:#1a0f00;text-decoration:none;
                           font-size:13px;font-weight:700;padding:13px 28px;border-radius:10px;
-                          letter-spacing:0.01em;">
+                          letter-spacing:0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">
                   Manage this alert &rarr;
                 </a>
               </td>
