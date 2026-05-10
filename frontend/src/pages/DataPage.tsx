@@ -161,7 +161,7 @@ export function DataPage() {
             <Section title="API access">
               <p>
                 All data is available programmatically through the{" "}
-                <a href="/#api" className="text-accent hover:underline">
+                <a href="/developers" className="text-accent hover:underline">
                   free public API
                 </a>
                 . Historical data can be downloaded directly as CSV from the{" "}
