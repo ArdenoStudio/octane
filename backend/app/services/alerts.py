@@ -264,14 +264,14 @@ _EMAIL_HTML = """\
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <style>@import url('https://fonts.cdnfonts.com/css/cal-sans');</style>
 </head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:'Cal Sans',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
-  <tr><td align="center" style="padding:48px 16px 56px;">
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:'Cal Sans',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;">
+  <tr><td align="center" style="padding:40px 16px;">
     <table width="580" cellpadding="0" cellspacing="0" style="max-width:100%;">
 
       <!-- Logo -->
       <tr>
-        <td align="center" style="padding-bottom:28px;">
+        <td align="center" style="padding-bottom:24px;">
           <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
                width="96" height="36" alt="Octane"
                style="display:block;border:0;outline:none;">
@@ -280,88 +280,68 @@ _EMAIL_HTML = """\
 
       <!-- Card -->
       <tr>
-        <td style="background:#ffffff;border-radius:20px;overflow:hidden;
-                   box-shadow:0 2px 4px rgba(80,60,20,0.06),0 16px 56px rgba(80,60,20,0.12);">
+        <td style="background:#ffffff;border:1px solid #e4e4e7;border-radius:16px;overflow:hidden;">
           <table width="100%" cellpadding="0" cellspacing="0">
 
-            <!-- Amber bar -->
-            <tr><td style="background:#f59e0b;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
-
-            <!-- Hero -->
+            <!-- Header -->
             <tr>
-              <td style="padding:36px 40px 24px;">
-
-                <!-- Eyebrow -->
-                <p style="margin:0 0 22px;font-size:10px;font-weight:600;letter-spacing:0.16em;
-                           text-transform:uppercase;color:#c4b99a;text-align:center;font-family:'Cal Sans',-apple-system,sans-serif;">Price alert triggered</p>
-
-                <!-- Fuel + delta -->
-                <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:10px;">
-                  <tr>
-                    <td style="vertical-align:middle;">
-                      <p style="margin:0;font-size:14px;font-weight:500;color:#8c7d66;letter-spacing:-0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">{fuel_name}</p>
-                    </td>
-                    <td align="right" style="vertical-align:middle;">{delta_badge}</td>
-                  </tr>
-                </table>
-
-                <!-- Price -->
-                <p style="margin:0 0 28px;font-size:76px;font-weight:800;
-                           color:#1a1208;line-height:0.9;font-variant-numeric:tabular-nums;font-family:'Cal Sans',-apple-system,sans-serif;">
-                  <span style="font-size:28px;font-weight:700;color:#c4b99a;
-                               vertical-align:middle;margin-right:6px;">LKR</span>{price}</p>
-
+              <td style="padding:20px 32px 16px;border-bottom:3px solid #f59e0b;">
+                <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;font-family:'Cal Sans',-apple-system,sans-serif;">Price Alert Triggered</p>
               </td>
             </tr>
 
-            <!-- Chart — full bleed -->
+            <!-- Eyebrow + headline -->
             <tr>
-              <td style="padding:0;line-height:0;font-size:0;background:#ffffff;">{chart_html}</td>
+              <td style="padding:24px 32px 8px;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;font-family:'Cal Sans',-apple-system,sans-serif;">Week of {recorded_at}</p>
+                <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;letter-spacing:-0.04em;color:#09090b;font-family:'Cal Sans',-apple-system,sans-serif;">{fuel_name} crossed your threshold.</h1>
+              </td>
             </tr>
 
-            <!-- Warm divider -->
-            <tr><td style="background:#ede8df;height:1px;font-size:0;line-height:0;"></td></tr>
-
-            <!-- Details -->
+            <!-- Price table -->
             <tr>
-              <td style="padding:26px 40px 28px;">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td width="50%" style="vertical-align:top;">
-                      <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
-                                 text-transform:uppercase;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Your threshold</p>
-                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;font-family:'Cal Sans',-apple-system,sans-serif;">{direction_cap} LKR&nbsp;{threshold}</p>
-                    </td>
-                    <td width="50%" style="vertical-align:top;">
-                      <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
-                                 text-transform:uppercase;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Recorded on</p>
-                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;font-family:'Cal Sans',-apple-system,sans-serif;">{recorded_at}</p>
-                    </td>
-                  </tr>
+              <td style="padding:16px 32px 8px;">
+                <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;">
+                  <thead>
+                    <tr style="background:#f9f9f9;">
+                      <th style="padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a1a1aa;text-align:left;font-family:'Cal Sans',-apple-system,sans-serif;">Fuel</th>
+                      <th style="padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a1a1aa;text-align:right;font-family:'Cal Sans',-apple-system,sans-serif;">Price (LKR/L)</th>
+                      <th style="padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a1a1aa;text-align:right;font-family:'Cal Sans',-apple-system,sans-serif;">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="padding:12px 16px;font-size:13px;color:#3f3f46;font-family:'Cal Sans',-apple-system,sans-serif;">{fuel_name}</td>
+                      <td style="padding:12px 16px;font-size:15px;font-weight:700;color:#09090b;text-align:right;font-family:'Cal Sans',-apple-system,sans-serif;">LKR&nbsp;{price}</td>
+                      <td style="padding:12px 16px;font-size:12px;text-align:right;">{delta_badge}</td>
+                    </tr>
+                  </tbody>
                 </table>
+              </td>
+            </tr>
+
+            <!-- Threshold note -->
+            <tr>
+              <td style="padding:12px 32px 24px;">
+                <p style="margin:0;font-size:12px;color:#a1a1aa;font-family:'Cal Sans',-apple-system,sans-serif;">Your threshold: {direction_cap} LKR&nbsp;{threshold}</p>
               </td>
             </tr>
 
             <!-- CTA -->
             <tr>
-              <td style="padding:0 40px 38px;">
-                <a href="{manage_url}"
-                   style="display:inline-block;background:#f59e0b;color:#1a0f00;text-decoration:none;
-                          font-size:13px;font-weight:700;padding:13px 28px;border-radius:10px;
-                          letter-spacing:0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">
-                  Manage this alert &rarr;
-                </a>
+              <td style="padding:0 32px 32px;">
+                <a href="{manage_url}" style="display:inline-block;background:#f59e0b;color:#09090b;text-decoration:none;font-size:13px;font-weight:700;padding:10px 20px;border-radius:8px;font-family:'Cal Sans',-apple-system,sans-serif;">Manage this alert &rarr;</a>
               </td>
             </tr>
 
             <!-- Footer -->
             <tr>
-              <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
-                <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;">
+              <td style="padding:18px 32px;background:#f9f9f9;border-top:1px solid #e4e4e7;">
+                <p style="margin:0;font-size:11px;color:#a1a1aa;line-height:1.6;font-family:'Cal Sans',-apple-system,sans-serif;">
                   You set up this alert on
-                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
-                  &nbsp;&middot;&nbsp;
-                  <a href="{manage_url}" style="color:#c4b99a;text-decoration:underline;">Unsubscribe</a>
+                  <a href="https://octane.lk" style="color:#f59e0b;text-decoration:none;">octane.lk</a>.
+                  &nbsp;·&nbsp;
+                  <a href="{manage_url}" style="color:#a1a1aa;text-decoration:underline;">Unsubscribe</a>
                 </p>
               </td>
             </tr>
