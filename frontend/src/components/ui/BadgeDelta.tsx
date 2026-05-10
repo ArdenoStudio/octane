@@ -58,6 +58,7 @@ interface BadgeDeltaProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: Variant
   deltaType?: DeltaType
   iconStyle?: IconStyle
+  invertColors?: boolean
 }
 
 export function BadgeDelta({
@@ -65,15 +66,23 @@ export function BadgeDelta({
   variant = "outline",
   deltaType = "neutral",
   iconStyle = "filled",
+  invertColors = false,
   value,
   ...props
 }: BadgeDeltaProps) {
+  const colorDeltaType =
+    invertColors && deltaType !== "neutral"
+      ? deltaType === "increase"
+        ? "decrease"
+        : "increase"
+      : deltaType
+
   return (
     <span
       className={cx(
         "inline-flex items-center text-xs font-semibold",
         variantBaseClasses[variant],
-        variantDeltaClasses[variant][deltaType],
+        variantDeltaClasses[variant][colorDeltaType],
         className,
       )}
       {...props}

@@ -189,7 +189,8 @@ export function PriceStrip() {
                         <BadgeDelta
                           aria-label={flat ? "no change" : up ? `price up ${Math.round(delta!)} rupees` : `price down ${Math.abs(Math.round(delta!))} rupees`}
                           variant="solid"
-                          deltaType={flat ? "neutral" : up ? "decrease" : "increase"}
+                          deltaType={flat ? "neutral" : up ? "increase" : "decrease"}
+                          invertColors
                           value={flat ? "0" : up ? `+${Math.round(delta!)}` : `${Math.round(delta!)}`}
                           className="shrink-0 tabular-nums"
                         />
