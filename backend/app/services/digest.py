@@ -102,19 +102,19 @@ def _build_price_rows(latest: list[dict]) -> str:
         price = p["price_lkr"]
         pct = changes_7d.get(fuel_id)
         if pct is None:
-            delta_str = '<span style="color:#a1a1aa;">—</span>'
+            delta_str = '<span style="color:#c4b99a;">—</span>'
         elif pct > 0.01:
-            delta_str = f'<span style="color:#dc2626;font-weight:600;">▲ {pct:+.1f}%</span>'
+            delta_str = f'<span style="display:inline-block;font-size:11px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 7px;border-radius:5px;">&#9650;&nbsp;{pct:+.1f}%</span>'
         elif pct < -0.01:
-            delta_str = f'<span style="color:#16a34a;font-weight:600;">▼ {pct:.1f}%</span>'
+            delta_str = f'<span style="display:inline-block;font-size:11px;font-weight:700;color:#16a34a;background:#f0fdf4;padding:2px 7px;border-radius:5px;">&#9660;&nbsp;{pct:.1f}%</span>'
         else:
-            delta_str = '<span style="color:#71717a;">unchanged</span>'
+            delta_str = '<span style="color:#c4b99a;">unchanged</span>'
 
         rows_html += f"""
         <tr>
-          <td style="padding:12px 16px;border-bottom:1px solid #f4f4f5;font-size:13px;color:#3f3f46;">{label}</td>
-          <td style="padding:12px 16px;border-bottom:1px solid #f4f4f5;font-size:15px;font-weight:700;color:#09090b;text-align:right;">LKR&nbsp;{price:.2f}</td>
-          <td style="padding:12px 16px;border-bottom:1px solid #f4f4f5;font-size:12px;text-align:right;">{delta_str}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #ede8df;font-size:13px;color:#6b5e4e;font-family:'Cal Sans',-apple-system,sans-serif;">{label}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #ede8df;font-size:15px;font-weight:700;color:#1a1208;text-align:right;font-family:'Cal Sans',-apple-system,sans-serif;">LKR&nbsp;{price:.2f}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #ede8df;font-size:12px;text-align:right;font-family:'Cal Sans',-apple-system,sans-serif;">{delta_str}</td>
         </tr>"""
 
     return rows_html
@@ -123,69 +123,91 @@ def _build_price_rows(latest: list[dict]) -> str:
 _DIGEST_HTML = """\
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;">
-  <tr><td align="center" style="padding:40px 16px;">
-    <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e4e4e7;border-radius:16px;overflow:hidden;max-width:100%;">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>@import url('https://fonts.cdnfonts.com/css/cal-sans');</style>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:'Cal Sans',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
+  <tr><td align="center" style="padding:48px 16px 56px;">
+    <table width="580" cellpadding="0" cellspacing="0" style="max-width:100%;">
 
-      <!-- Header -->
+      <!-- Logo -->
       <tr>
-        <td style="padding:24px 32px 20px;border-bottom:3px solid #f59e0b;">
-          <span style="font-size:20px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">Octane</span>
-          <span style="font-size:11px;font-weight:500;color:#a1a1aa;margin-left:8px;">Weekly Fuel Price Digest</span>
+        <td align="center" style="padding-bottom:28px;">
+          <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
+               width="96" height="36" alt="Octane"
+               style="display:block;border:0;outline:none;">
         </td>
       </tr>
 
-      <!-- Week label -->
+      <!-- Card -->
       <tr>
-        <td style="padding:24px 32px 8px;">
-          <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">Week of {week_of}</p>
-          <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">Sri Lanka fuel prices at a glance.</h1>
-        </td>
-      </tr>
+        <td style="background:#ffffff;border-radius:20px;overflow:hidden;
+                   box-shadow:0 2px 4px rgba(80,60,20,0.06),0 16px 56px rgba(80,60,20,0.12);">
+          <table width="100%" cellpadding="0" cellspacing="0">
 
-      <!-- Price table -->
-      <tr>
-        <td style="padding:16px 32px 8px;">
-          <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;">
-            <thead>
-              <tr style="background:#f9f9f9;">
-                <th style="padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a1a1aa;text-align:left;">Fuel</th>
-                <th style="padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a1a1aa;text-align:right;">Price (LKR/L)</th>
-                <th style="padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a1a1aa;text-align:right;">7-day change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {price_rows}
-            </tbody>
+            <!-- Amber bar -->
+            <tr><td style="background:#f59e0b;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+            <!-- Week label -->
+            <tr>
+              <td style="padding:36px 40px 20px;">
+                <p style="margin:0 0 8px;font-size:10px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Week of {week_of}</p>
+                <h1 style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#1a1208;line-height:1.2;font-family:'Cal Sans',-apple-system,sans-serif;">Sri Lanka fuel prices at a glance.</h1>
+              </td>
+            </tr>
+
+            <!-- Price table -->
+            <tr>
+              <td style="padding:0 40px 8px;">
+                <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #ede8df;border-radius:12px;overflow:hidden;">
+                  <thead>
+                    <tr style="background:#faf7f2;">
+                      <th style="padding:10px 16px;font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#c4b99a;text-align:left;font-family:'Cal Sans',-apple-system,sans-serif;">Fuel</th>
+                      <th style="padding:10px 16px;font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#c4b99a;text-align:right;font-family:'Cal Sans',-apple-system,sans-serif;">Price (LKR/L)</th>
+                      <th style="padding:10px 16px;font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#c4b99a;text-align:right;font-family:'Cal Sans',-apple-system,sans-serif;">7-day change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {price_rows}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Note -->
+            <tr>
+              <td style="padding:14px 40px 28px;">
+                <p style="margin:0;font-size:11px;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Source: Ceylon Petroleum Corporation (CPC). Prices in LKR per litre.</p>
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td style="padding:0 40px 38px;">
+                <a href="https://octane.lk"
+                   style="display:inline-block;background:#f59e0b;color:#1a0f00;text-decoration:none;
+                          font-size:13px;font-weight:700;padding:13px 28px;border-radius:10px;
+                          letter-spacing:0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">
+                  View live prices &amp; history &rarr;
+                </a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
+                <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;font-family:'Cal Sans',-apple-system,sans-serif;">
+                  You're receiving this because you subscribed on
+                  <a href="https://octane.lk" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
+                  &nbsp;&middot;&nbsp;
+                  <a href="{unsub_url}" style="color:#c4b99a;text-decoration:underline;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>
+
           </table>
-        </td>
-      </tr>
-
-      <!-- Note -->
-      <tr>
-        <td style="padding:12px 32px 24px;">
-          <p style="margin:0;font-size:12px;color:#a1a1aa;">Source: Ceylon Petroleum Corporation (CPC). Prices in LKR per litre.</p>
-        </td>
-      </tr>
-
-      <!-- CTA -->
-      <tr>
-        <td style="padding:0 32px 32px;">
-          <a href="https://octane.lk" style="display:inline-block;background:#f59e0b;color:#09090b;text-decoration:none;font-size:13px;font-weight:700;padding:10px 20px;border-radius:8px;">View live prices &amp; history →</a>
-        </td>
-      </tr>
-
-      <!-- Footer -->
-      <tr>
-        <td style="padding:18px 32px;background:#f9f9f9;border-top:1px solid #e4e4e7;">
-          <p style="margin:0;font-size:11px;color:#a1a1aa;line-height:1.6;">
-            You're receiving this weekly digest because you subscribed on
-            <a href="https://octane.lk" style="color:#f59e0b;text-decoration:none;">octane.lk</a>.
-            &nbsp;·&nbsp;
-            <a href="{unsub_url}" style="color:#a1a1aa;text-decoration:underline;">Unsubscribe</a>
-          </p>
         </td>
       </tr>
 
