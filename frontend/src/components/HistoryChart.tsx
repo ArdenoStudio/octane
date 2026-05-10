@@ -73,7 +73,7 @@ export function HistoryChart() {
     if (fuelsNeeded.length === 0) return;
     Promise.all(
       fuelsNeeded.map((f) =>
-        api.forecast(f, Math.min(days, 365), 90).then((r) => [f, r] as const)
+        api.forecast(f, Math.min(days, 365), 60).then((r) => [f, r] as const)
       )
     ).then((entries) => {
       const next = { ...forecasts };
@@ -367,7 +367,7 @@ export function HistoryChart() {
                   tickFormatter={(d) => String(d).slice(0, 7)}
                   stroke="#a1a1aa"
                   fontSize={11}
-                  minTickGap={32}
+                  minTickGap={70}
                 />
                 <YAxis
                   stroke="#a1a1aa"
@@ -439,7 +439,7 @@ export function HistoryChart() {
                       stroke={COLORS[f]}
                       strokeWidth={1.5}
                       strokeDasharray="4 4"
-                      strokeOpacity={0.6}
+                      strokeOpacity={0.45}
                       dot={false}
                       connectNulls
                       isAnimationActive={false}
