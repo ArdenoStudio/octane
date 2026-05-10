@@ -198,27 +198,34 @@ export function HistoryChart() {
       (a.date as string).localeCompare(b.date as string)
     );
 
-    // Anchor each fuel's trend to its last actual price.
-    // Scan backwards to find the last row where both the actual price and
-    // the regression value are present, then shift all trend rows by the delta.
+    // Anchor each fuel's trend to its last actual price and hide the projection
+    // for any dates that fall inside the historical period.
     const offsets: Partial<Record<FuelId, number>> = {};
+    const anchorIndices: Partial<Record<FuelId, number>> = {};
     for (const f of active) {
       for (let i = merged.length - 1; i >= 0; i--) {
         const row = merged[i];
         if (row[f] != null && row[`${f}_reg`] != null) {
           offsets[f] = (row[f] as number) - (row[`${f}_reg`] as number);
+          anchorIndices[f] = i;
           break;
         }
       }
     }
 
-    return merged.map((row) => {
+    return merged.map((row, i) => {
       const next = { ...row };
       for (const f of active) {
         const off = offsets[f];
-        if (!off) continue;
-        if (next[`${f}_reg`] != null) next[`${f}_reg`] = (next[`${f}_reg`] as number) + off;
-        if (next[`${f}_fwd`] != null) next[`${f}_fwd`] = (next[`${f}_fwd`] as number) + off;
+        const anchor = anchorIndices[f];
+        if (off == null || anchor == null) continue;
+        if (next[`${f}_fwd`] != null) {
+          if (i >= anchor) {
+            next[`${f}_fwd`] = (next[`${f}_fwd`] as number) + off;
+          } else {
+            delete next[`${f}_fwd`];
+          }
+        }
       }
       return next;
     });
