@@ -31,7 +31,7 @@ export function Footer() {
         <div className="flex flex-wrap items-center justify-between gap-3 py-6 text-sm text-ink-400">
           <div>
             &copy; {year} Built by{" "}
-            <a href="https://ardenostudio.com" className="font-semibold text-ink-200 hover:text-accent transition-colors">
+            <a href="https://ardeno-studio-website.vercel.app/" className="font-semibold text-ink-200 hover:text-accent transition-colors">
               Ardeno Studio
             </a>
             .
