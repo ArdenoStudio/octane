@@ -227,7 +227,7 @@ export function ApiSection() {
           {/* ── Left: description + endpoint list ── */}
           <div className="p-6 sm:p-8">
             <div className="label">Free public API</div>
-            <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tightest sm:text-4xl">
+            <h2 className="mt-1 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
               Build something with the data.
             </h2>
             <p className="mt-3 text-ink-300">

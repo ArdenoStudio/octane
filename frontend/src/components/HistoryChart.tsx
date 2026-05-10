@@ -208,7 +208,7 @@ export function HistoryChart() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="label">Price history</div>
-            <h2 className="mt-1 font-display text-2xl font-extrabold tracking-tightest sm:text-3xl">
+            <h2 className="mt-1 font-display text-2xl font-bold tracking-tightest sm:text-3xl">
               Every revision since the records begin.
             </h2>
           </div>

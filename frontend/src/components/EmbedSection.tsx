@@ -31,7 +31,7 @@ export function EmbedSection() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="label">Embed widget</div>
-            <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tightest sm:text-4xl">
+            <h2 className="mt-1 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
               Add live fuel prices to your site.
             </h2>
           </div>

@@ -47,7 +47,7 @@ export function AlertSignup() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <div className="label">Get notified</div>
-            <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tightest sm:text-4xl">
+            <h2 className="mt-1 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
               Don't get caught by a price hike.
             </h2>
             <p className="mt-3 text-ink-300">

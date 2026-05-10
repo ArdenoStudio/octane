@@ -9,6 +9,7 @@ import { DevelopersPage } from "./pages/DevelopersPage";
 import { ConfirmAlert } from "./pages/ConfirmAlert";
 import { ManageAlerts } from "./pages/ManageAlerts";
 import { LocaleProvider } from "./i18n/LocaleProvider";
+import "@calcom/cal-sans-ui/ui.css";
 import "./index.css";
 
 function Root() {

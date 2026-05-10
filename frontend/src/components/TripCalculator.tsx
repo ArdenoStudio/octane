@@ -39,7 +39,7 @@ export function TripCalculator() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <div className="label">Trip cost</div>
-          <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tightest sm:text-4xl">
+          <h2 className="mt-1 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
             How much will it cost you?
           </h2>
           <p className="mt-3 text-ink-300">
@@ -96,7 +96,7 @@ export function TripCalculator() {
           {result && (
             <div className="mt-6 rounded-xl border border-accent/30 bg-accent/5 p-5">
               <div className="label text-accent">This trip costs</div>
-              <div className="mt-1 font-display text-4xl font-extrabold tracking-tightest text-ink-100 sm:text-5xl">
+              <div className="mt-1 font-display text-4xl font-bold tracking-tightest text-ink-100 sm:text-5xl">
                 {compactLkr(result.cost_lkr)}
               </div>
               <div className="mt-2 text-sm text-ink-300">

@@ -105,7 +105,7 @@ export function HeroSection() {
         </FadeDiv>
 
         {/* Headline */}
-        <h1 className="mt-8 font-display text-5xl font-extrabold tracking-tightest text-ink-100 sm:text-7xl sm:leading-[1.05]">
+        <h1 className="mt-8 font-display text-5xl font-bold tracking-tightest text-ink-100 sm:text-7xl sm:leading-[1.05]">
           <FadeSpan delay={60}>{m.hero.h1a}</FadeSpan>{" "}
           <FadeSpan delay={110}>{m.hero.h1b}</FadeSpan>
           <br />

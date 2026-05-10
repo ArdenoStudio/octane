@@ -112,7 +112,7 @@ export function PriceStrip() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <FadeDiv>
             <Badge>{m.prices.badge}</Badge>
-            <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tightest sm:text-4xl">
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
               {m.prices.title}
             </h1>
           </FadeDiv>
