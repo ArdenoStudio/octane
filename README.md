@@ -18,6 +18,9 @@
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/ci.yml/badge.svg" alt="CI" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/deploy-backend.yml/badge.svg" alt="Deploy backend" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/scrape.yml/badge.svg" alt="Scrape fuel prices" />
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/digest.yml/badge.svg" alt="Digest" />
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/dispatch-alerts.yml/badge.svg" alt="Dispatch alerts" />
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/sentiment.yml/badge.svg" alt="Sentiment" />
 </p>
 
 ---
