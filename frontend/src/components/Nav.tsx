@@ -107,7 +107,7 @@ export function Nav() {
             {/* Logo — left */}
             <a
               href="/"
-              className="flex shrink-0 items-center rounded-md text-zinc-900 outline-none transition-all duration-150 hover:opacity-75 focus-visible:ring-2 focus-visible:ring-zinc-900/10"
+              className="flex shrink-0 items-center rounded-md text-zinc-900 outline-none transition-all duration-200 hover:scale-[0.97] hover:opacity-85 focus-visible:ring-2 focus-visible:ring-zinc-900/10"
             >
               {LOGO_SVG}
             </a>
