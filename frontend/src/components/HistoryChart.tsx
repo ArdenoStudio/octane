@@ -219,8 +219,11 @@ export function HistoryChart() {
         const off = offsets[f];
         const anchor = anchorIndices[f];
         if (off == null || anchor == null) continue;
-        if (next[`${f}_fwd`] != null) {
-          if (i >= anchor) {
+        if (i === anchor) {
+          // Inject connector so the dashed line starts exactly at the actual price
+          next[`${f}_fwd`] = next[f] as number;
+        } else if (next[`${f}_fwd`] != null) {
+          if (i > anchor) {
             next[`${f}_fwd`] = (next[`${f}_fwd`] as number) + off;
           } else {
             delete next[`${f}_fwd`];
