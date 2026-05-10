@@ -340,7 +340,7 @@ export function HistoryChart() {
         )}
         {showForecast && (
           <p className="mt-2 text-xs text-ink-500">
-            <span className="font-semibold text-accent">Trend</span>: dashed line shows a linear regression fit over the selected period. Projected 90 days ahead — for indicative purposes only.
+            <span className="font-semibold text-accent">Trend</span>: dashed line projects 60 days ahead from the current price using linear regression — for indicative purposes only.
             {Object.keys(forecasts).length > 0 && (() => {
               const f = Array.from(active).find((k) => forecasts[k]?.r_squared != null);
               if (!f) return null;
@@ -436,23 +436,6 @@ export function HistoryChart() {
                   />
                 ))}
 
-                {/* Forecast: regression line over history */}
-                {showForecast && Array.from(active).map((f) =>
-                  forecasts[f] ? (
-                    <Line
-                      key={`${f}_reg`}
-                      type="linear"
-                      dataKey={`${f}_reg`}
-                      stroke={COLORS[f]}
-                      strokeWidth={1.5}
-                      strokeDasharray="6 3"
-                      dot={false}
-                      connectNulls
-                      isAnimationActive={false}
-                      legendType="none"
-                    />
-                  ) : null
-                )}
 
                 {/* Forecast: forward projection (90 days ahead) */}
                 {showForecast && Array.from(active).map((f) =>
