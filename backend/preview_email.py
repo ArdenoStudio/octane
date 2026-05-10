@@ -40,7 +40,7 @@ def _sample_chart(threshold=400):
         f'text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,sans-serif">LKR {threshold}</text>'
         f'<path d="{fill}" fill="url(#oct-g)"/>'
         f'<polyline points="{pts}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-        f'<circle cx="{lx}" cy="{ly}" r="4.5" fill="#fffcf5" stroke="#f59e0b" stroke-width="2"/>'
+        f'<circle cx="{lx}" cy="{ly}" r="4.5" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>'
         f'</svg>'
     )
 

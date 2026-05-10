@@ -316,7 +316,7 @@ _EMAIL_HTML = """\
 
             <!-- Chart — full bleed -->
             <tr>
-              <td style="padding:0;line-height:0;font-size:0;background:#fffcf5;">{chart_html}</td>
+              <td style="padding:0;line-height:0;font-size:0;background:#ffffff;">{chart_html}</td>
             </tr>
 
             <!-- Warm divider -->
@@ -573,7 +573,7 @@ def _mini_chart(fuel_type: str, threshold: float) -> tuple[str, float | None]:
         f'<path d="{fill}" fill="url(#oct-g)"/>'
         f'<polyline points="{pts}" fill="none" stroke="#f59e0b" stroke-width="2" '
         f'stroke-linecap="round" stroke-linejoin="round"/>'
-        f'<circle cx="{lx}" cy="{ly}" r="4.5" fill="#fffcf5" stroke="#f59e0b" stroke-width="2"/>'
+        f'<circle cx="{lx}" cy="{ly}" r="4.5" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>'
         f'</svg>'
     )
     return svg, delta
