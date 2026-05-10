@@ -37,8 +37,8 @@ export function Footer() {
             .
           </div>
           <div className="flex gap-4">
-            <a href="#prices" className="hover:text-ink-200 transition-colors">Prices</a>
-            <a href="#api" className="hover:text-ink-200 transition-colors">API</a>
+            <a href="/#prices" className="hover:text-ink-200 transition-colors">Prices</a>
+            <a href="/developers" className="hover:text-ink-200 transition-colors">API</a>
             <a href="https://github.com/ArdenoStudio/octane" target="_blank" rel="noopener" className="flex items-center gap-1.5 hover:text-ink-200 transition-colors">
               <RiStarLine className="size-3.5" />
               GitHub
