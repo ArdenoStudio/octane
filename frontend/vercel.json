@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build && node inject-prices.mjs",
   "outputDirectory": "dist",
   "framework": "vite",
   "headers": [
