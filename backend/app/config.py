@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_pass: str = ""
     alert_from_email: str = "alerts@octane.lk"
-    site_url: str = "https://octane.lk"
+    site_url: str = "https://octane-smoky.vercel.app"
     scraper_user_agent: str = "OctaneBot/1.0 (+https://octane.lk)"
     admin_email: str = ""
     telegram_bot_token: str = ""
