@@ -107,8 +107,8 @@ export function TermsPage() {
             <Section title="Contact">
               <p>
                 Questions? Reach us at{" "}
-                <a href="mailto:hello@ardeno.studio" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
-                  hello@ardeno.studio
+                <a href="mailto:ardenostudio@gmail.com" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
+                  ardenostudio@gmail.com
                 </a>
                 .
               </p>
