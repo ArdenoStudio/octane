@@ -70,8 +70,8 @@ export function PrivacyPage() {
                 Your email and alert preferences are kept until you unsubscribe. You can unsubscribe at any
                 time via the link in any email we send you. To request full deletion of your data, email us
                 at{" "}
-                <a href="mailto:hello@ardeno.studio" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
-                  hello@ardeno.studio
+                <a href="mailto:ardenostudio@gmail.com" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
+                  ardenostudio@gmail.com
                 </a>
                 .
               </p>
@@ -86,8 +86,8 @@ export function PrivacyPage() {
               </ul>
               <p>
                 To exercise any of these rights, email{" "}
-                <a href="mailto:hello@ardeno.studio" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
-                  hello@ardeno.studio
+                <a href="mailto:ardenostudio@gmail.com" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
+                  ardenostudio@gmail.com
                 </a>
                 .
               </p>
@@ -103,8 +103,8 @@ export function PrivacyPage() {
             <Section title="Contact">
               <p>
                 Questions? Reach us at{" "}
-                <a href="mailto:hello@ardeno.studio" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
-                  hello@ardeno.studio
+                <a href="mailto:ardenostudio@gmail.com" className="text-ink-100 underline underline-offset-2 hover:text-accent transition-colors">
+                  ardenostudio@gmail.com
                 </a>
                 .
               </p>
