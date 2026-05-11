@@ -119,6 +119,13 @@ export function AlertSignup() {
                 <span className="text-sm text-red-500">{msg}</span>
               )}
             </div>
+            <p className="mt-3 text-xs text-ink-600">
+              By subscribing you agree to our{" "}
+              <a href="/privacy" className="underline underline-offset-2 hover:text-ink-400 transition-colors">Privacy Policy</a>
+              {" "}and{" "}
+              <a href="/terms" className="underline underline-offset-2 hover:text-ink-400 transition-colors">Terms of Use</a>
+              . Unsubscribe anytime via the link in any email.
+            </p>
           </form>
         </div>
       </div>

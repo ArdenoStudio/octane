@@ -33,7 +33,8 @@ def subscribe(request: Request, payload: AlertSubscribeIn):
 
 
 @router.get("/confirm")
-def confirm(token: str = Query(..., description="Confirmation token from your signup email")):
+@limiter.limit("20/minute")
+def confirm(request: Request, token: str = Query(..., description="Confirmation token from your signup email")):
     confirmed = alerts.confirm_by_token(token)
     if not confirmed:
         raise HTTPException(

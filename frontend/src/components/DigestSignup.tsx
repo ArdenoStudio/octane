@@ -72,6 +72,13 @@ export function DigestSignup() {
               Something went wrong — check your email and try again.
             </p>
           )}
+          <p className="w-full text-xs text-ink-600">
+            By subscribing you agree to our{" "}
+            <a href="/privacy" className="underline underline-offset-2 hover:text-ink-400 transition-colors">Privacy Policy</a>
+            {" "}and{" "}
+            <a href="/terms" className="underline underline-offset-2 hover:text-ink-400 transition-colors">Terms of Use</a>
+            . Unsubscribe anytime via the link in any email.
+          </p>
         </div>
       </div>
     </section>
