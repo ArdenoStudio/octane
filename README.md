@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/API-free%20%26%20open-f59e0b?style=flat-square" />
   <img src="https://img.shields.io/badge/stack-FastAPI%20%2B%20React-1b1b1b?style=flat-square" />
   <img src="https://img.shields.io/badge/deployed-Vercel%20%2B%20Fly.io-1b1b1b?style=flat-square" />
+  <a href="https://wakatime.com/badge/user/c81e86af-3873-4c76-b802-f7f42fd0c090/project/4e90dc24-711f-4562-9f3a-28794ba04e5e"><img src="https://wakatime.com/badge/user/c81e86af-3873-4c76-b802-f7f42fd0c090/project/4e90dc24-711f-4562-9f3a-28794ba04e5e.svg?style=flat-square" alt="wakatime" /></a>
   <br/>
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/ci.yml/badge.svg" alt="CI" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/deploy-backend.yml/badge.svg" alt="Deploy backend" />
