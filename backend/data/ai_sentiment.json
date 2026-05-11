@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-10T15:22:11.517855+00:00",
+  "generated_at": "2026-05-11T05:45:48.986561+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "Fuel rations and free buses: How countries have responded to rising oil prices",
     "India among select few countries with zero petrol, diesel price changes amid US-Iran war volatility",
-    "Petrol, Diesel, LPG price today: Fuel prices see huge hike in Bangladesh, Sri Lanka, Nepal, Check prices in Delhi, Noida, Mumbai, Bengaluru",
+    "Fuel rations and free buses: How countries have responded to rising oil prices",
+    "From Pakistan to Egypt, Iran war drives up prices in Global South",
     "Petrol, diesel prices likely to be hiked within a week: Sources"
   ],
   "direction": "up",
-  "confidence": 0.8,
+  "confidence": 0.9,
   "magnitude_lkr": 25.0,
-  "summary": "Fuel prices likely to increase due to Middle East tensions and global oil prices.",
+  "summary": "Fuel prices likely to increase due to ongoing US-Iran war tensions.",
   "signals": [
-    "US-Iran war impact on global oil prices",
-    "India among select few countries with zero petrol, diesel price changes amid US-Iran war volatility",
-    "Sri Lanka Raises Fuel Prices By 25% As US-Israel War With Iran Bites"
+    "US-Iran war volatility",
+    "Middle East crisis",
+    "IMF programme conditions"
   ]
 }
