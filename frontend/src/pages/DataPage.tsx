@@ -152,7 +152,7 @@ export function DataPage() {
                 and policy analysis. When citing, please use:
               </p>
               <div className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-3 font-mono text-xs text-ink-300">
-                Octane — Live Sri Lanka Fuel Price Intelligence (octane.lk),
+                Octane — Live Sri Lanka Fuel Price Intelligence (octane-smoky.vercel.app),
                 Ardeno Studio. Data sourced from CPC (ceypetco.gov.lk) and
                 Lanka IOC (lankaiocoil.lk). Retrieved [date].
               </div>

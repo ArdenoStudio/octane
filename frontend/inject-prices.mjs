@@ -34,7 +34,7 @@ async function main() {
   const noscriptBlock = `  <noscript>
     <div id="seo-prices" style="max-width:800px;margin:40px auto;padding:20px;font-family:sans-serif">
       <h1>Sri Lanka Fuel Prices Today</h1>
-      <p>Current Sri Lanka petrol and diesel prices tracked by <a href="https://octane.lk">Octane</a>:</p>
+      <p>Current Sri Lanka petrol and diesel prices tracked by <a href="https://octane-smoky.vercel.app">Octane</a>:</p>
       <ul>
         ${priceItems}
       </ul>
@@ -47,7 +47,7 @@ async function main() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Octane',
-    url: 'https://octane.lk',
+    url: 'https://octane-smoky.vercel.app',
     description:
       'Live Sri Lanka fuel prices, history charts, world comparison, trip cost calculator, and a free public API. Built by Ardeno Studio.',
     publisher: {
@@ -57,7 +57,7 @@ async function main() {
     },
     potentialAction: {
       '@type': 'SearchAction',
-      target: 'https://octane.lk/#prices',
+      target: 'https://octane-smoky.vercel.app/#prices',
     },
     mainEntity: {
       '@type': 'ItemList',

@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://octane.lk/</loc>
+    <loc>https://octane-smoky.vercel.app/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://octane.lk/changes</loc>
+    <loc>https://octane-smoky.vercel.app/changes</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://octane.lk/data</loc>
+    <loc>https://octane-smoky.vercel.app/data</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://octane.lk/developers</loc>
+    <loc>https://octane-smoky.vercel.app/developers</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -67,6 +67,6 @@ export const EN: Messages = {
     shareWhatsApp: "Share",
     alertsShort: "Alerts",
     waLine:
-      "🇱🇰 Petrol 92 in Sri Lanka: LKR {{price}} today.\n\nTrack all fuel prices, set alerts & calculate trip costs at octane.lk",
+      "🇱🇰 Petrol 92 in Sri Lanka: LKR {{price}} today.\n\nTrack all fuel prices, set alerts & calculate trip costs at octane-smoky.vercel.app",
   },
 };

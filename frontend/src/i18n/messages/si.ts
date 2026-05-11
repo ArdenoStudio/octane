@@ -68,6 +68,6 @@ export const SI: Messages = {
     shareWhatsApp: "බෙදාගන්න",
     alertsShort: "විදියන්න",
     waLine:
-      "🇱🇰 ශ්‍රී ලංකාවේ පෙට්රල් 92 අද රු. {{price}}.\n\nසියලු ඉන්ධන මිල, විදියන්න හා ගමන ගණන octane.lk හි",
+      "🇱🇰 ශ්‍රී ලංකාවේ පෙට්රල් 92 අද රු. {{price}}.\n\nසියලු ඉන්ධන මිල, විදියන්න හා ගමන ගණන octane-smoky.vercel.app හි",
   },
 };

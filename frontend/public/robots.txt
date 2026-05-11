@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://octane.lk/sitemap.xml
+Sitemap: https://octane-smoky.vercel.app/sitemap.xml
