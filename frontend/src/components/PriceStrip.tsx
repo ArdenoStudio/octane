@@ -103,7 +103,7 @@ export function PriceStrip() {
       const row = cpcByFuel[f];
       return row ? `${fuelLabel(f)}: LKR ${row.price_lkr}` : null;
     }).filter(Boolean);
-    return `🇱🇰 Sri Lanka fuel prices today:\n${lines.join(" · ")}\n\nTrack prices, set alerts & calculate trip costs 👇`;
+    return `Sri Lanka fuel prices today:\n${lines.join(" · ")}\n\nTrack prices, set alerts, and calculate trip costs at`;
   }
 
   return (

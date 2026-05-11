@@ -105,7 +105,7 @@ export function TripCalculator() {
               </div>
               <ShareButtons
                 className="mt-4"
-                text={`🚗 My ${result.distance_km} km trip will cost ${compactLkr(result.cost_lkr)} in Sri Lanka.\n(${result.litres_needed.toFixed(1)} L of ${fuelLabel(result.fuel_type)} @ LKR ${result.price_lkr_per_l.toFixed(0)}/L)\n\nCalculate yours 👇`}
+                text={`Trip cost estimate for ${result.distance_km} km in Sri Lanka: ${compactLkr(result.cost_lkr)}\n${result.litres_needed.toFixed(1)} L of ${fuelLabel(result.fuel_type)} at LKR ${result.price_lkr_per_l.toFixed(0)}/L\n\nCalculate your own trip cost at`}
               />
             </div>
           )}
