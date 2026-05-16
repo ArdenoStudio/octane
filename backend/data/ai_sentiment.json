@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-15T05:42:54.150055+00:00",
+  "generated_at": "2026-05-16T05:15:23.514704+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Days after state polls, OMCs raise petrol, diesel prices by \u20b93 a litre",
-    "India among select few countries with zero petrol, diesel price changes amid US-Iran war volatility",
+    "Petrol, diesel prices hiked: What are the fuel rates in Pakistan, Nepal & Bangladesh? Check latest price c",
+    "Petrol, diesel prices up by \u20b93/litre: Check fuel rates in Delhi, Mumbai, Bengaluru, Kolkata on 16 May",
+    "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context'",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "Fuel rations and free buses: How countries have responded to rising oil prices",
-    "HPCL, BPCL to IOCL: OMC stocks decline up to 2.6% even after petrol, diesel prices raised by \u20b93/litre; here's why"
+    "India among nations with lowest fuel price rise despite Rs 3 hike in petrol, diesel: A global comparison"
   ],
   "direction": "up",
   "confidence": 0.8,
   "magnitude_lkr": 25.0,
   "summary": "Fuel prices likely to increase due to rising global oil prices and war tensions.",
   "signals": [
-    "Sri Lanka Raises Fuel Prices By 25% As US-Israel War With Iran Bites",
-    "Sri Lanka forced to pay $286 per barrel for oil, HSBC confirms",
+    "Sri Lanka hikes fuel prices by 25% as war bites",
+    "Sri Lanka increases fuel prices around 25% as Middle East tensions disrupt global oil supplies",
     "US gas price tops $4 for first time since 2022"
   ]
 }
