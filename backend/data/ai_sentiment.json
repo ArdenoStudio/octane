@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-18T06:00:50.735738+00:00",
+  "generated_at": "2026-05-19T05:55:17.248086+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics",
     "Petrol, diesel prices hiked: What are the fuel rates in Pakistan, Nepal & Bangladesh? Check latest price c",
+    "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "Days after state polls, OMCs raise petrol, diesel prices by \u20b93 a litre",
-    "India among nations with lowest fuel price rise despite Rs 3 hike in petrol, diesel: A global comparison"
+    "Petrol Rs 98.64, Diesel Rs 91.58 in Delhi | Fuel Price Hike",
+    "Days after state polls, OMCs raise petrol, diesel prices by \u20b93 a litre"
   ],
   "direction": "up",
   "confidence": 0.8,
   "magnitude_lkr": 25.0,
-  "summary": "Sri Lanka hikes fuel prices 25% amid Gulf war and global oil supply disruptions",
+  "summary": "Fuel prices likely to increase due to global oil price rise and Middle East tensions.",
   "signals": [
-    "Sri Lanka raises fuel prices as inflation spikes",
-    "Sri Lanka increases fuel prices around 25% as Middle East tensions disrupt global oil supplies",
-    "Sri Lanka hikes fuel prices 25%, second such increase in a week amid Gulf war"
+    "Sri Lanka hikes fuel prices amid Israel-Iran war: Petrol now at 398 rupees; diesel at 382 rupees per litre",
+    "Sri Lanka Raises Fuel Prices By 25% As US-Israel War With Iran Bites",
+    "US gas price tops $4 for first time since 2022"
   ]
 }
