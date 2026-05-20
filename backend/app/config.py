@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     rate_limit_writes: str = "10/minute"
     # Regex covers typical Vercel preview hostnames (*.vercel.app).
     cors_origin_regex: str = r"https://[a-z0-9-]+\.vercel\.app"
+    # VAPID keys for Web Push notifications (generate with: vapid --gen)
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@octane.lk"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -28,6 +28,7 @@ def subscribe(request: Request, payload: AlertSubscribeIn):
         threshold=payload.threshold,
         direction=payload.direction,
         telegram_chat_id=payload.telegram_chat_id,
+        push_enabled=payload.push_enabled,
     )
     return {"id": alert_id, "ok": True}
 

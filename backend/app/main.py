@@ -8,7 +8,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.api import alerts, calculator, comparison, digest, embed, meta, prices
+from app.api import alerts, calculator, comparison, digest, embed, meta, prices, push
 from app.config import get_settings
 from app.db import migrate
 from app.rate_limits import limiter
@@ -42,6 +42,7 @@ app.include_router(calculator.router)
 app.include_router(alerts.router)
 app.include_router(digest.router)
 app.include_router(embed.router)
+app.include_router(push.router)
 
 
 @app.on_event("startup")

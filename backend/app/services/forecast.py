@@ -27,10 +27,11 @@ from app.services import sentiment as sentiment_svc
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _linreg(xs: list[float], ys: list[float]) -> tuple[float, float, float]:
-    """Return (slope, intercept, r_squared).
+def _linreg(xs: list[float], ys: list[float]) -> tuple[float, float, float, float]:
+    """Return (slope, intercept, r_squared, std_error).
 
     Raises ValueError if fewer than 2 distinct points are provided.
+    The std_error is the standard error of the residuals, used for confidence intervals.
     """
     n = len(xs)
     if n < 2:
@@ -54,7 +55,11 @@ def _linreg(xs: list[float], ys: list[float]) -> tuple[float, float, float]:
     ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(xs, ys))
     r2 = 1.0 - ss_res / ss_tot if ss_tot != 0 else 0.0
 
-    return slope, intercept, max(0.0, min(1.0, r2))
+    # Standard error of residuals (for confidence intervals)
+    mse = ss_res / max(n - 2, 1)
+    std_error = mse ** 0.5
+
+    return slope, intercept, max(0.0, min(1.0, r2)), std_error
 
 
 def _fetch_revisions(fuel_type: str, source: str, days: int) -> list[tuple[date, float]]:
@@ -100,7 +105,7 @@ def forecast(
           "r_squared": float,           # 0-1 confidence
           "slope_lkr_per_day": float,   # how fast price is moving
           "regression_points": [...],   # fitted line over history window
-          "forecast_points": [...],     # linear projection beyond today
+          "forecast_points": [...],     # linear projection beyond today with confidence bands
           "ai_forecast_points": [...],  # AI-adjusted projection (may be [])
           "sentiment": {...} | null,    # current AI sentiment snapshot
         }
@@ -123,8 +128,19 @@ def forecast(
     epoch = revisions[0][0].toordinal()
     xs = [float(d.toordinal() - epoch) for d, _ in revisions]
     ys = [price for _, price in revisions]
+    n = len(xs)
 
-    slope, intercept, r2 = _linreg(xs, ys)
+    slope, intercept, r2, std_error = _linreg(xs, ys)
+
+    # Calculate prediction interval multipliers
+    # Using approximate t-values for 80% and 95% confidence
+    # t(0.90, df) ≈ 1.3 for 80%, t(0.975, df) ≈ 2.0 for 95%
+    t_80 = 1.28
+    t_95 = 1.96
+
+    # Mean of x for leverage calculation
+    x_mean = sum(xs) / n
+    ss_x = sum((x - x_mean) ** 2 for x in xs)
 
     today = date.today()
     today_x = float(today.toordinal() - epoch)
@@ -140,14 +156,28 @@ def forecast(
         for d in reg_dates
     ]
 
-    # Linear forecast: daily points for the next horizon_days
+    # Linear forecast: daily points for the next horizon_days with confidence intervals
     forecast_points = []
     for i in range(1, horizon_days + 1):
         fd = today + timedelta(days=i)
-        projected = slope * (fd.toordinal() - epoch) + intercept
+        x_pred = float(fd.toordinal() - epoch)
+        projected = slope * x_pred + intercept
+
+        # Prediction interval width increases with distance from mean
+        # SE_pred = std_error * sqrt(1 + 1/n + (x - x_mean)^2 / ss_x)
+        leverage = 1 + 1/n + (x_pred - x_mean) ** 2 / max(ss_x, 1)
+        se_pred = std_error * (leverage ** 0.5)
+
+        conf_80 = t_80 * se_pred
+        conf_95 = t_95 * se_pred
+
         forecast_points.append({
             "date": fd.isoformat(),
             "price_lkr": round(projected, 2),
+            "conf_80_lower": round(projected - conf_80, 2),
+            "conf_80_upper": round(projected + conf_80, 2),
+            "conf_95_lower": round(projected - conf_95, 2),
+            "conf_95_upper": round(projected + conf_95, 2),
         })
 
     # AI-adjusted forecast (uses sentiment magnitude if available)

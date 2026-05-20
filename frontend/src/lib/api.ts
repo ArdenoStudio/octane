@@ -66,6 +66,10 @@ export interface TripResp {
 export interface ForecastPoint {
   date: string;
   price_lkr: number;
+  conf_80_lower?: number;
+  conf_80_upper?: number;
+  conf_95_lower?: number;
+  conf_95_upper?: number;
 }
 
 export interface SentimentData {
@@ -173,6 +177,7 @@ export const api = {
     threshold: number;
     direction: "above" | "below";
     telegram_chat_id?: string;
+    push_enabled?: boolean;
   }) => post<{ id: number; ok: boolean }>("/v1/alerts/subscribe", payload),
   forecast: (fuel: FuelId, historyDays = 365, horizonDays = 90) =>
     get<ForecastResp>(

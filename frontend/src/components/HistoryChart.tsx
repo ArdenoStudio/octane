@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { RiDownload2Line, RiLineChartLine } from "@remixicon/react";
+import { RiDownload2Line, RiLineChartLine, RiEyeLine, RiEyeOffLine } from "@remixicon/react";
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -77,6 +78,7 @@ export function HistoryChart() {
 
   // Forecast / trend overlay
   const [showForecast, setShowForecast] = useState(false);
+  const [showConfidenceBands, setShowConfidenceBands] = useState(true);
   const [forecasts, setForecasts] = useState<Record<FuelId, ForecastResp>>({} as Record<FuelId, ForecastResp>);
 
   // Fetch daily series whenever active fuels, range, or mode changes
@@ -144,6 +146,8 @@ export function HistoryChart() {
     const regByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
     const fwdByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
     const aiFwdByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
+    const conf80ByFuel: Partial<Record<FuelId, Map<string, [number, number]>>> = {};
+    const conf95ByFuel: Partial<Record<FuelId, Map<string, [number, number]>>> = {};
 
     for (const f of active) {
       const fc = forecasts[f];
@@ -151,6 +155,16 @@ export function HistoryChart() {
       regByFuel[f] = new Map(fc.regression_points.map((p) => [p.date, p.price_lkr]));
       fwdByFuel[f] = new Map(fc.forecast_points.map((p) => [p.date, p.price_lkr]));
       aiFwdByFuel[f] = new Map((fc.ai_forecast_points ?? []).map((p) => [p.date, p.price_lkr]));
+      conf80ByFuel[f] = new Map(
+        fc.forecast_points
+          .filter((p) => p.conf_80_lower != null && p.conf_80_upper != null)
+          .map((p) => [p.date, [p.conf_80_lower!, p.conf_80_upper!]])
+      );
+      conf95ByFuel[f] = new Map(
+        fc.forecast_points
+          .filter((p) => p.conf_95_lower != null && p.conf_95_upper != null)
+          .map((p) => [p.date, [p.conf_95_lower!, p.conf_95_upper!]])
+      );
       fc.regression_points.forEach((p) => allDates.add(p.date));
       fc.forecast_points.forEach((p) => allDates.add(p.date));
       (fc.ai_forecast_points ?? []).forEach((p) => allDates.add(p.date));
@@ -159,14 +173,18 @@ export function HistoryChart() {
     return Array.from(allDates)
       .sort()
       .map((d) => {
-        const row: Record<string, string | number> = { date: d };
+        const row: Record<string, string | number | [number, number]> = { date: d };
         for (const f of active) {
           const reg = regByFuel[f]?.get(d);
           const fwd = fwdByFuel[f]?.get(d);
           const aiFwd = aiFwdByFuel[f]?.get(d);
+          const conf80 = conf80ByFuel[f]?.get(d);
+          const conf95 = conf95ByFuel[f]?.get(d);
           if (reg != null) row[`${f}_reg`] = reg;
           if (fwd != null) row[`${f}_fwd`] = fwd;
           if (aiFwd != null) row[`${f}_ai_fwd`] = aiFwd;
+          if (conf80 != null) row[`${f}_conf80`] = conf80;
+          if (conf95 != null) row[`${f}_conf95`] = conf95;
         }
         return row;
       });
@@ -231,7 +249,7 @@ export function HistoryChart() {
   // Merge actual + forecast points by date for the combined chart
   const mergedData = useMemo(() => {
     if (!chartDataWithForecast) return chartData;
-    const map = new Map<string, Record<string, string | number>>();
+    const map = new Map<string, Record<string, string | number | [number, number]>>();
     for (const row of chartData) map.set(row.date as string, { ...row });
     for (const row of chartDataWithForecast) {
       const existing = map.get(row.date as string) ?? { date: row.date };
@@ -282,6 +300,25 @@ export function HistoryChart() {
             next[`${f}_ai_fwd`] = (next[`${f}_ai_fwd`] as number) + off;
           } else {
             delete next[`${f}_ai_fwd`];
+          }
+        }
+
+        // Confidence bands (apply same offset)
+        const conf80 = next[`${f}_conf80`] as [number, number] | undefined;
+        if (conf80 != null) {
+          if (i > anchor) {
+            next[`${f}_conf80`] = [conf80[0] + off, conf80[1] + off];
+          } else {
+            delete next[`${f}_conf80`];
+          }
+        }
+
+        const conf95 = next[`${f}_conf95`] as [number, number] | undefined;
+        if (conf95 != null) {
+          if (i > anchor) {
+            next[`${f}_conf95`] = [conf95[0] + off, conf95[1] + off];
+          } else {
+            delete next[`${f}_conf95`];
           }
         }
       }
@@ -383,6 +420,26 @@ export function HistoryChart() {
               </button>
             )}
 
+            {/* Confidence bands toggle — only when forecast is shown */}
+            {showForecast && (
+              <button
+                onClick={() => setShowConfidenceBands((v) => !v)}
+                title="Toggle confidence interval bands"
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                  showConfidenceBands
+                    ? "border-purple-500 bg-purple-500/10 text-purple-400"
+                    : "border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
+                }`}
+              >
+                {showConfidenceBands ? (
+                  <RiEyeLine className="size-3.5" />
+                ) : (
+                  <RiEyeOffLine className="size-3.5" />
+                )}
+                CI Bands
+              </button>
+            )}
+
             <a
               href={api.historyCsvUrl(Array.from(active), days)}
               download
@@ -412,7 +469,11 @@ export function HistoryChart() {
         {showForecast && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <p className="text-xs text-ink-500">
-              <span className="font-semibold text-accent">Trend</span>: dashed line projects 60 days ahead using linear regression —{" "}
+              <span className="font-semibold text-accent">Trend</span>: dashed line projects 60 days ahead using linear regression
+              {showConfidenceBands && (
+                <> with <span className="font-semibold text-purple-400">80%</span> and <span className="font-semibold text-purple-300/60">95%</span> confidence bands</>
+              )}
+              {" — "}
               {hasAiForecast && (
                 <>bright dashed line is the <span className="font-semibold text-ink-300">AI forecast</span> (Groq · Llama 3.1) based on news sentiment — </>
               )}
@@ -463,7 +524,7 @@ export function HistoryChart() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mergedData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <ComposedChart data={mergedData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="date"
@@ -568,7 +629,39 @@ export function HistoryChart() {
                     />
                   ) : null
                 )}
-              </LineChart>
+
+                {/* 95% Confidence band — lighter */}
+                {showForecast && showConfidenceBands && Array.from(active).map((f) =>
+                  forecasts[f] ? (
+                    <Area
+                      key={`${f}_conf95`}
+                      type="linear"
+                      dataKey={`${f}_conf95`}
+                      fill={COLORS[f]}
+                      fillOpacity={0.08}
+                      stroke="none"
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                  ) : null
+                )}
+
+                {/* 80% Confidence band — darker */}
+                {showForecast && showConfidenceBands && Array.from(active).map((f) =>
+                  forecasts[f] ? (
+                    <Area
+                      key={`${f}_conf80`}
+                      type="linear"
+                      dataKey={`${f}_conf80`}
+                      fill={COLORS[f]}
+                      fillOpacity={0.15}
+                      stroke="none"
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                  ) : null
+                )}
+              </ComposedChart>
             </ResponsiveContainer>
           )}
         </div>

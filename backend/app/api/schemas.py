@@ -9,6 +9,7 @@ class AlertSubscribeIn(BaseModel):
     threshold: float = Field(..., gt=0)
     direction: str = Field(..., pattern="^(above|below)$")
     telegram_chat_id: str | None = Field(None, description="Optional Telegram chat ID for push notifications")
+    push_enabled: bool = Field(False, description="Enable browser push notifications")
 
 
 class AlertOut(BaseModel):

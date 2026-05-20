@@ -13,6 +13,7 @@ from email.mime.text import MIMEText
 from app.config import get_settings
 from app.db.connection import connect, cursor
 from app.services import prices
+from app.services import push_notifications
 
 log = logging.getLogger(__name__)
 
@@ -40,17 +41,18 @@ def subscribe(
     threshold: float,
     direction: str,
     telegram_chat_id: str | None = None,
+    push_enabled: bool = False,
 ) -> int:
     if direction not in ("above", "below"):
         raise ValueError("direction must be 'above' or 'below'")
     with cursor() as cur:
         cur.execute(
             """
-            INSERT INTO alerts (email, fuel_type, threshold, direction, telegram_chat_id, confirmed)
-            VALUES (%s, %s, %s, %s, %s, FALSE)
+            INSERT INTO alerts (email, fuel_type, threshold, direction, telegram_chat_id, confirmed, push_enabled)
+            VALUES (%s, %s, %s, %s, %s, FALSE, %s)
             RETURNING id, confirm_token
             """,
-            (email, fuel_type, threshold, direction, telegram_chat_id or None),
+            (email, fuel_type, threshold, direction, telegram_chat_id or None, push_enabled),
         )
         row = cur.fetchone()
         alert_id = row["id"]
@@ -145,7 +147,8 @@ def list_active() -> list[dict]:
                 """
                 SELECT id, email, fuel_type, threshold, direction,
                        last_fired_at, unsubscribe_token,
-                       send_attempts, last_send_error, telegram_chat_id
+                       send_attempts, last_send_error, telegram_chat_id,
+                       push_enabled
                 FROM alerts WHERE active = TRUE AND confirmed = TRUE
                 """
             )
@@ -686,8 +689,19 @@ def dispatch_pending() -> int:
             )
             tg_sent, tg_err = _send_telegram(chat_id, tg_text)
 
+        # ── Push Notification ────────────────────────────────────────────────
+        push_sent = 0
+        if alert.get("push_enabled"):
+            push_sent = push_notifications.send_push_to_alert(
+                alert_id=alert["id"],
+                title=f"Octane: {fuel_name} is now LKR {price_fmt}",
+                body=f"Your alert triggered — price went {alert['direction']} LKR {threshold_fmt}",
+                url=manage_url,
+                tag=f"alert-{alert['id']}",
+            )
+
         # ── Mark fired or track failure ───────────────────────────────────────
-        delivery_ok = email_sent or tg_sent
+        delivery_ok = email_sent or tg_sent or push_sent > 0
         error = email_err or tg_err
 
         if delivery_ok:

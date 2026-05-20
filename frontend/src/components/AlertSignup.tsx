@@ -3,6 +3,7 @@ import { api, FUEL_ORDER, FuelId } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
+import { PushNotificationToggle } from "./PushNotificationToggle";
 
 export function AlertSignup() {
   const fuelLabel = useFuelLabel();
@@ -10,6 +11,7 @@ export function AlertSignup() {
   const [fuel, setFuel] = useState<FuelId>("petrol_92");
   const [threshold, setThreshold] = useState("380");
   const [direction, setDirection] = useState<"above" | "below">("below");
+  const [pushEnabled, setPushEnabled] = useState(false);
   const [status, setStatus] = useState<null | "ok" | "err">(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,6 +31,7 @@ export function AlertSignup() {
         fuel_type: fuel,
         threshold: t,
         direction,
+        push_enabled: pushEnabled,
       });
       setStatus("ok");
       setMsg("Check your email — we've sent a confirmation link to activate your alert.");
@@ -105,6 +108,17 @@ export function AlertSignup() {
                   value={threshold}
                   onChange={(e) => setThreshold(e.target.value)}
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Browser notifications</label>
+                <PushNotificationToggle
+                  enabled={pushEnabled}
+                  onToggle={setPushEnabled}
+                  className="mt-2"
+                />
+                <p className="mt-1 text-xs text-ink-500">
+                  Get instant browser notifications when your alert triggers
+                </p>
               </div>
             </div>
 
