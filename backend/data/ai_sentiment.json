@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-20T05:54:59.971779+00:00",
+  "generated_at": "2026-05-21T05:58:14.738137+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Petrol, diesel prices hiked: What are the fuel rates in Pakistan, Nepal & Bangladesh? Check latest price c",
+    "India saw much lower hike in petrol/diesel prices than neighbouring and other countries",
     "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics",
+    "Petrol, diesel prices hiked: What are the fuel rates in Pakistan, Nepal & Bangladesh? Check latest price c",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "US gas price tops $4 for first time since 2022",
-    "Days after state polls, OMCs raise petrol, diesel prices by \u20b93 a litre"
+    "India among select few countries with zero petrol, diesel price changes amid US-Iran war volatility"
   ],
   "direction": "up",
   "confidence": 0.8,
-  "magnitude_lkr": 25.0,
-  "summary": "Fuel prices are expected to increase due to rising global oil prices and war tensions.",
+  "magnitude_lkr": 20.0,
+  "summary": "Global oil prices and Sri Lanka's inflation drive fuel price increase",
   "signals": [
-    "Sri Lanka hikes fuel prices amid panic buying due to Iran-Israel US war tensions",
-    "Sri Lanka raises fuel prices by 25% as war bites",
-    "US gas price tops $4 for first time since 2022"
+    "US gas price tops $4 for first time since 2022",
+    "Sri Lanka hikes fuel prices by 8% to curb panic buying amid rising global oil prices",
+    "Pakistan Saw 55% Hike In Fuel Prices, US 44%: Where India Stands In Global Comparison After Rs 3 Increase"
   ]
 }
