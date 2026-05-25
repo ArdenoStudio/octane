@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-24T05:50:31.256401+00:00",
+  "generated_at": "2026-05-25T06:13:24.207723+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "India sees minimal fuel price hike amid global surge triggered by West Asia crisis",
     "US gas price tops $4 for first time since 2022",
+    "Why India's petrol, diesel price hike is far lower than most countries",
     "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics",
-    "Sri Lanka hikes fuel prices by 8% to curb panic buying amid rising global oil prices",
     "From Pakistan to Egypt, Iran war drives up prices in Global South"
   ],
   "direction": "up",
   "confidence": 0.8,
   "magnitude_lkr": 20.0,
-  "summary": "Fuel prices likely to increase due to rising global oil prices and US-Iran war tensions.",
+  "summary": "Recent headlines suggest a 20 LKR/L increase in fuel prices due to global surge.",
   "signals": [
-    "US-Iran war tensions",
-    "Rising global oil prices",
-    "Sri Lanka's recent 25% fuel price hike"
+    "US gas price tops $4 for first time since 2022",
+    "Sri Lanka hikes fuel prices by 8% to curb panic buying amid rising global oil prices",
+    "Sri Lanka hikes fuel prices amid panic buying due to Iran-Israel US war tensions"
   ]
 }
