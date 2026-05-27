@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-26T05:55:31.418090+00:00",
+  "generated_at": "2026-05-27T06:05:38.793503+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "From US to Pakistan, fuel prices surged globally while India held the line",
+    "Sri Lanka hikes fuel prices by 8% to curb panic buying amid rising global oil prices",
     "India sees minimal fuel price hike amid global surge triggered by West Asia crisis",
     "India's Fuel Still Cheaper Than Neighbours Despite Rs 7 Hike \u2014 Check Cost In Pakistan, Nepal & Sri Lanka",
-    "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics",
-    "US gas price tops $4 for first time since 2022"
+    "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics"
   ],
   "direction": "up",
   "confidence": 0.8,
   "magnitude_lkr": 25.0,
-  "summary": "Global fuel prices surge due to West Asia crisis, Sri Lanka likely to follow",
+  "summary": "Fuel prices surge globally, Sri Lanka hikes prices 25% amid rising global oil prices",
   "signals": [
-    "US-Iran war impact on global oil supplies",
-    "Recent fuel price hikes in India and Pakistan",
-    "Global South fuel price increases"
+    "US to Pakistan, fuel prices surged globally",
+    "Sri Lanka hikes fuel prices by 25% to curb panic buying",
+    "Global oil prices rise due to West Asia crisis"
   ]
 }
