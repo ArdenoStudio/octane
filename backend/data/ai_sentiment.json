@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-31T06:05:41.908109+00:00",
+  "generated_at": "2026-06-01T06:42:46.326541+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Sri Lanka raise fuel prices after IMF loan instalment",
-    "From US to Pakistan, fuel prices surged globally while India held the line",
-    "Sri Lanka raises fuel prices after IMF loan instalment",
-    "Sri Lanka's CPC Raises Prices Of Diesel, Petrol, Kerosene",
-    "Fuel prices increased; Petrol by Rs 24 per litre"
+    "Sri Lanka Fuel Prices Rise Amid West Asia Conflict",
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
+    "US gas price tops $4 for first time since 2022",
+    "Sri Lanka raises petrol, diesel prices as IMF bailout cuts subsidies",
+    "Sri Lanka Raises Fuel Prices Amid Ongoing West Asia Tensions"
   ],
   "direction": "up",
   "confidence": 0.8,
-  "magnitude_lkr": 25.0,
-  "summary": "Fuel prices likely to increase due to global oil price surge and war tensions.",
+  "magnitude_lkr": 20.0,
+  "summary": "Fuel prices rise amid West Asia conflict and IMF bailout cuts subsidies",
   "signals": [
-    "US-Iran war impact: What are the latest petrol, diesel prices in India, South Asian countries?",
-    "Sri Lanka hikes fuel prices 25% again as oil surge deepens crisis",
-    "From Pakistan to Egypt, Iran war drives up prices in Global South"
+    "Sri Lanka Fuel Prices Rise Amid West Asia Conflict",
+    "Sri Lanka raises petrol, diesel prices as IMF bailout cuts subsidies",
+    "US gas price tops $4 for first time since 2022"
   ]
 }
