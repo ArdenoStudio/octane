@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-06-03T06:41:36.566902+00:00",
+  "generated_at": "2026-06-04T06:25:59.893333+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Sri Lanka revises retail fuel prices amid West Asia conflict",
     "From US to Pakistan, fuel prices surged globally while India held the line",
+    "Sri Lanka revises retail fuel prices amid West Asia conflict",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "Sri Lanka raises fuel prices across all major categories",
+    "Sri Lanka raises fuel prices to near 2022 crisis level amid high imports",
     "Petrol, diesel prices hiked: What are the fuel rates in Pakistan, Nepal & Bangladesh? Check latest price c"
   ],
   "direction": "up",
-  "confidence": 0.9,
+  "confidence": 0.8,
   "magnitude_lkr": 25.0,
-  "summary": "Fuel prices increased amid West Asia conflict and IMF loan instalment",
+  "summary": "Fuel prices likely to increase due to global surge and Middle East tensions.",
   "signals": [
+    "US to Pakistan, fuel prices surged globally while India held the line",
     "Sri Lanka revises retail fuel prices amid West Asia conflict",
-    "Sri Lanka raises fuel prices after IMF loan instalment",
-    "Fuel prices increased; Petrol by Rs 24 per litre"
+    "Sri Lanka raises fuel prices to near 2022 crisis level amid high imports"
   ]
 }
