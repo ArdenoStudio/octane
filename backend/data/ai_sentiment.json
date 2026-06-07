@@ -1,20 +1,10 @@
 {
-  "generated_at": "2026-06-06T05:43:45.074540+00:00",
-  "headlines_analyzed": 30,
-  "headlines_sample": [
-    "From US to Pakistan, fuel prices surged globally while India held the line",
-    "Sri Lanka revises retail fuel prices amid West Asia conflict",
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics",
-    "Sri Lanka raises fuel prices to near 2022 crisis level amid high imports"
-  ],
-  "direction": "up",
-  "confidence": 0.8,
-  "magnitude_lkr": 25.0,
-  "summary": "Fuel prices likely to increase due to ongoing West Asia conflict.",
-  "signals": [
-    "Sri Lanka revises retail fuel prices amid West Asia conflict",
-    "Sri Lanka raises fuel prices to near 2022 crisis level amid high imports",
-    "Sinopec increases prices of Petrol 95 Octane and Super Diesel above CPC rates"
-  ]
+  "generated_at": "2026-06-07T06:10:30.748996+00:00",
+  "headlines_analyzed": 0,
+  "headlines_sample": [],
+  "direction": "stable",
+  "confidence": 1.0,
+  "magnitude_lkr": 0.0,
+  "summary": "No recent news headlines found to influence fuel price revisions.",
+  "signals": []
 }
