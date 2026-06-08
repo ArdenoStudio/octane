@@ -1,10 +1,20 @@
 {
-  "generated_at": "2026-06-07T06:10:30.748996+00:00",
-  "headlines_analyzed": 0,
-  "headlines_sample": [],
-  "direction": "stable",
-  "confidence": 1.0,
-  "magnitude_lkr": 0.0,
-  "summary": "No recent news headlines found to influence fuel price revisions.",
-  "signals": []
+  "generated_at": "2026-06-08T06:25:40.557151+00:00",
+  "headlines_analyzed": 30,
+  "headlines_sample": [
+    "How does India's petrol, diesel price hike compare to global rates? BJP provides 'context' | In Pics",
+    "Sri Lanka revises retail fuel prices amid West Asia conflict",
+    "Petrol, diesel prices hiked: What are the fuel rates in Pakistan, Nepal & Bangladesh? Check latest price comparision",
+    "US gas price tops $4 for first time since 2022",
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices"
+  ],
+  "direction": "up",
+  "confidence": 0.9,
+  "magnitude_lkr": 25.0,
+  "summary": "Fuel prices revised upwards amid West Asia conflict and IMF programme conditions",
+  "signals": [
+    "Sri Lanka revises retail fuel prices amid West Asia conflict",
+    "Sri Lanka raises fuel prices to near 2022 crisis level amid high imports",
+    "Sri Lanka hikes fuel prices by 25% as US-Israel War With Iran Bites"
+  ]
 }
