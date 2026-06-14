@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-06-13T06:05:02.891624+00:00",
+  "generated_at": "2026-06-14T06:22:59.184144+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "From US to Pakistan, fuel prices surged globally while India held the line",
     "US gas price tops $4 for first time since 2022",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
     "From Pakistan to Egypt, Iran war drives up prices in Global South",
-    "India's Fuel Still Cheaper Than Neighbours Despite Rs 7 Hike \u2014 Check Cost In Pakistan, Nepal & Sri Lanka"
+    "Sri Lanka raise fuel prices after IMF loan instalment"
   ],
   "direction": "up",
   "confidence": 0.8,
   "magnitude_lkr": 20.0,
-  "summary": "Fuel prices surge globally, Sri Lanka likely to increase prices soon.",
+  "summary": "Fuel prices surge globally, Sri Lanka raises prices after IMF loan instalment",
   "signals": [
-    "US gas price tops $4 for first time since 2022",
-    "From Pakistan to Egypt, Iran war drives up prices in Global South",
-    "Sri Lanka revises retail fuel prices amid West Asia conflict"
+    "US to Pakistan, fuel prices surged globally while India held the line",
+    "Sri Lanka raise fuel prices after IMF loan instalment",
+    "Iran war drives up prices in Global South"
   ]
 }
