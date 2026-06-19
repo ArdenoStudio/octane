@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T06:40:43.503745+00:00",
+  "generated_at": "2026-06-19T06:53:29.408929+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "From US to Pakistan, fuel prices surged globally while India held the line",
@@ -10,11 +10,11 @@
   ],
   "direction": "up",
   "confidence": 0.8,
-  "magnitude_lkr": 25.0,
-  "summary": "Fuel prices likely to increase due to ongoing global crisis and IMF loan instalment.",
+  "magnitude_lkr": 20.0,
+  "summary": "Fuel prices surge globally, Sri Lanka raises prices after IMF loan instalment",
   "signals": [
-    "US to Pakistan, fuel prices surged globally while India held the line",
+    "US gas price tops $4 for first time since 2022",
     "Sri Lanka raise fuel prices after IMF loan instalment",
-    "Sri Lanka hikes fuel prices amid Israel-Iran war"
+    "From Pakistan to Egypt, Iran war drives up prices in Global South"
   ]
 }
