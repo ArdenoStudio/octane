@@ -10,7 +10,7 @@ primary_region = "sin"
 
 [env]
   # Comma-separated; merged with cors_origin_regex in app for previews (*.vercel.app).
-  CORS_ORIGINS = "https://octane.lk,https://octane-smoky.vercel.app,http://localhost:5173"
+  CORS_ORIGINS = "https://octane-smoky.vercel.app,http://localhost:5173"
   PORT = "8000"
 
 [http_service]

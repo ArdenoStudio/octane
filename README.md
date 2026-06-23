@@ -100,5 +100,5 @@ Interactive docs available at `/docs` (Swagger UI).
     <img src="./frontend/public/octane-o.svg" alt="" height="24" />
   </picture>
   <br/>
-  <sub>An <strong>Ardeno Studio</strong> production · <a href="https://octane-smoky.vercel.app/">octane.lk</a></sub>
+  <sub>An <strong>Ardeno Studio</strong> production · <a href="https://octane-smoky.vercel.app/">octane-smoky.vercel.app</a></sub>
 </p>

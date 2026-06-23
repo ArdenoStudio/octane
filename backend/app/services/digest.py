@@ -135,7 +135,7 @@ _DIGEST_HTML = """\
       <!-- Logo -->
       <tr>
         <td align="center" style="padding-bottom:28px;">
-          <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
+          <img src="{site_url}/octane-logo-nav.svg"
                width="96" height="36" alt="Octane"
                style="display:block;border:0;outline:none;">
         </td>
@@ -186,7 +186,7 @@ _DIGEST_HTML = """\
             <!-- CTA -->
             <tr>
               <td style="padding:0 40px 38px;">
-                <a href="https://octane.lk"
+                <a href="{site_url}"
                    style="display:inline-block;background:#f59e0b;color:#1a0f00;text-decoration:none;
                           font-size:13px;font-weight:700;padding:13px 28px;border-radius:10px;
                           letter-spacing:0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">
@@ -200,7 +200,7 @@ _DIGEST_HTML = """\
               <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
                 <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;font-family:'Cal Sans',-apple-system,sans-serif;">
                   You're receiving this because you subscribed on
-                  <a href="https://octane.lk" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
+                  <a href="{site_url}" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
                   &nbsp;&middot;&nbsp;
                   <a href="{unsub_url}" style="color:#c4b99a;text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -229,7 +229,7 @@ Sri Lanka CPC Fuel Prices (LKR per litre):
 Source: Ceylon Petroleum Corporation
 
 View live prices, history & world comparison:
-https://octane.lk
+{site_url}
 
 Unsubscribe: {unsub_url}
 """
@@ -273,11 +273,13 @@ def send_weekly_digest() -> int:
             week_of=week_of,
             price_rows=price_rows,
             unsub_url=unsub_url,
+            site_url=s.site_url.rstrip("/"),
         )
         text_body = _DIGEST_TEXT.format(
             week_of=week_of,
             price_text=price_text,
             unsub_url=unsub_url,
+            site_url=s.site_url.rstrip("/"),
         )
         ok, err = _send_html_email(sub["email"], subject, html_body, text_body)
         if ok:

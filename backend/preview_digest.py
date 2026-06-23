@@ -36,7 +36,8 @@ price_rows = """
 html = template.format(
     week_of="May 10, 2026",
     price_rows=price_rows,
-    unsub_url="https://octane.lk/digest/unsubscribe?token=preview-token",
+    unsub_url="https://octane-smoky.vercel.app/digest/unsubscribe?token=preview-token",
+    site_url="https://octane-smoky.vercel.app",
 )
 
 with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:

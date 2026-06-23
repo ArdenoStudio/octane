@@ -56,6 +56,7 @@ html = template.format(
     manage_url="https://octane-smoky.vercel.app/manage?token=preview-token",
     chart_html=_sample_chart(threshold=400),
     delta_badge=delta_badge,
+    site_url="https://octane-smoky.vercel.app",
 )
 
 with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:

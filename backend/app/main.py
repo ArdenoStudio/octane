@@ -62,5 +62,5 @@ def root():
     return {
         "name": "Octane API",
         "docs": "/docs",
-        "site": "https://octane.lk",
+        "site": settings.site_url,
     }

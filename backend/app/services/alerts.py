@@ -170,7 +170,7 @@ _CONFIRMATION_HTML = """\
       <!-- Logo -->
       <tr>
         <td align="center" style="padding-bottom:28px;">
-          <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
+          <img src="{site_url}/octane-logo-nav.svg"
                width="96" height="36" alt="Octane"
                style="display:block;border:0;outline:none;">
         </td>
@@ -226,7 +226,7 @@ _CONFIRMATION_HTML = """\
               <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
                 <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;">
                   Sent by
-                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>
+                  <a href="{site_url}" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>
                   &mdash; Sri Lanka fuel price alerts.
                 </p>
               </td>
@@ -254,7 +254,7 @@ Confirm your alert:
 
 If you didn't request this, ignore this email.
 
-— Octane (octane.lk)
+— Octane ({site_url})
 """
 
 _EMAIL_HTML = """\
@@ -272,7 +272,7 @@ _EMAIL_HTML = """\
       <!-- Logo -->
       <tr>
         <td align="center" style="padding-bottom:28px;">
-          <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
+          <img src="{site_url}/octane-logo-nav.svg"
                width="96" height="36" alt="Octane"
                style="display:block;border:0;outline:none;">
         </td>
@@ -359,7 +359,7 @@ _EMAIL_HTML = """\
               <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
                 <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;">
                   You set up this alert on
-                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
+                  <a href="{site_url}" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
                   &nbsp;&middot;&nbsp;
                   <a href="{manage_url}" style="color:#c4b99a;text-decoration:underline;">Unsubscribe</a>
                 </p>
@@ -389,7 +389,7 @@ Recorded: {recorded_at}
 Manage or unsubscribe:
 {manage_url}
 
-— Octane (octane.lk)
+— Octane ({site_url})
 """
 
 
@@ -450,17 +450,20 @@ def _send_confirmation_email(
     s = get_settings()
     confirm_url = f"{s.site_url}/confirm?token={confirm_token}"
     subject = f"Confirm your Octane alert — {fuel_name} {direction} LKR {threshold}"
+    site = s.site_url.rstrip("/")
     html_body = _CONFIRMATION_HTML.format(
         fuel_name=fuel_name,
         threshold=threshold,
         direction=direction,
         confirm_url=confirm_url,
+        site_url=site,
     )
     text_body = _CONFIRMATION_TEXT.format(
         fuel_name=fuel_name,
         threshold=threshold,
         direction=direction,
         confirm_url=confirm_url,
+        site_url=site,
     )
     sent, err = _send_html_email(to_email, subject, html_body, text_body)
     if err:
@@ -649,6 +652,7 @@ def dispatch_pending() -> int:
 
         # ── Email ────────────────────────────────────────────────────────────
         subject = f"Octane alert: {fuel_name} is now LKR {price_fmt}"
+        site = s.site_url.rstrip("/")
         html_body = _EMAIL_HTML.format(
             fuel_name=fuel_name,
             price=price_fmt,
@@ -659,6 +663,7 @@ def dispatch_pending() -> int:
             manage_url=manage_url,
             chart_html=chart_html,
             delta_badge=_delta_badge(delta),
+            site_url=site,
         )
         text_body = _EMAIL_TEXT.format(
             fuel_name=fuel_name,
@@ -667,6 +672,7 @@ def dispatch_pending() -> int:
             threshold=threshold_fmt,
             recorded_at=recorded_at,
             manage_url=manage_url,
+            site_url=site,
         )
         email_sent, email_err = _send_html_email(
             alert["email"], subject, html_body, text_body

@@ -1,10 +1,13 @@
 """Embeddable widget — returns a self-contained HTML page suitable for iframe embedding."""
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
 from app import fuel as fuel_mod
+from app.config import get_settings
 from app.services import prices
 
 router = APIRouter(prefix="/v1/embed", tags=["embed"])
@@ -48,7 +51,7 @@ _TEMPLATE = """<!doctype html>
   <div class="meta">As of {recorded_at}</div>
   <div class="row">
     <span class="meta">Live Sri Lanka fuel prices</span>
-    <a href="https://octane.lk" target="_blank" rel="noopener">octane.lk →</a>
+    <a href="{site_url}" target="_blank" rel="noopener">{site_host} →</a>
   </div>
 </div>
 </body></html>"""
@@ -82,10 +85,15 @@ def widget(
     latest = prices.latest_for(fuel)
     if not latest:
         raise HTTPException(status_code=404, detail="no data")
+    settings = get_settings()
+    site_url = settings.site_url.rstrip("/")
+    site_host = urlparse(site_url).netloc or site_url
     html = _TEMPLATE.format(
         display=fuel_mod.DISPLAY[fuel],
         price=f"{latest['price_lkr']:.2f}",
         recorded_at=latest["recorded_at"],
+        site_url=site_url,
+        site_host=site_host,
         **_theme(theme),
     )
     return HTMLResponse(html, headers={"Content-Security-Policy": "frame-ancestors *"})

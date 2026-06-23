@@ -4,14 +4,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql://octane:octane@localhost:5432/octane"
-    cors_origins: str = "http://localhost:5173,https://octane.lk"
+    cors_origins: str = "http://localhost:5173,https://octane-smoky.vercel.app"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_pass: str = ""
     alert_from_email: str = "alerts@octane.lk"
     site_url: str = "https://octane-smoky.vercel.app"
-    scraper_user_agent: str = "OctaneBot/1.0 (+https://octane.lk)"
+    scraper_user_agent: str = "OctaneBot/1.0 (+https://octane-smoky.vercel.app)"
     admin_email: str = ""
     telegram_bot_token: str = ""
     dispatch_secret: str = ""
