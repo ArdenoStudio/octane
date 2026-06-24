@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-23T05:56:02.128536+00:00",
+  "generated_at": "2026-06-24T05:54:46.064338+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
@@ -9,9 +9,9 @@
     "Sri Lanka revises retail fuel prices amid West Asia conflict"
   ],
   "direction": "up",
-  "confidence": 0.8,
+  "confidence": 0.9,
   "magnitude_lkr": 20.0,
-  "summary": "Fuel prices surge amid global tensions and Sri Lanka's economic crisis.",
+  "summary": "Fuel prices surge globally due to West Asia conflict and high imports.",
   "signals": [
     "US gas price tops $4 for first time since 2022",
     "Sri Lanka revises retail fuel prices amid West Asia conflict",
