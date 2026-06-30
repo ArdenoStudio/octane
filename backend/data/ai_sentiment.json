@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-06-29T06:24:41.896661+00:00",
+  "generated_at": "2026-06-30T05:59:01.161532+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
     "Fuel price shock: what policy responses reveal about resilience",
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "US gas price tops $4 for first time since 2022",
-    "India lowers fuel taxes, says rumours of lockdown \u2018completely false\u2019",
-    "From US to Pakistan, fuel prices surged globally while India held the line"
+    "Auto Diesel, Petrol 92 Octane prices reduced",
+    "Fuel prices reduced in Sri Lanka",
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices"
   ],
-  "direction": "up",
+  "direction": "down",
   "confidence": 0.8,
-  "magnitude_lkr": 20.0,
-  "summary": "Fuel prices likely to increase due to ongoing global conflict and high imports.",
+  "magnitude_lkr": -20.0,
+  "summary": "Fuel prices reduced in Sri Lanka after Middle East ceasefire",
   "signals": [
-    "Sri Lanka hikes fuel prices amid Israel-Iran war: Petrol now at 398 rupees; diesel at 382 rupees per litre",
-    "Sri Lanka forced to pay $286 per barrel for oil, HSBC confirms",
-    "From Pakistan to Egypt, Iran war drives up prices in Global South"
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Auto Diesel, Petrol 92 Octane prices reduced",
+    "Fuel price shock: what policy responses reveal about resilience"
   ]
 }
