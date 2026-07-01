@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-06-30T05:59:01.161532+00:00",
+  "generated_at": "2026-07-01T06:13:38.099095+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Fuel price shock: what policy responses reveal about resilience",
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
     "Auto Diesel, Petrol 92 Octane prices reduced",
-    "Fuel prices reduced in Sri Lanka",
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices"
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Sri Lanka reduces fuel prices"
   ],
   "direction": "down",
   "confidence": 0.8,
-  "magnitude_lkr": -20.0,
-  "summary": "Fuel prices reduced in Sri Lanka after Middle East ceasefire",
+  "magnitude_lkr": -10.0,
+  "summary": "Fuel prices reduced amid easing global oil prices and Middle East ceasefire.",
   "signals": [
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
     "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Auto Diesel, Petrol 92 Octane prices reduced",
-    "Fuel price shock: what policy responses reveal about resilience"
+    "Sri Lanka reduces fuel prices"
   ]
 }
