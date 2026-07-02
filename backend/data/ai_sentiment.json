@@ -1,20 +1,10 @@
 {
-  "generated_at": "2026-07-01T06:13:38.099095+00:00",
-  "headlines_analyzed": 30,
-  "headlines_sample": [
-    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "Auto Diesel, Petrol 92 Octane prices reduced",
-    "Fuel price shock: what policy responses reveal about resilience",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Sri Lanka reduces fuel prices"
-  ],
-  "direction": "down",
-  "confidence": 0.8,
-  "magnitude_lkr": -10.0,
-  "summary": "Fuel prices reduced amid easing global oil prices and Middle East ceasefire.",
-  "signals": [
-    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Sri Lanka reduces fuel prices"
-  ]
+  "generated_at": "2026-07-02T05:46:03.622293+00:00",
+  "headlines_analyzed": 0,
+  "headlines_sample": [],
+  "direction": "stable",
+  "confidence": 1.0,
+  "magnitude_lkr": 0.0,
+  "summary": "No recent news headlines found to influence fuel price revisions.",
+  "signals": []
 }
