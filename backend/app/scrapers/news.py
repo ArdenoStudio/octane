@@ -237,6 +237,19 @@ def _parse_article_published_date(soup: BeautifulSoup, url: str) -> date | None:
             if parsed:
                 return parsed
 
+    # JSON-LD NewsArticle — Daily Mirror embeds datePublished here (body may
+    # contain control chars that break json.loads, so regex-extract).
+    for script in soup.find_all("script", attrs={"type": re.compile(r"ld\+json", re.I)}):
+        raw = script.string or script.get_text() or ""
+        m = re.search(
+            r'"datePublished"\s*:\s*"([^"]+)"',
+            raw,
+        )
+        if m:
+            parsed = _coerce_date(m.group(1))
+            if parsed:
+                return parsed
+
     for t in soup.find_all("time"):
         raw = t.get("datetime") or t.get_text(strip=True)
         parsed = _coerce_date(raw) if raw else None
@@ -252,23 +265,54 @@ def _parse_article_published_date(soup: BeautifulSoup, url: str) -> date | None:
             pass
 
     # Short byline spans (Ada: <span>Sep 30, 2024</span>) beat full-page text.
-    for span in soup.find_all(["span", "p", "div", "h2", "h3"]):
+    # Daily Mirror: <a>30 June 2026 07:23 am</a>
+    # Skip weekday-prefixed chrome like "Thu, 09 Jul 2026 - 08:42 PM".
+    for span in soup.find_all(["span", "p", "div", "h2", "h3", "a"]):
         raw = span.get_text(" ", strip=True)
-        if not raw or len(raw) > 80:
+        if not raw or len(raw) > 40:
             continue
-        m = ARTICLE_BYLINE_DATE.fullmatch(raw) or ARTICLE_BYLINE_DATE.search(raw)
-        if m and len(raw) <= 40:
+        if re.match(
+            r"^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b",
+            raw,
+            re.IGNORECASE,
+        ):
+            continue
+        # Ada-style: "Sep 30, 2024" (optionally with clock)
+        m = ARTICLE_BYLINE_DATE.fullmatch(raw)
+        if m:
+            parsed = _coerce_date(m.group(1))
+            if parsed:
+                return parsed
+        # Mirror-style: "30 June 2026 07:23 am" — require the clock so bare
+        # "09 Jul 2026" site chrome does not win.
+        m = re.fullmatch(
+            r"(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})"
+            r"\s+\d{1,2}:\d{2}\s*(?:am|pm)",
+            raw,
+            re.IGNORECASE,
+        )
+        if m:
             parsed = _coerce_date(m.group(1))
             if parsed:
                 return parsed
 
-    # Bylines with an AM/PM clock are almost always the article date.
+    # Bylines with an AM/PM clock in page text (Ada Month-first form).
     text = soup.get_text(" ", strip=True)
     for m in ARTICLE_BYLINE_DATE.finditer(text[:4000]):
         if re.search(r"\d{1,2}:\d{2}\s*(?:AM|PM)", m.group(0), re.IGNORECASE):
             parsed = _coerce_date(m.group(1))
             if parsed:
                 return parsed
+    m = re.search(
+        r"\b(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})"
+        r"\s+\d{1,2}:\d{2}\s*(?:am|pm)\b",
+        text[:4000],
+        re.IGNORECASE,
+    )
+    if m:
+        parsed = _coerce_date(m.group(1))
+        if parsed:
+            return parsed
 
     return None
 
@@ -503,8 +547,32 @@ def _score_url_against_title(url: str, title: str) -> int:
     return sum(1 for t in tokens if t in path)
 
 
+def _brave_search_urls(query: str) -> list[str]:
+    """Brave Search HTML — reliable from datacenter IPs when DDG returns 202."""
+    try:
+        with httpx.Client(
+            headers={"User-Agent": _BROWSER_UA},
+            timeout=15.0,
+            follow_redirects=True,
+        ) as c:
+            r = c.get("https://search.brave.com/search", params={"q": query})
+            r.raise_for_status()
+            html = r.text
+    except Exception as exc:
+        log.warning("brave search failed %s: %s", query, exc)
+        return []
+
+    urls: list[str] = []
+    for a in BeautifulSoup(html, "lxml").find_all("a", href=True):
+        href = a["href"]
+        if href.startswith("http") and "brave.com" not in href and "brave." not in href:
+            urls.append(href.split("#")[0].rstrip("/"))
+    seen: set[str] = set()
+    return [u for u in urls if not (u in seen or seen.add(u))]
+
+
 def _ddg_search_urls(query: str) -> list[str]:
-    """HTML DuckDuckGo search — recovers publisher URLs when on-site search is blocked."""
+    """HTML DuckDuckGo search — secondary fallback (often 202-challenged)."""
     html = ""
     for attempt in range(2):
         try:
@@ -537,18 +605,76 @@ def _ddg_search_urls(query: str) -> list[str]:
     return [u for u in urls if not (u in seen or seen.add(u))]
 
 
-def _resolve_via_ddg(title: str, host: str, link_re: re.Pattern[str]) -> str | None:
-    query = f"site:{host} {_strip_outlet_suffix(title)}"
-    urls = _ddg_search_urls(query)
-    scored: list[tuple[int, str]] = []
-    for u in urls:
-        if not link_re.search(u):
-            continue
-        scored.append((_score_url_against_title(u, title), u))
-    if not scored:
+def _web_search_urls(query: str) -> list[str]:
+    """Prefer Brave; fall back to DuckDuckGo if Brave is empty."""
+    urls = _brave_search_urls(query)
+    if urls:
+        return urls
+    return _ddg_search_urls(query)
+
+
+def _page_title_matches(url: str, title: str) -> bool:
+    """Fetch a candidate page and check its <title> overlaps the headline."""
+    want = _title_tokens(title)
+    if not want:
+        return False
+    try:
+        with httpx.Client(
+            headers={"User-Agent": _BROWSER_UA},
+            timeout=12.0,
+            follow_redirects=True,
+        ) as c:
+            r = c.get(url)
+            r.raise_for_status()
+    except Exception:
+        return False
+    soup = BeautifulSoup(r.text, "lxml")
+    page_title = soup.title.get_text(" ", strip=True) if soup.title else ""
+    have = _title_tokens(page_title)
+    # Require majority of distinctive title tokens (ignore tiny overlap).
+    overlap = len(want & have)
+    return overlap >= max(2, min(4, len(want) // 2))
+
+
+def _resolve_via_web_search(title: str, host: str, link_re: re.Pattern[str]) -> str | None:
+    """Recover a publisher article URL via Brave/DDG site-search."""
+    clean = _strip_outlet_suffix(title)
+    # Exact-title query first (best for Ada cuid URLs with no slug tokens).
+    queries = [
+        f'site:{host} "{clean}"',
+        f"site:{host} {clean}",
+    ]
+    seen_urls: set[str] = set()
+    candidates: list[str] = []
+    for query in queries:
+        for u in _web_search_urls(query):
+            if u in seen_urls or not link_re.search(u):
+                continue
+            seen_urls.add(u)
+            candidates.append(u)
+        if candidates:
+            break
+
+    if not candidates:
         return None
+
+    scored = [(_score_url_against_title(u, clean), u) for u in candidates]
     scored.sort(key=lambda item: item[0], reverse=True)
-    return scored[0][1]
+
+    # Slug match is enough when the URL contains title words.
+    if scored[0][0] >= 2:
+        return scored[0][1]
+
+    # Ada cuid paths (/news/cm…) have no slug — verify by page title.
+    for _score, u in scored[:5]:
+        if _page_title_matches(u, clean):
+            return u
+    return scored[0][1] if scored[0][0] > 0 else None
+
+
+# Back-compat alias used by older tests / call sites.
+def _resolve_via_ddg(title: str, host: str, link_re: re.Pattern[str]) -> str | None:
+    return _resolve_via_web_search(title, host, link_re)
 
 
 def _resolve_island_search(title: str) -> str | None:
@@ -608,7 +734,7 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
         search_url = "https://economynext.com/?s=" + query.replace(" ", "+")
         link_re = re.compile(r"https://economynext\.com/[a-z0-9\-]+-\d+/", re.IGNORECASE)
     elif "dailymirror.lk" in host:
-        # On-site search often 403s from datacenter IPs — try it, then DDG.
+        # On-site search often 403s from datacenter IPs — try it, then Brave.
         search_url = "https://www.dailymirror.lk/search/" + query.replace(" ", "-")
         link_re = re.compile(
             r"https://www\.dailymirror\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
@@ -617,12 +743,14 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
     elif "island.lk" in host:
         return _resolve_island_search(title)
     elif "adaderana.lk" in host:
-        # Ada search_results.php returns 410; use DDG site-search.
-        return _resolve_via_ddg(
+        # Ada on-site search returns 410. Newer articles use cuid paths
+        # (/news/cm…) as well as classic /news/<nid>/slug.
+        return _resolve_via_web_search(
             title,
             "adaderana.lk",
             re.compile(
-                r"https?://(?:www\.)?adaderana\.lk/(?:news\.php\?nid=\d+|news/\d+(?:/[a-z0-9\-]+)?)",
+                r"https?://(?:www\.)?adaderana\.lk/"
+                r"(?:news\.php\?nid=\d+|news/[A-Za-z0-9]+(?:/[A-Za-z0-9\-]+)?)",
                 re.IGNORECASE,
             ),
         )
@@ -630,34 +758,27 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
         return None
 
     assert search_url is not None and link_re is not None
+    mirror_fallback = (
+        "dailymirror.lk" in host,
+        re.compile(
+            r"https://www\.dailymirror\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
+            re.IGNORECASE,
+        ),
+    )
     try:
         with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=15.0, follow_redirects=True) as c:
             r = c.get(search_url)
             r.raise_for_status()
     except Exception as exc:
         log.warning("publisher search failed %s: %s", search_url, exc)
-        if "dailymirror.lk" in host:
-            return _resolve_via_ddg(
-                title,
-                "dailymirror.lk",
-                re.compile(
-                    r"https://www\.dailymirror\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
-                    re.IGNORECASE,
-                ),
-            )
+        if mirror_fallback[0]:
+            return _resolve_via_web_search(title, "dailymirror.lk", mirror_fallback[1])
         return None
 
     links = link_re.findall(r.text)
     if not links:
-        if "dailymirror.lk" in host:
-            return _resolve_via_ddg(
-                title,
-                "dailymirror.lk",
-                re.compile(
-                    r"https://www\.dailymirror\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
-                    re.IGNORECASE,
-                ),
-            )
+        if mirror_fallback[0]:
+            return _resolve_via_web_search(title, "dailymirror.lk", mirror_fallback[1])
         return None
     # Prefer the URL whose slug best matches the title.
     scored = [(_score_url_against_title(u, query), u) for u in links]
@@ -795,6 +916,80 @@ def _scrape_article(
     )
 
 
+# Outlets Google News often under-indexes for the latest CPC revision.
+# Brave site-search fills the gap (Daily Mirror especially).
+BRAVE_DISCOVERY: list[tuple[str, str, re.Pattern[str]]] = [
+    (
+        "dailymirror.lk",
+        'site:dailymirror.lk (fuel OR petrol OR diesel) (prices OR price) '
+        "(reduced OR increased OR revised OR revision)",
+        re.compile(
+            r"https://www\.dailymirror\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "economynext.com",
+        'site:economynext.com (fuel OR petrol OR ceypetco) (price OR prices) '
+        "(reduced OR increased OR revised)",
+        re.compile(r"https://economynext\.com/[a-z0-9\-]+-\d+/", re.IGNORECASE),
+    ),
+]
+
+
+def _discover_via_brave(
+    max_age_hours: int = DEFAULT_MAX_AGE_HOURS,
+) -> list[tuple[str, datetime | None, str, str, str | None]]:
+    """Find recent revision articles via Brave when Google News misses them.
+
+    Returns the same tuple shape as _poll_feed:
+    (url, pub_date, title, summary, source_url).
+    """
+    results: list[tuple[str, datetime | None, str, str, str | None]] = []
+    seen: set[str] = set()
+    for host, query, link_re in BRAVE_DISCOVERY:
+        urls = _brave_search_urls(query)
+        matched = [u for u in urls if link_re.search(u)]
+        log.info("brave discovery %s → %d candidate urls", host, len(matched))
+        for url in matched[:8]:
+            key = url.split("?")[0].rstrip("/")
+            if key in seen:
+                continue
+            seen.add(key)
+            # Fetch title from the page so keyword / speculative filters work.
+            try:
+                with httpx.Client(
+                    headers={"User-Agent": _BROWSER_UA},
+                    timeout=15.0,
+                    follow_redirects=True,
+                ) as c:
+                    r = c.get(url)
+                    r.raise_for_status()
+            except Exception as exc:
+                log.warning("brave discovery fetch failed %s: %s", url, exc)
+                continue
+            soup = BeautifulSoup(r.text, "lxml")
+            title = soup.title.get_text(" ", strip=True) if soup.title else ""
+            title = _strip_outlet_suffix(title)
+            if not FUEL_KEYWORDS.search(title):
+                continue
+            if _is_speculative_piece(title, url):
+                continue
+            published = _parse_article_published_date(soup, str(r.url))
+            if published is not None:
+                age_hours = (date.today() - published).days * 24
+                if age_hours > max_age_hours + 24:
+                    continue
+                pub_dt = datetime(
+                    published.year, published.month, published.day, tzinfo=timezone.utc
+                )
+            else:
+                pub_dt = None
+            source_url = f"https://{host}"
+            results.append((str(r.url), pub_dt, title, title, source_url))
+    return results
+
+
 def run(max_age_hours: int = DEFAULT_MAX_AGE_HOURS) -> Iterable[PricePoint]:
     """Scrape all configured news feeds and return per-outlet price hits.
 
@@ -805,9 +1000,15 @@ def run(max_age_hours: int = DEFAULT_MAX_AGE_HOURS) -> Iterable[PricePoint]:
     all_points: list[PricePoint] = []
     seen_urls: set[str] = set()
 
-    for feed_url in FEEDS:
-        articles = _poll_feed(feed_url, max_age_hours=max_age_hours)
-        log.info("news feed %s → %d fuel articles", feed_url, len(articles))
+    article_batches: list[tuple[str, list]] = [
+        (feed_url, _poll_feed(feed_url, max_age_hours=max_age_hours))
+        for feed_url in FEEDS
+    ]
+    brave_articles = _discover_via_brave(max_age_hours=max_age_hours)
+    article_batches.append(("brave-discovery", brave_articles))
+
+    for feed_label, articles in article_batches:
+        log.info("news feed %s → %d fuel articles", feed_label, len(articles))
         for url, pub_date, title, summary, source_url in articles:
             # Normalize Google article URLs so the same story isn't scraped twice.
             url_key = url.split("?")[0].rstrip("/")

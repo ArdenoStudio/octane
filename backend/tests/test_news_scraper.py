@@ -210,8 +210,8 @@ def test_resolve_via_publisher_search_island():
     assert "fuel" in url.lower()
 
 
-def test_resolve_via_ddg_picks_best_slug_match():
-    """Unit-test DDG ranking without depending on live search availability."""
+def test_resolve_via_web_search_picks_best_slug_match():
+    """Unit-test web-search ranking without depending on live search availability."""
     from app.scrapers import news as news_mod
 
     fake = [
@@ -219,7 +219,7 @@ def test_resolve_via_ddg_picks_best_slug_match():
         "https://www.adaderana.lk/news/120058/fuel-prices-increased",
         "https://example.com/other",
     ]
-    with patch.object(news_mod, "_ddg_search_urls", return_value=fake):
+    with patch.object(news_mod, "_web_search_urls", return_value=fake):
         url = news_mod._resolve_via_publisher_search(
             "Fuel prices increased - Ada Derana",
             "https://adaderana.lk",
@@ -227,14 +227,28 @@ def test_resolve_via_ddg_picks_best_slug_match():
     assert url == "https://www.adaderana.lk/news/120058/fuel-prices-increased"
 
 
-def test_resolve_via_ddg_dailymirror_pattern():
+def test_resolve_via_web_search_adaderana_cuid_via_page_title():
+    """Ada cuid URLs have no slug — match by fetching page <title>."""
+    from app.scrapers import news as news_mod
+
+    fake = ["https://adaderana.lk/news/cmqzfsf47000a356pblxalol4"]
+    with patch.object(news_mod, "_web_search_urls", return_value=fake):
+        with patch.object(news_mod, "_page_title_matches", return_value=True):
+            url = news_mod._resolve_via_publisher_search(
+                "Auto Diesel, Petrol 92 Octane prices reduced - Ada Derana",
+                "https://adaderana.lk",
+            )
+    assert url == "https://adaderana.lk/news/cmqzfsf47000a356pblxalol4"
+
+
+def test_resolve_via_web_search_dailymirror_pattern():
     from app.scrapers import news as news_mod
 
     fake = [
         "https://www.dailymirror.lk/breaking-news/Fuel-prices-increased/108-334878",
     ]
-    with patch.object(news_mod, "_ddg_search_urls", return_value=fake):
-        # Force the on-site search path to fail so DDG fallback runs.
+    with patch.object(news_mod, "_web_search_urls", return_value=fake):
+        # Force the on-site search path to fail so web-search fallback runs.
         with patch("httpx.Client") as client_cls:
             client_cls.return_value.__enter__.return_value.get.side_effect = Exception(
                 "403"
