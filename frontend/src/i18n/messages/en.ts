@@ -15,20 +15,20 @@ export const EN: Messages = {
   },
   hero: {
     live: "Live",
-    cpcPricesDaily: "CPC prices updated daily",
+    cpcPricesDaily: "Checked 5× daily from CPC",
     h1a: "Real",
     h1b: "prices.",
     h1c: "Right",
     h1d: "now.",
     sublead:
-      "Sri Lanka fuel prices tracked daily from CPC — with price history, alerts, a trip calculator, and a free API.",
+      "Sri Lanka fuel prices checked throughout the day from CPC — with price history, alerts, a trip calculator, and a free API.",
     ctaPrices: "Check today's prices",
     ctaAlerts: "Set a price alert",
     features: [
       {
         title: "Live prices",
         description:
-          "CPC fuel prices updated daily, the moment revisions are published.",
+          "We check CPC several times a day and surface revisions the moment they are published.",
       },
       {
         title: "Price alerts",
@@ -54,13 +54,15 @@ export const EN: Messages = {
   prices: {
     badge: "Live prices · CPC",
     title: "Sri Lanka fuel prices, today.",
-    lastRevision: "Last revision",
+    lastRevision: "Last CPC revision",
+    lastChecked: "Last checked",
     revisedToday: "Prices revised today",
     awaitingData: "Awaiting data",
     lkrPer: "LKR ·",
     loadError: "Couldn't load prices. The API may be offline.",
     footerSource: "Source:",
-    footerLegal: " · Scraped daily at 8 AM · Independent, not affiliated.",
+    footerLegal:
+      " · Checked 5× daily · Revision dates follow CPC · Independent, not affiliated.",
   },
   mobile: {
     label92: "Petrol 92 · CPC",

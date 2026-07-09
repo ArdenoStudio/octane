@@ -26,11 +26,11 @@
 
 ---
 
-Octane tracks CPC fuel prices daily the moment they're revised, and presents them with historical charts, a world comparison, a trip cost calculator, email price alerts, an embeddable widget, and a free public API.
+Octane checks CPC fuel prices several times a day and surfaces revisions the moment they're published — with historical charts, a world comparison, a trip cost calculator, email price alerts, an embeddable widget, and a free public API.
 
 ## Features
 
-- **Live prices** — scraped daily at 8am from CPC and LIOC
+- **Live prices** — checked 5× daily from CPC and LIOC (revision dates follow CPC)
 - **Price history** — up to 10 years of revision events with delta indicators
 - **World comparison** — Sri Lanka vs global average and regional neighbours
 - **Trip calculator** — distance + efficiency → exact cost at today's prices
@@ -43,7 +43,7 @@ Octane tracks CPC fuel prices daily the moment they're revised, and presents the
 | Layer | Tech |
 |---|---|
 | Backend | FastAPI · PostgreSQL · Fly.io |
-| Scrapers | `httpx` + `BeautifulSoup` · daily 8am cron |
+| Scrapers | `httpx` + `BeautifulSoup` · GitHub Actions 5× daily |
 | Frontend | React 18 · Vite · Tailwind CSS · Recharts |
 | Hosting | Vercel (frontend) · Fly.io (backend + DB) |
 | Sources | `ceypetco.gov.lk` · `lankaiocoil.lk` · `globalpetrolprices.com` |

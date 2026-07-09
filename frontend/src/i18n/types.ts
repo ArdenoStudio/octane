@@ -33,6 +33,7 @@ export interface Messages {
     badge: string;
     title: string;
     lastRevision: string;
+    lastChecked: string;
     revisedToday: string;
     awaitingData: string;
     lkrPer: string;

@@ -18,6 +18,19 @@ export function shortDate(iso: string): string {
 export function relativeFromNow(iso: string): string {
   const d = new Date(iso);
   const diffMs = Date.now() - d.getTime();
+  if (Number.isNaN(d.getTime())) return "";
+
+  // Date-only revision stamps ("2026-04-01") stay day-granular.
+  // Full timestamps (last_verified_at) use minute/hour precision.
+  const hasTime = /T\d{2}:\d{2}/.test(iso);
+  if (hasTime) {
+    const minutes = Math.round(diffMs / (1000 * 60));
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  }
+
   const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
   if (days < 1) return "today";
   if (days === 1) return "yesterday";

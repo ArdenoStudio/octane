@@ -36,6 +36,14 @@ export interface PriceRow {
   source: string;
   price_lkr: number;
   recorded_at: string;
+  /** When Octane last wrote/verified this row (ISO timestamp), if available. */
+  scraped_at?: string | null;
+}
+
+export interface LatestPricesResp {
+  prices: PriceRow[];
+  /** When Octane last successfully checked CPC — independent of revision age. */
+  last_verified_at?: string | null;
 }
 
 export interface HistoryPoint {
@@ -158,7 +166,7 @@ async function del<T>(path: string): Promise<T> {
 }
 
 export const api = {
-  latest: () => get<{ prices: PriceRow[] }>("/v1/prices/latest"),
+  latest: () => get<LatestPricesResp>("/v1/prices/latest"),
   history: (fuel: FuelId, days = 730) =>
     get<{ points: HistoryPoint[] }>(`/v1/prices/history?fuel=${fuel}&days=${days}`),
   worldComparison: (fuel: FuelId) =>

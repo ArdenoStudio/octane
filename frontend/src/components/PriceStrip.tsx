@@ -54,6 +54,7 @@ export function PriceStrip() {
   const { m, fuelLabel } = useLocale();
   const [rows, setRows] = useState<PriceRow[] | null>(null);
   const [changes, setChanges] = useState<PriceChangeRow[] | null>(null);
+  const [lastVerifiedAt, setLastVerifiedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export function PriceStrip() {
       .then(([latest, changesResp]) => {
         setRows(latest.prices);
         setChanges(changesResp.changes);
+        setLastVerifiedAt(latest.last_verified_at ?? null);
       })
       .catch((e) => setError(String(e)));
   }, []);
@@ -116,11 +118,21 @@ export function PriceStrip() {
               {m.prices.title}
             </h1>
           </FadeDiv>
-          {lastRevision && (
+          {(lastRevision || lastVerifiedAt) && (
             <FadeDiv className="text-right text-sm text-ink-400">
-              {m.prices.lastRevision}{" "}
-              <span className="text-ink-200">{shortDate(lastRevision)}</span>
-              <span className="ml-1 text-ink-400">· {relativeFromNow(lastRevision)}</span>
+              {lastRevision && (
+                <div>
+                  {m.prices.lastRevision}{" "}
+                  <span className="text-ink-200">{shortDate(lastRevision)}</span>
+                  <span className="ml-1 text-ink-400">· {relativeFromNow(lastRevision)}</span>
+                </div>
+              )}
+              {lastVerifiedAt && (
+                <div className={lastRevision ? "mt-0.5" : undefined}>
+                  {m.prices.lastChecked}{" "}
+                  <span className="text-ink-200">{relativeFromNow(lastVerifiedAt)}</span>
+                </div>
+              )}
             </FadeDiv>
           )}
         </div>

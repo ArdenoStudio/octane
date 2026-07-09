@@ -15,7 +15,7 @@ export const SI: Messages = {
   },
   hero: {
     live: "සජීවී",
-    cpcPricesDaily: "දිනපතා CPC මිල ගණන් යාවත්කාලීනයි",
+    cpcPricesDaily: "දිනකට 5 වතාවක් CPC පරීක්ෂා කෙරේ",
     h1a: "තහවුරු",
     h1b: "මිල ගණන්.",
     h1c: "මේ",
@@ -27,7 +27,7 @@ export const SI: Messages = {
     features: [
       {
         title: "සජීව මිල",
-        description: "සංශෝධන ප්‍රකාශය වූ විගස CPC ඉන්ධන මිල යාවත්කාලීනයි.",
+        description: "දිනකට කිහිප වතාවක් CPC පරීක්ෂා කර සංශෝධන ප්‍රකාශ වූ විගස පෙන්වයි.",
       },
       {
         title: "මිල විදියන්න",
@@ -53,7 +53,8 @@ export const SI: Messages = {
   prices: {
     badge: "සජීව මිල · CPC",
     title: "අද ශ්‍රී ලංකා ඉන්ධන මිල ගණන්.",
-    lastRevision: "අන්තර්ගත සංශෝධනය",
+    lastRevision: "අවසන් CPC සංශෝධනය",
+    lastChecked: "අවසන් පරීක්ෂාව",
     revisedToday: "අද මිල ගණන් වෙනස්කම් ඇති විය",
     awaitingData: "දත්ත එනකම් බලන්නේ",
     lkrPer: "රු. ·",
@@ -61,7 +62,7 @@ export const SI: Messages = {
       "මිල පූරණය නොහැක. API අබල හෝ බද්දට සම්බන්ධතා ගැටලුවක් විය හැක.",
     footerSource: "මූලාශ්‍රය:",
     footerLegal:
-      " · දිනපතා උදේ 8ට පමණ කාලසටහන · CPC සමඟ අනුබද්ධ නොවන ස්වාධීන ව්‍යාපෘතියකි.",
+      " · දිනකට 5 වතාවක් පරීක්ෂා · සංශෝධන දින CPC අනුව · අනුබද්ධ නොවන ස්වාධීන ව්‍යාපෘතියකි.",
   },
   mobile: {
     label92: "පෙට්රල් 92 · CPC",

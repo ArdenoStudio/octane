@@ -4,6 +4,9 @@ Parses the historical-prices revisions table at ceypetco.gov.lk. The page
 layout has shifted over the years — be defensive about column order and
 fuel-type labels. Each row in the historical table represents a price
 revision; we record one fuel_prices row per fuel per revision date.
+
+Homepage snapshots are stamped with today's date so off-cycle revisions are
+detected before the historical table catches up.
 """
 from __future__ import annotations
 
@@ -12,7 +15,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Iterable
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from app import fuel as fuel_mod
 from app.scrapers.http import client
@@ -23,6 +26,20 @@ LATEST_URL = "https://ceypetco.gov.lk/"
 
 PRICE_RE = re.compile(r"(\d{2,4}(?:\.\d{1,2})?)")
 DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%d %B %Y", "%d %b %Y")
+
+# Prefer longer aliases first so "Petrol 92 Octane" wins over bare "92".
+_ALIAS_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (
+        re.compile(
+            re.escape(alias) + r"[^\d]{0,60}(\d{2,4}(?:\.\d{1,2})?)",
+            re.IGNORECASE,
+        ),
+        fuel,
+    )
+    for alias, fuel in sorted(
+        fuel_mod.CPC_ALIASES.items(), key=lambda item: -len(item[0])
+    )
+]
 
 
 @dataclass(frozen=True)
@@ -100,6 +117,90 @@ def _parse_table(html: str) -> list[PricePoint]:
     return points
 
 
+def _price_in_range(price: float) -> bool:
+    return 50 <= price <= 2000
+
+
+def _dedupe_by_fuel(points: list[PricePoint]) -> list[PricePoint]:
+    seen: set[str] = set()
+    unique: list[PricePoint] = []
+    for p in points:
+        if p.fuel_type in seen:
+            continue
+        seen.add(p.fuel_type)
+        unique.append(p)
+    return unique
+
+
+def _extract_from_text(text: str, as_of: date) -> list[PricePoint]:
+    points: list[PricePoint] = []
+    for pattern, fuel in _ALIAS_PATTERNS:
+        m = pattern.search(text)
+        if not m:
+            continue
+        try:
+            price = float(m.group(1))
+        except ValueError:
+            continue
+        if _price_in_range(price):
+            points.append(PricePoint(as_of, fuel, price))
+    return _dedupe_by_fuel(points)
+
+
+def _extract_from_dom(soup: BeautifulSoup, as_of: date) -> list[PricePoint]:
+    """Prefer structured widgets/cards over whole-page regex when possible."""
+    points: list[PricePoint] = []
+    selectors = (
+        "[class*='price']",
+        "[class*='fuel']",
+        "[class*='product']",
+        "[class*='petrol']",
+        "[class*='diesel']",
+        "article",
+        "li",
+    )
+    seen_nodes: set[int] = set()
+    for selector in selectors:
+        for node in soup.select(selector):
+            node_id = id(node)
+            if node_id in seen_nodes:
+                continue
+            seen_nodes.add(node_id)
+            if not isinstance(node, Tag):
+                continue
+            text = node.get_text(" ", strip=True)
+            if not text or len(text) > 280:
+                continue
+            # Prefer alias+price patterns so currency codes (LKR) don't steal matches.
+            extracted = _extract_from_text(text, as_of)
+            if extracted:
+                points.extend(extracted)
+                continue
+            fuel = fuel_mod.normalize(text)
+            if not fuel:
+                continue
+            price = _parse_price(text)
+            if price is None or not _price_in_range(price):
+                continue
+            points.append(PricePoint(as_of, fuel, price))
+    return _dedupe_by_fuel(points)
+
+
+def parse_latest_html(html: str, as_of: date | None = None) -> list[PricePoint]:
+    """Parse homepage / widget HTML into today's price snapshot."""
+    today = as_of or date.today()
+    soup = BeautifulSoup(html, "lxml")
+    points = _extract_from_dom(soup, today)
+    if len(points) >= 3:
+        return points
+    # Fall back to full-page text patterns (covers older layouts).
+    text_points = _extract_from_text(soup.get_text(" ", strip=True), today)
+    by_fuel = {p.fuel_type: p for p in points}
+    for p in text_points:
+        by_fuel.setdefault(p.fuel_type, p)
+    return list(by_fuel.values())
+
+
 def fetch_historical() -> list[PricePoint]:
     with client() as c:
         r = c.get(HISTORICAL_URL)
@@ -114,37 +215,10 @@ def fetch_latest() -> list[PricePoint]:
     historical table is the source of truth; this is just a daily ping
     to detect changes between revisions.
     """
-    today = date.today()
     with client() as c:
         r = c.get(LATEST_URL)
         r.raise_for_status()
-    soup = BeautifulSoup(r.text, "lxml")
-    text = soup.get_text(" ", strip=True)
-    points: list[PricePoint] = []
-    # Look for "<fuel-name> ... <price>" patterns in the rendered text.
-    for alias, fuel in fuel_mod.CPC_ALIASES.items():
-        pattern = re.compile(
-            re.escape(alias) + r"[^\d]{0,40}(\d{2,4}(?:\.\d{1,2})?)",
-            re.IGNORECASE,
-        )
-        m = pattern.search(text)
-        if not m:
-            continue
-        try:
-            price = float(m.group(1))
-        except ValueError:
-            continue
-        if 50 <= price <= 2000:  # sanity range for LKR fuel
-            points.append(PricePoint(today, fuel, price))
-    # De-dup by fuel — first match wins.
-    seen: set[str] = set()
-    unique: list[PricePoint] = []
-    for p in points:
-        if p.fuel_type in seen:
-            continue
-        seen.add(p.fuel_type)
-        unique.append(p)
-    return unique
+    return parse_latest_html(r.text)
 
 
 def run() -> Iterable[PricePoint]:
