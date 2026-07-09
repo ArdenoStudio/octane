@@ -46,7 +46,7 @@ Octane checks CPC fuel prices several times a day and surfaces revisions the mom
 | Layer | Tech |
 |---|---|
 | Backend | FastAPI · PostgreSQL · Fly.io |
-| Scrapers | `httpx` + `BeautifulSoup` · full scrape 5× daily · news hourly |
+| Scrapers | `httpx` + `BeautifulSoup` · full scrape 5× daily · news hourly (multi-outlet consensus) |
 | Frontend | React 18 · Vite · Tailwind CSS · Recharts |
 | Hosting | Vercel (frontend) · Fly.io (backend + DB) |
 | Sources | `ceypetco.gov.lk` · `lankaiocoil.lk` · `globalpetrolprices.com` |

@@ -142,14 +142,22 @@ def run_all() -> dict[str, int]:
             log.exception("failed to record lanka_ioc scrape_run")
 
     try:
-        news_points = list(news.run())
+        # Ingest broadly, then persist one consensus row per fuel (same as
+        # the hourly news job) so multi-outlet hits don't thrash the table.
+        from app.scrapers.run_news import prefer_consensus, consensus_summary
+
+        raw_news = list(news.run())
+        news_points = prefer_consensus(raw_news)
         summary["news"] = _persist_fuel(news_points)
-        _record_scrape_run(
-            "news",
-            summary["news"],
-            ok=True,
-            detail=None if summary["news"] else "0 rows (no matching headlines)",
+        fuels = consensus_summary(raw_news)
+        consensus_fuels = [f for f, s in fuels.items() if s["consensus"]]
+        detail = (
+            f"raw={len(raw_news)} selected={len(news_points)} "
+            f"consensus_fuels={consensus_fuels or 'none'}"
+            if news_points
+            else "0 rows (no matching headlines)"
         )
+        _record_scrape_run("news", summary["news"], ok=True, detail=detail)
     except Exception as e:  # noqa: BLE001
         log.exception("news scraper failed: %s", e)
         summary["news"] = 0

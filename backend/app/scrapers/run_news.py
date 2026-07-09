@@ -8,6 +8,10 @@ Invoked by:
 Purpose: catch media-reported CPC revisions hours before the official site
 updates. Results are stored as source='news' and surfaced as unconfirmed
 early signals — they never replace official CPC prices.
+
+Selection is not "newest article wins". We ingest broadly, then pick the
+price cluster with the strongest multi-outlet agreement (trust-weighted),
+breaking ties on newest effective date.
 """
 from __future__ import annotations
 
@@ -23,11 +27,31 @@ from app.scrapers.cpc import PricePoint
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-# Prefer a news price when at least this many distinct articles agree
+# Prefer a news price when at least this many distinct outlets agree
 # (same fuel + price within TOLERANCE_LKR). Single-outlet hits are kept
 # but flagged in the scrape_run detail for observability.
-CONSENSUS_MIN = 2
+CONSENSUS_MIN_OUTLETS = 2
 TOLERANCE_LKR = 1.0
+
+# Higher weight = more trusted for revision-day wire copy.
+# Unknown / international aggregators stay low so they don't dominate.
+OUTLET_TRUST: dict[str, float] = {
+    "newswire": 1.0,
+    "adaderana": 1.0,
+    "dailymirror": 0.95,
+    "economynext": 0.9,
+    "island": 0.85,
+    "srilankamirror": 0.8,
+    "unknown": 0.35,
+}
+
+
+def _outlet_id(p: PricePoint) -> str:
+    return p.outlet or "unknown"
+
+
+def _trust(p: PricePoint) -> float:
+    return OUTLET_TRUST.get(_outlet_id(p), OUTLET_TRUST["unknown"])
 
 
 def _cluster_by_price(hits: list[PricePoint]) -> list[list[PricePoint]]:
@@ -46,8 +70,35 @@ def _cluster_by_price(hits: list[PricePoint]) -> list[list[PricePoint]]:
     return clusters
 
 
+def _cluster_score(group: list[PricePoint]) -> tuple:
+    """Rank clusters: distinct outlets, trust sum, newest effective date, hit count.
+
+    Distinct-outlet count is the primary signal — a lone high-trust outlet
+    should not beat two agreeing mid-trust outlets. Trust breaks ties when
+    outlet counts match (e.g. Newswire vs unknown aggregator).
+    """
+    outlets = {_outlet_id(h) for h in group}
+    # Cap per-outlet contribution so one outlet scraping 5 mirrors can't
+    # inflate trust past a second independent outlet.
+    trust_by_outlet: dict[str, float] = {}
+    for h in group:
+        oid = _outlet_id(h)
+        trust_by_outlet[oid] = max(trust_by_outlet.get(oid, 0.0), _trust(h))
+    trust = sum(trust_by_outlet.values())
+    newest = max(h.recorded_at for h in group)
+    return (len(outlets), trust, newest, len(group))
+
+
+def _pick_representative(group: list[PricePoint]) -> PricePoint:
+    """Choose one row to persist — highest trust, then newest date."""
+    return max(
+        group,
+        key=lambda p: (_trust(p), p.recorded_at),
+    )
+
+
 def consensus_summary(points: list[PricePoint]) -> dict[str, dict]:
-    """Group raw news hits by fuel and report agreement counts."""
+    """Group raw news hits by fuel and report agreement / outlet provenance."""
     by_fuel: dict[str, list[PricePoint]] = defaultdict(list)
     for p in points:
         by_fuel[p.fuel_type].append(p)
@@ -55,22 +106,27 @@ def consensus_summary(points: list[PricePoint]) -> dict[str, dict]:
     summary: dict[str, dict] = {}
     for fuel, hits in by_fuel.items():
         clusters = _cluster_by_price(hits)
-        best_hits = max(
-            clusters,
-            key=lambda group: (len(group), max(h.recorded_at for h in group)),
-        )
+        best_hits = max(clusters, key=_cluster_score)
+        outlets = sorted({_outlet_id(h) for h in best_hits})
+        all_outlets = sorted({_outlet_id(h) for h in hits})
+        rep = _pick_representative(best_hits)
         summary[fuel] = {
-            "price_lkr": best_hits[0].price_lkr,
+            "price_lkr": rep.price_lkr,
             "recorded_at": max(h.recorded_at for h in best_hits).isoformat(),
             "article_hits": len(hits),
             "agreeing_hits": len(best_hits),
-            "consensus": len(best_hits) >= CONSENSUS_MIN,
+            "agreeing_outlets": len(outlets),
+            "outlets": outlets,
+            "all_outlets": all_outlets,
+            "trust_score": round(sum(_trust(h) for h in best_hits), 2),
+            "consensus": len(outlets) >= CONSENSUS_MIN_OUTLETS,
+            "article_url": rep.article_url,
         }
     return summary
 
 
 def prefer_consensus(points: list[PricePoint]) -> list[PricePoint]:
-    """Keep one row per fuel — prefer the price with the most agreeing hits.
+    """Keep one row per fuel — prefer multi-outlet agreement, then trust, then newest.
 
     Does not drop single-outlet reports (revision day often starts with one
     wire story). Consensus is recorded in logs / scrape_run detail instead.
@@ -82,12 +138,8 @@ def prefer_consensus(points: list[PricePoint]) -> list[PricePoint]:
     chosen: list[PricePoint] = []
     for _fuel, hits in by_fuel.items():
         clusters = _cluster_by_price(hits)
-        best = max(
-            clusters,
-            key=lambda group: (len(group), max(h.recorded_at for h in group)),
-        )
-        best_sorted = sorted(best, key=lambda p: p.recorded_at, reverse=True)
-        chosen.append(best_sorted[0])
+        best = max(clusters, key=_cluster_score)
+        chosen.append(_pick_representative(best))
     return chosen
 
 
@@ -114,12 +166,14 @@ def run_news(
     )
     for fuel, s in summary.items():
         log.info(
-            "  %s → LKR %.2f on %s (hits=%d agreeing=%d consensus=%s)",
+            "  %s → LKR %.2f on %s (hits=%d outlets=%s agreeing=%d trust=%.2f consensus=%s)",
             fuel,
             s["price_lkr"],
             s["recorded_at"],
             s["article_hits"],
-            s["agreeing_hits"],
+            ",".join(s["outlets"]) or "none",
+            s["agreeing_outlets"],
+            s["trust_score"],
             s["consensus"],
         )
 
@@ -134,6 +188,8 @@ def run_news(
                 "price_lkr": p.price_lkr,
                 "recorded_at": p.recorded_at.isoformat(),
                 "source": p.source,
+                "outlet": p.outlet,
+                "article_url": p.article_url,
             }
             for p in selected
         ],
@@ -155,9 +211,13 @@ def run_news(
     migrate.run()
     persisted = _persist_fuel(selected)
     consensus_fuels = [f for f, s in summary.items() if s["consensus"]]
+    outlet_bits = []
+    for f, s in summary.items():
+        outlet_bits.append(f"{f}:{'+'.join(s['outlets']) or 'none'}")
     detail = (
         f"raw={len(raw)} selected={len(selected)} "
-        f"consensus_fuels={consensus_fuels or 'none'}"
+        f"consensus_fuels={consensus_fuels or 'none'} "
+        f"outlets[{'; '.join(outlet_bits)}]"
     )
     _record_scrape_run(
         "news",
