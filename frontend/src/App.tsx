@@ -5,6 +5,7 @@ import { Footer } from "./components/Footer";
 import { HeroSection } from "./components/HeroSection";
 import { HistoryChart } from "./components/HistoryChart";
 import { LastVisitBanner } from "./components/LastVisitBanner";
+import { MarketContextStrip } from "./components/MarketContextStrip";
 import { MobilePriceBar } from "./components/MobilePriceBar";
 import { Nav } from "./components/Nav";
 import { PriceStrip } from "./components/PriceStrip";
@@ -18,6 +19,7 @@ export default function App() {
       <main className="pb-20 sm:pb-0">
         <HeroSection />
         <PriceStrip />
+        <MarketContextStrip />
         <LastVisitBanner />
         <AlertSignup />
         <WorldComparison />

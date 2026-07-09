@@ -40,10 +40,38 @@ export interface PriceRow {
   scraped_at?: string | null;
 }
 
+export interface EarlySignal {
+  fuel_type: FuelId;
+  source: "news" | "lanka_ioc" | string;
+  price_lkr: number;
+  recorded_at: string;
+  scraped_at?: string | null;
+  cpc_price_lkr: number;
+  cpc_recorded_at: string;
+  delta_lkr: number;
+  status: "unconfirmed" | "divergence" | string;
+}
+
 export interface LatestPricesResp {
   prices: PriceRow[];
   /** When Octane last successfully checked CPC — independent of revision age. */
   last_verified_at?: string | null;
+  /** News / LIOC figures ahead of or diverging from official CPC. */
+  early_signals?: EarlySignal[];
+}
+
+export interface MarketContextResp {
+  as_of: string;
+  fuel_type: FuelId;
+  sentiment: SentimentData | null;
+  fx: { usd_lkr: number; recorded_at: string } | null;
+  world: {
+    fuel_type: FuelId;
+    sri_lanka_usd: number | null;
+    world_average_usd: number | null;
+    delta_vs_world_pct: number | null;
+    fx_rate_used: number;
+  } | null;
 }
 
 export interface HistoryPoint {
@@ -167,6 +195,8 @@ async function del<T>(path: string): Promise<T> {
 
 export const api = {
   latest: () => get<LatestPricesResp>("/v1/prices/latest"),
+  marketContext: (fuel: FuelId = "petrol_95") =>
+    get<MarketContextResp>(`/v1/market-context?fuel=${fuel}`),
   history: (fuel: FuelId, days = 730) =>
     get<{ points: HistoryPoint[] }>(`/v1/prices/history?fuel=${fuel}&days=${days}`),
   worldComparison: (fuel: FuelId) =>

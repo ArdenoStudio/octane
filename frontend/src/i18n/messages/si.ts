@@ -56,6 +56,10 @@ export const SI: Messages = {
     lastRevision: "අවසන් CPC සංශෝධනය",
     lastChecked: "අවසන් පරීක්ෂාව",
     revisedToday: "අද මිල ගණන් වෙනස්කම් ඇති විය",
+    earlySignalTitle: "CPC ට පෙර වාර්තා විය",
+    earlySignalNews: "පුවත්",
+    earlySignalLioc: "Lanka IOC",
+    earlySignalUnconfirmed: "තහවුරු නොවී — CPC බලාපොරොත්තුව",
     awaitingData: "දත්ත එනකම් බලන්නේ",
     lkrPer: "රු. ·",
     loadError:

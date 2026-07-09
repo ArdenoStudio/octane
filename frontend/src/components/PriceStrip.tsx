@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownSLine, RiArrowUpSLine, RiFlashlightLine } from "@remixicon/react";
-import { api, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
+import { api, EarlySignal, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
 import { useLocale } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
@@ -55,6 +55,7 @@ export function PriceStrip() {
   const [rows, setRows] = useState<PriceRow[] | null>(null);
   const [changes, setChanges] = useState<PriceChangeRow[] | null>(null);
   const [lastVerifiedAt, setLastVerifiedAt] = useState<string | null>(null);
+  const [earlySignals, setEarlySignals] = useState<EarlySignal[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export function PriceStrip() {
         setRows(latest.prices);
         setChanges(changesResp.changes);
         setLastVerifiedAt(latest.last_verified_at ?? null);
+        setEarlySignals(latest.early_signals ?? []);
       })
       .catch((e) => setError(String(e)));
   }, []);
@@ -165,6 +167,42 @@ export function PriceStrip() {
                   );
                 })}
               </span>
+            </div>
+          </FadeDiv>
+        )}
+
+        {/* Early signals — news/LIOC ahead of or diverging from official CPC */}
+        {earlySignals.length > 0 && todayRevisions.length === 0 && (
+          <FadeDiv className="mt-5">
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-amber-300">
+                <RiFlashlightLine className="size-4" />
+                {m.prices.earlySignalTitle}
+                <span className="font-normal text-ink-400">· {m.prices.earlySignalUnconfirmed}</span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+                {earlySignals.map((s) => {
+                  const up = s.delta_lkr > 0;
+                  const sourceLabel =
+                    s.source === "news" ? m.prices.earlySignalNews : m.prices.earlySignalLioc;
+                  return (
+                    <span
+                      key={`${s.source}-${s.fuel_type}`}
+                      className="flex items-center gap-1.5 text-sm text-ink-300"
+                    >
+                      <span className="text-ink-500">{sourceLabel}</span>
+                      <span className="text-ink-200">{fuelLabel(s.fuel_type)}</span>
+                      <span className="font-semibold tabular-nums text-ink-100">
+                        {lkr(s.price_lkr, { showSymbol: false })}
+                      </span>
+                      <span className={up ? "tabular-nums text-red-400" : "tabular-nums text-emerald-400"}>
+                        ({up ? "+" : ""}
+                        {lkr(s.delta_lkr, { showSymbol: false })})
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           </FadeDiv>
         )}

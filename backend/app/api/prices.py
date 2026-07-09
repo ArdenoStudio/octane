@@ -13,6 +13,7 @@ from app import fuel as fuel_mod
 from app.services import prices
 from app.services import forecast as forecast_svc
 from app.services import sentiment as sentiment_svc
+from app.services import signals as signals_svc
 
 router = APIRouter(prefix="/v1/prices", tags=["prices"])
 
@@ -24,6 +25,8 @@ def latest():
         "prices": rows,
         # When Octane last successfully checked CPC — independent of revision age.
         "last_verified_at": prices.last_verified_at("cpc"),
+        # News / LIOC figures ahead of or diverging from official CPC.
+        "early_signals": signals_svc.early_signals(rows),
     }
 
 

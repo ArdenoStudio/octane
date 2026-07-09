@@ -31,6 +31,8 @@ Octane checks CPC fuel prices several times a day and surfaces revisions the mom
 ## Features
 
 - **Live prices** — checked 5× daily from CPC and LIOC (revision dates follow CPC)
+- **Early signals** — news / LIOC figures surfaced as unconfirmed when ahead of CPC
+- **Daily market context** — AI revision outlook, USD/LKR, and SL vs world
 - **Price history** — up to 10 years of revision events with delta indicators
 - **World comparison** — Sri Lanka vs global average and regional neighbours
 - **Trip calculator** — distance + efficiency → exact cost at today's prices
@@ -82,7 +84,8 @@ All endpoints are free to use with no API key.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/v1/prices/latest` | Current prices for all fuel types |
+| `GET` | `/v1/prices/latest` | Current prices + early signals + last verified |
+| `GET` | `/v1/market-context` | Daily outlook: sentiment, FX, SL vs world |
 | `GET` | `/v1/prices/history?fuel=92&days=730` | Historical revisions for charting |
 | `GET` | `/v1/prices/changes` | All revision events with price deltas |
 | `GET` | `/v1/comparison/world?fuel=95` | Sri Lanka vs world average + neighbours |
