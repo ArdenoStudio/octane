@@ -32,26 +32,30 @@ _BROWSER_UA = (
 )
 
 # Google News RSS aggregates SL outlets (Ada Derana, Daily Mirror, etc.)
-# without triggering their Cloudflare WAF. Two queries: one for revisions,
-# one for ceypetco announcements specifically.
+# without triggering their Cloudflare WAF. Prefer en-US locale — en-LK
+# redirects and sometimes returns thinner results from Actions runners.
 FEEDS = [
-    "https://news.google.com/rss/search?q=Sri+Lanka+fuel+price+revised&hl=en-LK&gl=LK&ceid=LK:en",
-    "https://news.google.com/rss/search?q=ceypetco+fuel+price&hl=en-LK&gl=LK&ceid=LK:en",
+    "https://news.google.com/rss/search?q=%22fuel+prices%22+OR+%22fuel+price%22+%22Sri+Lanka%22&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=ceypetco+OR+%22petrol+92%22+%22Sri+Lanka%22+price&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=%22fuel+prices%22+(revised+OR+reduced+OR+increased+OR+hike+OR+cut)+%22Sri+Lanka%22&hl=en-US&gl=US&ceid=US:en",
     "https://economynext.com/feed/",
-    "http://www.colombopage.com/rss.xml",
+    "https://www.newswire.lk/feed/",
+    "https://adaderana.lk/rss.xml",
 ]
 
-# Require revision/change language to skip explainer/analysis pieces.
-# Google News titles are short so also accept "fuel prices" alone as a match
-# when coming from a ceypetco-specific query.
+# Revision / change language. Titles are often short ("Fuel prices reduced in
+# Sri Lanka") so keep patterns broad, but still require a price-move verb or
+# Ceypetco/petrol-92 cue to skip pure analysis pieces.
 FUEL_KEYWORDS = re.compile(
-    r"fuel\s+prices?\s+(?:revised?|increased?|reduced?|changed?|cut|hike|effective|up|down|adjust)|"
-    r"(?:revised?|new|updated?)\s+fuel\s+prices?|"
-    r"petrol\s+(?:price|rate)s?\s+(?:revised?|increased?|reduced?|up|down|hike|cut)|"
-    r"diesel\s+(?:price|rate)s?\s+(?:revised?|increased?|reduced?|up|down|hike|cut)|"
-    r"fuel\s+(?:price\s+)?revision|fuel\s+price\s+change|"
-    r"ceypetco\s+(?:price|fuel)|fuel\s+price\s+effective|"
-    r"fuel\s+prices?\s+in\s+sri\s+lanka",
+    r"fuel\s+prices?\s+(?:revised?|increased?|reduced?|changed?|cut|hike|effective|up|down|adjust|drop(?:ped)?|slash(?:ed)?)|"
+    r"(?:revised?|new|updated?|latest)\s+fuel\s+prices?|"
+    r"(?:petrol|diesel|kerosene).{0,40}(?:price|rate)s?.{0,20}(?:revised?|increased?|reduced?|up|down|hike|cut|drop)|"
+    r"(?:petrol|diesel|kerosene).{0,40}(?:revised?|increased?|reduced?|hike|cut|drop)|"
+    r"(?:price|rate)s?\s+(?:of\s+)?(?:petrol|diesel|kerosene).{0,20}(?:revised?|increased?|reduced?|hike|cut)|"
+    r"fuel\s+(?:price\s+)?revision|fuel\s+price\s+change|fuel\s+price\s+hike|"
+    r"ceypetco\s+(?:price|fuel|revis)|fuel\s+price\s+effective|"
+    r"fuel\s+prices?\s+(?:in\s+)?sri\s+lanka|"
+    r"(?:breaking|update).{0,20}fuel\s+prices?",
     re.IGNORECASE,
 )
 
@@ -61,11 +65,17 @@ RS_RE = re.compile(r"Rs\.?\s*(\d{2,4}(?:\.\d{1,2})?)", re.IGNORECASE)
 PER_LITRE_RE = re.compile(r"(\d{2,4}(?:\.\d{1,2})?)\s*(?:per\s*li(?:tre|ter)|/litre|/liter)", re.IGNORECASE)
 
 FUEL_NAME_RE: dict[str, re.Pattern[str]] = {
-    "petrol_92": re.compile(r"\b(?:92|petrol\s*92|LP\s*92|octane\s*92)\b", re.IGNORECASE),
-    "petrol_95": re.compile(r"\b(?:95|petrol\s*95|LP\s*95|super\s*petrol)\b", re.IGNORECASE),
-    "auto_diesel": re.compile(r"\bauto\s*diesel\b", re.IGNORECASE),
-    "super_diesel": re.compile(r"\bsuper\s*diesel\b", re.IGNORECASE),
-    "kerosene": re.compile(r"\bkerosene\b", re.IGNORECASE),
+    "petrol_92": re.compile(
+        r"\b(?:petrol\s*(?:octane\s*)?92|LP\s*92|octane\s*92|92\s*octane)\b",
+        re.IGNORECASE,
+    ),
+    "petrol_95": re.compile(
+        r"\b(?:petrol\s*(?:octane\s*)?95|LP\s*95|octane\s*95|95\s*octane|super\s*petrol)\b",
+        re.IGNORECASE,
+    ),
+    "auto_diesel": re.compile(r"\b(?:auto\s*diesel|lanka\s*auto\s*diesel)\b", re.IGNORECASE),
+    "super_diesel": re.compile(r"\b(?:super\s*diesel|lanka\s*super\s*diesel)\b", re.IGNORECASE),
+    "kerosene": re.compile(r"\b(?:kerosene|lanka\s*kerosene)\b", re.IGNORECASE),
 }
 
 DATE_FORMATS = ("%d %B %Y", "%d %b %Y", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y")
@@ -118,33 +128,74 @@ def _extract_price(segment: str) -> float | None:
     return None
 
 
+def _split_segments(text: str) -> list[str]:
+    """Split article text without breaking 'Rs. 414' or decimal prices."""
+    # Protect currency abbreviations and decimals, then split on sentence ends.
+    protected = re.sub(r"\bRs\.", "Rs‹DOT›", text, flags=re.IGNORECASE)
+    protected = re.sub(r"(\d)\.(\d)", r"\1‹DOT›\2", protected)
+    parts = re.split(r"[.\n;|]+", protected)
+    return [p.replace("‹DOT›", ".").strip() for p in parts if p.strip()]
+
+
+def _price_near_fuel(segment: str, fuel_re: re.Pattern[str]) -> float | None:
+    """Extract the price associated with a fuel mention inside one segment.
+
+    Tries every fuel mention in the segment (not just the first), preferring
+    a 'to Rs. X' / 'per litre' match in a short window after the name so
+    multi-fuel sentences don't bleed prices across fuels.
+    """
+    for m in fuel_re.finditer(segment):
+        after = segment[m.end() : m.end() + 120]
+        price = _extract_price(after)
+        if price is not None:
+            return price
+        before = segment[max(0, m.start() - 60) : m.start()]
+        price = _extract_price(before)
+        if price is not None:
+            return price
+    return None
+
+
 def _extract_prices(text: str, fallback_date: date) -> list[PricePoint]:
     effective_date = _parse_effective_date(text) or fallback_date
-
-    # Split on sentence/line boundaries for contextual matching
-    segments = re.split(r"[.\n;|]", text)
+    segments = _split_segments(text)
 
     points: list[PricePoint] = []
     for fuel_type, fuel_re in FUEL_NAME_RE.items():
+        found: float | None = None
         for i, seg in enumerate(segments):
             if not fuel_re.search(seg):
                 continue
-            # Also look one segment ahead (price sometimes on next line/cell)
-            combined = seg + " " + (segments[i + 1] if i + 1 < len(segments) else "")
-            price = _extract_price(combined)
-            if price is not None:
-                points.append(PricePoint(effective_date, fuel_type, price, SOURCE))
-                break  # first match per fuel type
+            # Prefer price in the same segment; then same+next (not +2 — that
+            # bleeds into the next fuel's sentence).
+            for window in (seg, " ".join(segments[i : i + 2])):
+                found = _price_near_fuel(window, fuel_re)
+                if found is not None:
+                    break
+            if found is not None:
+                points.append(PricePoint(effective_date, fuel_type, found, SOURCE))
+                break
 
     # De-dup by fuel type
     seen: set[str] = set()
     return [p for p in points if not (p.fuel_type in seen or seen.add(p.fuel_type))]  # type: ignore[func-returns-value]
 
 
-def _poll_feed(feed_url: str, max_age_hours: int = 72) -> list[tuple[str, datetime | None, str]]:
-    """Return (url, pub_date, summary_text) for recent fuel-related articles."""
+# Keep news hits aligned with the UI early-signal window (14 days).
+DEFAULT_MAX_AGE_HOURS = 24 * 14
+
+
+def _poll_feed(
+    feed_url: str,
+    max_age_hours: int = DEFAULT_MAX_AGE_HOURS,
+) -> list[tuple[str, datetime | None, str, str | None]]:
+    """Return (url, pub_date, summary_text, source_url) for recent fuel articles.
+
+    Default window is 14 days — matches early-signal usefulness and tolerates
+    Google News pubDates that are rounded or delayed.
+    """
     cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
-    results: list[tuple[str, datetime | None, str]] = []
+    results: list[tuple[str, datetime | None, str, str | None]] = []
     try:
         with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=15.0, follow_redirects=True) as c:
             r = c.get(feed_url)
@@ -159,12 +210,14 @@ def _poll_feed(feed_url: str, max_age_hours: int = 72) -> list[tuple[str, dateti
         desc_tag = item.find("description")
         link_tag = item.find("link")
         pub_tag = item.find("pubDate") or item.find("published")
+        source_tag = item.find("source")
 
         title_text = title_tag.get_text(strip=True) if title_tag else ""
         desc_text = desc_tag.get_text(strip=True) if desc_tag else ""
         # Google News descriptions are HTML-escaped — strip tags for text
         desc_clean = BeautifulSoup(desc_text, "lxml").get_text(" ", strip=True)
         summary = f"{title_text} {desc_clean}".strip()
+        source_url = source_tag.get("url") if source_tag and source_tag.has_attr("url") else None
 
         if not FUEL_KEYWORDS.search(summary):
             continue
@@ -175,34 +228,42 @@ def _poll_feed(feed_url: str, max_age_hours: int = 72) -> list[tuple[str, dateti
         if pub_date and pub_date < cutoff:
             continue
 
-        # 1) Try <link> text (works for non-Google RSS feeds)
-        url = link_tag.get_text(strip=True) if link_tag else None
-        # 2) Try <guid> (often the Google CBMi URL)
-        if not url or "google.com" in url:
-            guid = item.find("guid")
-            guid_url = guid.get_text(strip=True) if guid else None
-            if guid_url and "google.com" not in guid_url:
-                url = guid_url
-        # 3) Try <source url="..."> attribute (direct source domain isn't enough but log it)
-        # 4) Scan the raw item for any non-Google http URL (e.g. in href attributes)
-        if not url or "google.com" in url:
+        # Prefer a direct publisher http(s) URL. Keep the Google News article
+        # URL as a fallback — _scrape_article() resolves the publisher page.
+        # IMPORTANT: Google <guid> values are opaque CBMi tokens (not URLs).
+        link_url = link_tag.get_text(strip=True) if link_tag else None
+        guid = item.find("guid")
+        guid_text = guid.get_text(strip=True) if guid else None
+        guid_url = guid_text if guid_text and guid_text.startswith("http") else None
+
+        publisher_url = _resolve_via_publisher_search(title_text, source_url)
+        if not publisher_url:
             raw_item = str(item)
             candidates = re.findall(r'https?://[^\s<>"\']+', raw_item)
-            real = next((u for u in candidates if "google.com" not in u), None)
-            if real:
-                url = real.rstrip("/.,;)")
+            for cand in candidates:
+                cand = cand.rstrip("/.,;)")
+                if "google.com" in cand or "gstatic.com" in cand:
+                    continue
+                # Skip bare homepages (no article path) — they have no prices.
+                path = re.sub(r"^https?://[^/]+", "", cand).strip("/")
+                if not path:
+                    continue
+                publisher_url = cand
+                break
+
+        url = publisher_url or guid_url or link_url
         if url and url.startswith("http"):
-            results.append((url, pub_date, summary))
+            results.append((url, pub_date, summary, source_url))
 
     return results
 
 
 def _decode_google_news_url(url: str) -> str | None:
-    """Decode a Google News CBMi token to recover the original article URL.
+    """Best-effort decode of a Google News /articles/… token.
 
-    The token is a two-level encoding:
-      outer = base64url(protobuf{ field1: int, field4: inner_token_bytes })
-      inner = base64url(structure containing the article URL)
+    Newer tokens (AU_yq…) no longer embed a plain URL. We still try the
+    legacy two-level base64/protobuf shape, then fall back to scanning the
+    decoded bytes for any http(s) URL.
     """
     m = re.search(r"/articles/([A-Za-z0-9_-]+)", url)
     if not m:
@@ -214,30 +275,125 @@ def _decode_google_news_url(url: str) -> str | None:
     except Exception:
         return None
 
-    # Protobuf header is typically 4 bytes:
-    # [field1 varint tag][varint value][field4 len-delim tag][field4 length]
-    # followed by the ASCII inner token.
-    if len(outer) < 5 or outer[2] != 0x22:
-        return None
-    inner_len = outer[3]
-    if len(outer) < 4 + inner_len:
-        return None
-    inner_token = outer[4 : 4 + inner_len].decode("ascii", errors="ignore")
+    # Legacy shape: protobuf field4 length-delimited inner token.
+    if len(outer) >= 5 and outer[2] == 0x22:
+        inner_len = outer[3]
+        if len(outer) >= 4 + inner_len:
+            inner_token = outer[4 : 4 + inner_len].decode("ascii", errors="ignore")
+            pad2 = (4 - len(inner_token) % 4) % 4
+            try:
+                inner = base64.urlsafe_b64decode(inner_token + "=" * pad2)
+                hit = re.search(rb"https?://[^\x00\x01-\x1f\x7f ]+", inner)
+                if hit:
+                    candidate = hit.group(0).decode("utf-8", errors="ignore").rstrip("/.,;)")
+                    if "google.com" not in candidate:
+                        return candidate
+            except Exception:
+                pass
 
-    pad2 = (4 - len(inner_token) % 4) % 4
+    # Fallback: any URL bytes hiding in the outer payload.
+    hit = re.search(rb"https?://[^\x00\x01-\x1f\x7f ]+", outer)
+    if hit:
+        candidate = hit.group(0).decode("utf-8", errors="ignore").rstrip("/.,;)")
+        if "google.com" not in candidate:
+            return candidate
+    return None
+
+
+def _strip_outlet_suffix(title: str) -> str:
+    """Remove trailing ' - Outlet Name' from Google News titles."""
+    return re.sub(r"\s+[-–|]\s+[^-–|]{2,40}$", "", title).strip()
+
+
+def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | None:
+    """Find the article URL by searching the publisher site.
+
+    Google News article tokens no longer embed publisher URLs. For known SL
+    outlets we can recover the real page via their on-site search.
+    """
+    if not source_url or not title:
+        return None
+    host = re.sub(r"^https?://(www\.)?", "", source_url).strip("/").lower()
+    query = _strip_outlet_suffix(title)
+    if not query:
+        return None
+
+    search_url: str | None = None
+    link_re: re.Pattern[str] | None = None
+    if "newswire.lk" in host:
+        search_url = "https://www.newswire.lk/?s=" + query.replace(" ", "+")
+        link_re = re.compile(
+            r"https://www\.newswire\.lk/\d{4}/\d{2}/\d{2}/[a-z0-9\-]+/?",
+            re.IGNORECASE,
+        )
+    elif "economynext.com" in host:
+        search_url = "https://economynext.com/?s=" + query.replace(" ", "+")
+        link_re = re.compile(r"https://economynext\.com/[a-z0-9\-]+-\d+/", re.IGNORECASE)
+    elif "dailymirror.lk" in host:
+        search_url = "https://www.dailymirror.lk/search/" + query.replace(" ", "-")
+        link_re = re.compile(
+            r"https://www\.dailymirror\.lk/[A-Za-z0-9\-]+/\d+",
+            re.IGNORECASE,
+        )
+    else:
+        return None
+
     try:
-        inner = base64.urlsafe_b64decode(inner_token + "=" * pad2)
-    except Exception:
+        with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=15.0, follow_redirects=True) as c:
+            r = c.get(search_url)
+            r.raise_for_status()
+    except Exception as exc:
+        log.warning("publisher search failed %s: %s", search_url, exc)
         return None
 
-    hit = re.search(rb"https?://[^\x00\x01-\x1f\x7f ]+", inner)
-    if not hit:
+    links = link_re.findall(r.text)
+    if not links:
         return None
-    candidate = hit.group(0).decode("utf-8", errors="ignore").rstrip("/.,;)")
-    return candidate if "google.com" not in candidate else None
+    # Prefer the newest-looking / first unique hit.
+    seen: set[str] = set()
+    unique = [u for u in links if not (u.rstrip("/") in seen or seen.add(u.rstrip("/")))]
+    return unique[0]
 
 
-def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
+def _resolve_publisher_url(
+    google_url: str,
+    html: str,
+    *,
+    title: str | None = None,
+    source_url: str | None = None,
+) -> str | None:
+    """Find the publisher URL for a Google News item."""
+    via_search = _resolve_via_publisher_search(title or "", source_url)
+    if via_search:
+        return via_search
+
+    decoded = _decode_google_news_url(google_url)
+    if decoded:
+        return decoded
+
+    soup = BeautifulSoup(html, "lxml")
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if not href.startswith("http"):
+            continue
+        if "google.com" in href or "gstatic.com" in href:
+            continue
+        if any(k in href.lower() for k in ("fuel", "petrol", "diesel", "ceypetco", "news")):
+            return href
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if href.startswith("http") and "google.com" not in href and "gstatic.com" not in href:
+            return href
+    return None
+
+
+def _scrape_article(
+    url: str,
+    pub_date: datetime | None,
+    *,
+    title: str | None = None,
+    source_url: str | None = None,
+) -> list[PricePoint]:
     fallback_date = pub_date.date() if pub_date else date.today()
     try:
         with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
@@ -247,32 +403,29 @@ def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
         log.warning("article fetch failed %s: %s", url, exc)
         return []
 
-    # If we're still on Google's servers, try two paths:
-    # 1) decode the CBMi token → fetch the real article
-    # 2) fall back to extracting from the Google News preview page itself
+    # If we're still on Google's servers, resolve the publisher URL.
     if "news.google.com" in str(r.url):
-        actual_url = _decode_google_news_url(url)
+        actual_url = _resolve_publisher_url(
+            url, r.text, title=title, source_url=source_url
+        )
         if actual_url:
-            log.info("google news url decoded to %s", actual_url)
+            log.info("google news url resolved to %s", actual_url)
             try:
                 with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
                     r2 = c.get(actual_url)
                     r2.raise_for_status()
                     r = r2
             except Exception as exc:
-                log.warning("decoded article fetch failed %s: %s", actual_url, exc)
-                # Fall through and mine the Google preview page instead
+                log.warning("publisher article fetch failed %s: %s", actual_url, exc)
         else:
-            log.info("CBMi decode failed — mining Google News preview page for %s", url)
+            log.info("could not resolve publisher URL — mining Google preview for %s", url)
 
     soup = BeautifulSoup(r.text, "lxml")
 
-    # For Google News preview pages, the article text lives in a specific container.
-    # Try targeted selectors first, then fall back to broad body extraction.
+    # Prefer article body containers; fall back to full page text.
     body = (
-        soup.find("div", attrs={"data-n-au": True})           # Google News article body attr
-        or soup.find(class_=re.compile(r"Da8qDe|article-body|JoGW1b", re.IGNORECASE))
-        or soup.find("article")
+        soup.find("article")
+        or soup.find(class_=re.compile(r"article-body|post-content|entry-content|story-content|td-post-content", re.IGNORECASE))
         or soup.find(class_=re.compile(r"article|story|content|post-body", re.IGNORECASE))
         or soup.find("main")
         or soup.body
@@ -281,18 +434,22 @@ def _scrape_article(url: str, pub_date: datetime | None) -> list[PricePoint]:
         return []
 
     text = body.get_text(" ", strip=True)
-    return _extract_prices(text, fallback_date)
+    points = _extract_prices(text, fallback_date)
+    if points:
+        return points
+    # Last resort: whole-page text (some WP themes bury the body).
+    return _extract_prices(soup.get_text(" ", strip=True), fallback_date)
 
 
-def run() -> Iterable[PricePoint]:
+def run(max_age_hours: int = DEFAULT_MAX_AGE_HOURS) -> Iterable[PricePoint]:
     """Scrape all configured news feeds and return deduplicated price points."""
     all_points: list[PricePoint] = []
     seen_urls: set[str] = set()
 
     for feed_url in FEEDS:
-        articles = _poll_feed(feed_url)
+        articles = _poll_feed(feed_url, max_age_hours=max_age_hours)
         log.info("news feed %s → %d fuel articles", feed_url, len(articles))
-        for url, pub_date, summary in articles:
+        for url, pub_date, summary, source_url in articles:
             if url in seen_urls:
                 continue
             seen_urls.add(url)
@@ -305,7 +462,9 @@ def run() -> Iterable[PricePoint]:
                 log.info("news summary hit %s → %d prices", url, len(points))
             else:
                 # Fall back to fetching the full article
-                points = _scrape_article(url, pub_date)
+                points = _scrape_article(
+                    url, pub_date, title=summary, source_url=source_url
+                )
                 if points:
                     log.info("news article %s → %d prices", url, len(points))
             all_points.extend(points)
