@@ -23,6 +23,7 @@ import {
 } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr } from "../lib/format";
+import { applyNewsExtensions, extKey } from "../lib/newsExtension";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
@@ -322,14 +323,21 @@ export function HistoryChart() {
     });
   }, [chartData, chartDataWithForecast, active]);
 
+  const pendingSignals = earlySignals.filter((s) => Math.abs(s.delta_lkr) >= 0.01);
+
+  // Single graph: solid CPC + dashed media extension that clears when CPC revises.
+  const displayData = useMemo(
+    () => applyNewsExtensions(mergedData, pendingSignals, active),
+    [mergedData, pendingSignals, active]
+  );
+
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
   const hasSentiment = sentiment !== null;
   const hasAiForecast = showForecast && Object.values(forecasts).some(
     (f) => (f.ai_forecast_points ?? []).length > 0
   );
-  const hasChartPoints = mergedData.length > 0;
-  const pendingSignals = earlySignals.filter((s) => Math.abs(s.delta_lkr) >= 0.01);
+  const hasChartPoints = displayData.length > 0;
 
   return (
     <section id="history" className="container-x pt-16">
@@ -441,8 +449,11 @@ export function HistoryChart() {
 
         {pendingSignals.length > 0 && (
           <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90">
-            <span className="font-semibold text-amber-300">Pending media reports</span>
-            <span className="text-ink-500"> · chart stays on official CPC · </span>
+            <span className="font-semibold text-amber-300">Dashed = media report</span>
+            <span className="text-ink-500">
+              {" "}
+              · extends the official line until CPC revises, then it drops off ·{" "}
+            </span>
             {pendingSignals.map((s, i) => {
               const up = s.delta_lkr > 0;
               return (
@@ -460,9 +471,6 @@ export function HistoryChart() {
                 </span>
               );
             })}
-            <a href="#prices" className="ml-2 text-amber-300 underline-offset-2 hover:underline">
-              See price cards
-            </a>
           </div>
         )}
         {mode === "revisions" && (
@@ -528,7 +536,7 @@ export function HistoryChart() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mergedData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <LineChart data={displayData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="date"
@@ -548,7 +556,11 @@ export function HistoryChart() {
                     if (!active || !payload?.length) return null;
                     const items = payload.filter((p) => {
                       const key = p.dataKey as string;
-                      return FUEL_ORDER.includes(key as FuelId) || key.endsWith("_ai_fwd");
+                      return (
+                        FUEL_ORDER.includes(key as FuelId) ||
+                        key.endsWith("_ext") ||
+                        key.endsWith("_ai_fwd")
+                      );
                     });
                     if (!items.length) return null;
                     return (
@@ -557,12 +569,20 @@ export function HistoryChart() {
                         {items.map((p) => {
                           const key = p.dataKey as string;
                           const isAI = key.endsWith("_ai_fwd");
-                          const fuel = (isAI ? key.replace("_ai_fwd", "") : key) as FuelId;
+                          const isExt = key.endsWith("_ext");
+                          const fuel = (
+                            isAI ? key.replace("_ai_fwd", "") : isExt ? key.replace("_ext", "") : key
+                          ) as FuelId;
                           return (
                             <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                              <span style={{ color: p.color, fontSize: 8 }}>●</span>
+                              <span style={{ color: p.color, fontSize: 8 }}>{isExt ? "◌" : "●"}</span>
                               <span style={{ color: "#3f3f46" }}>
-                                {fuelLabel(fuel)}{isAI ? <span style={{ color: "#a1a1aa" }}> · AI</span> : null}
+                                {fuelLabel(fuel)}
+                                {isExt ? (
+                                  <span style={{ color: "#d97706" }}> · media</span>
+                                ) : isAI ? (
+                                  <span style={{ color: "#a1a1aa" }}> · AI</span>
+                                ) : null}
                               </span>
                               <span style={{ marginLeft: "auto", paddingLeft: 12, fontWeight: 500 }}>
                                 LKR {(p.value as number).toFixed(2)}
@@ -595,6 +615,26 @@ export function HistoryChart() {
                     isAnimationActive={false}
                   />
                 ))}
+
+                {/* Media early-signal extension — same colour, dashed; clears when CPC revises */}
+                {pendingSignals.length > 0 &&
+                  Array.from(active).map((f) =>
+                    pendingSignals.some((s) => s.fuel_type === f) ? (
+                      <Line
+                        key={extKey(f)}
+                        type="linear"
+                        dataKey={extKey(f)}
+                        stroke={COLORS[f]}
+                        strokeWidth={2}
+                        strokeDasharray="6 4"
+                        strokeOpacity={0.85}
+                        dot={{ r: 3.5, fill: COLORS[f], strokeWidth: 0 }}
+                        connectNulls
+                        isAnimationActive={false}
+                        legendType="none"
+                      />
+                    ) : null
+                  )}
 
                 {/* Linear regression forward projection — dim dashed */}
                 {showForecast && Array.from(active).map((f) =>
