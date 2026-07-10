@@ -1,5 +1,7 @@
 """Canonical fuel-type identifiers used across scrapers and APIs."""
 
+import re
+
 PETROL_92 = "petrol_92"
 PETROL_95 = "petrol_95"
 AUTO_DIESEL = "auto_diesel"
@@ -45,10 +47,20 @@ CPC_ALIASES: dict[str, str] = {
 
 
 def normalize(label: str) -> str | None:
+    """Map a scraped label to a canonical fuel id.
+
+    Short CPC codes (lp 92, lk, lad, …) must not match inside unrelated
+    tokens like "LKR". Prefer longer aliases first.
+    """
     key = " ".join(label.lower().strip().split())
     if key in CPC_ALIASES:
         return CPC_ALIASES[key]
-    for alias, fuel in CPC_ALIASES.items():
-        if alias in key:
+    # Longer aliases first so "petrol 92 octane" wins over bare "92"-ish codes.
+    for alias, fuel in sorted(CPC_ALIASES.items(), key=lambda item: -len(item[0])):
+        if len(alias) <= 3:
+            # Word-boundary match for short codes (lk, lad, lsd, …).
+            if re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", key):
+                return fuel
+        elif alias in key:
             return fuel
     return None
