@@ -83,10 +83,11 @@ export function DataPage() {
           <div className="mt-10 space-y-8">
             <Section title="Data sources">
               <p>
-                Octane scrapes three primary sources. All prices are denominated
-                in Sri Lankan Rupees (LKR) per litre.
+                Octane scrapes several sources. Domestic retail prices are
+                denominated in Sri Lankan Rupees (LKR) per litre. CPC remains the
+                official figure shown on the price cards.
               </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Source
                   name="Ceylon Petroleum Corporation (CPC)"
                   url="https://ceypetco.gov.lk"
@@ -95,7 +96,12 @@ export function DataPage() {
                 <Source
                   name="Lanka IOC"
                   url="https://www.lankaiocoil.lk"
-                  desc="Indian Oil Corporation's Sri Lanka subsidiary. Prices typically follow CPC but may differ slightly. Used for cross-verification."
+                  desc="Indian Oil Corporation's Sri Lanka subsidiary. Prices typically follow CPC but may differ slightly. Used for cross-verification and divergence alerts."
+                />
+                <Source
+                  name="News outlets"
+                  url="https://news.google.com"
+                  desc="RSS feeds from Sri Lankan outlets. Used as an early signal when media report a revision before CPC's website updates. Shown as unconfirmed until CPC confirms."
                 />
                 <Source
                   name="Global Petrol Prices"
@@ -143,6 +149,14 @@ export function DataPage() {
                 updating. If the CPC website is unavailable or returns an
                 unexpected format, the scraper logs an error and retains the last
                 known price.
+              </p>
+              <p>
+                When news outlets or Lanka IOC report a different figure ahead of
+                CPC, Octane surfaces it as an{" "}
+                <strong className="text-ink-200">unconfirmed early signal</strong>{" "}
+                — never as a replacement for the official CPC price. A daily
+                market-context strip (AI outlook, USD/LKR, Sri Lanka vs world)
+                updates even when retail prices are flat.
               </p>
               <p>
                 World prices from Global Petrol Prices are updated weekly

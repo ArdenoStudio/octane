@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app import fuel as fuel_mod
 from app.db.connection import connect
+from app.services import market_context as market_context_svc
 from app.services import prices as price_service
 
 router = APIRouter(prefix="/v1", tags=["meta"])
@@ -76,3 +77,16 @@ def fuels():
             for fid in fuel_mod.ALL_FUELS
         ]
     }
+
+
+@router.get("/market-context")
+def market_context(
+    fuel: str = Query(
+        fuel_mod.PETROL_95,
+        description="Fuel used for world comparison context",
+    ),
+):
+    """Daily-updating outlook: AI sentiment, USD/LKR, and SL vs world."""
+    if fuel not in fuel_mod.ALL_FUELS:
+        fuel = fuel_mod.PETROL_95
+    return market_context_svc.snapshot(fuel)

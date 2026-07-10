@@ -1,0 +1,39 @@
+name: Scrape news price signals
+
+# Faster cadence than the full scrape pipeline. News often reports CPC
+# revisions hours before ceypetco.gov.lk updates. Results are stored as
+# source=news and shown as unconfirmed early signals in the app.
+
+on:
+  schedule:
+    # Every hour — catch revision-day wire stories quickly.
+    - cron: '15 * * * *'
+  workflow_dispatch:        # allow manual trigger on revision day
+
+jobs:
+  scrape-news:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run news scraper
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m app.scrapers.run_news
+
+      - name: Summarize
+        if: always()
+        run: echo "News scrape finished — check job logs for raw/selected/consensus counts."

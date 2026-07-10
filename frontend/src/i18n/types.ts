@@ -35,6 +35,10 @@ export interface Messages {
     lastRevision: string;
     lastChecked: string;
     revisedToday: string;
+    earlySignalTitle: string;
+    earlySignalNews: string;
+    earlySignalLioc: string;
+    earlySignalUnconfirmed: string;
     awaitingData: string;
     lkrPer: string;
     loadError: string;
