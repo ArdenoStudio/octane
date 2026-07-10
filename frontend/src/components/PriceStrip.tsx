@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownSLine, RiArrowUpSLine, RiFlashlightLine } from "@remixicon/react";
-import { api, EarlySignal, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
+import { api, EarlySignal, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow, resolveEarlySignals } from "../lib/api";
 import { useLocale } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
@@ -64,7 +64,7 @@ export function PriceStrip() {
         setRows(latest.prices);
         setChanges(changesResp.changes);
         setLastVerifiedAt(latest.last_verified_at ?? null);
-        setEarlySignals(latest.early_signals ?? []);
+        setEarlySignals(resolveEarlySignals(latest));
       })
       .catch((e) => setError(String(e)));
   }, []);
@@ -86,6 +86,15 @@ export function PriceStrip() {
       const last = sorted[sorted.length - 1];
       deltaByFuel[fuel] = last?.delta_lkr ?? null;
     });
+  }
+
+  const signalByFuel: Partial<Record<FuelId, EarlySignal>> = {};
+  for (const s of earlySignals) {
+    // Prefer news over LIOC when both exist for the same fuel.
+    const existing = signalByFuel[s.fuel_type];
+    if (!existing || (existing.source !== "news" && s.source === "news")) {
+      signalByFuel[s.fuel_type] = s;
+    }
   }
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -182,7 +191,7 @@ export function PriceStrip() {
           </FadeDiv>
         )}
 
-        {/* Early signals — news/LIOC ahead of or diverging from official CPC */}
+        {/* Early signals — only when media/LIOC differs from official CPC */}
         {earlySignals.length > 0 && todayRevisions.length === 0 && (
           <FadeDiv className="mt-5">
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3">
@@ -233,9 +242,15 @@ export function PriceStrip() {
             const hasDelta = delta !== undefined && delta !== null;
             const up = hasDelta && delta! > 0;
             const flat = hasDelta && delta === 0;
+            const signal = signalByFuel[fuel];
+            const signalUp = signal ? signal.delta_lkr > 0 : false;
             return (
               <FadeDiv key={fuel}>
-                <div className="card relative overflow-hidden p-6 h-full flex flex-col gap-3 hover:shadow-md transition-shadow">
+                <div
+                  className={`card relative overflow-hidden p-6 h-full flex flex-col gap-3 hover:shadow-md transition-shadow ${
+                    signal ? "ring-1 ring-amber-500/30" : ""
+                  }`}
+                >
                   {/* Soft per-fuel gradient bleed */}
                   <div
                     aria-hidden
@@ -258,10 +273,33 @@ export function PriceStrip() {
                       )}
                     </div>
 
-                    {/* Price */}
+                    {/* Official CPC price */}
                     <div className="font-mono text-4xl font-black tracking-tight text-ink-100 tabular-nums leading-none">
                       {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
                     </div>
+
+                    {/* Media / LIOC report when it differs — not a second history mode */}
+                    {signal && (
+                      <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-400/90">
+                          {m.prices.mediaReports}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                          <span className="font-mono text-lg font-bold tabular-nums text-amber-100">
+                            {lkr(signal.price_lkr, { showSymbol: false })}
+                          </span>
+                          <span
+                            className={`text-xs font-semibold tabular-nums ${
+                              signalUp ? "text-red-400" : "text-emerald-400"
+                            }`}
+                          >
+                            {signalUp ? "+" : ""}
+                            {lkr(signal.delta_lkr, { showSymbol: false })}
+                          </span>
+                          <span className="text-[10px] text-ink-500">{m.prices.earlySignalUnconfirmed}</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Date + sparkline */}
                     <div className="flex items-end justify-between">

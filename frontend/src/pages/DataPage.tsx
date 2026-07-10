@@ -152,11 +152,12 @@ export function DataPage() {
               </p>
               <p>
                 When news outlets or Lanka IOC report a different figure ahead of
-                CPC, Octane surfaces it as an{" "}
+                CPC, Octane shows it on the price cards as an{" "}
                 <strong className="text-ink-200">unconfirmed early signal</strong>{" "}
-                — never as a replacement for the official CPC price. A daily
-                market-context strip (AI outlook, USD/LKR, Sri Lanka vs world)
-                updates even when retail prices are flat.
+                — never as a replacement for the official CPC price, and not as a
+                separate history chart. A daily market-context strip (AI outlook,
+                USD/LKR, Sri Lanka vs world) updates even when retail prices are
+                flat.
               </p>
               <p>
                 World prices from Global Petrol Prices are updated weekly

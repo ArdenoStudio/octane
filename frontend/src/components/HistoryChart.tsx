@@ -12,15 +12,17 @@ import {
 } from "recharts";
 import {
   api,
+  EarlySignal,
   FUEL_ORDER,
   FuelId,
   ForecastResp,
   HistoryPoint,
   PriceChangeRow,
-  PriceSource,
+  resolveEarlySignals,
   SentimentData,
 } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
+import { lkr } from "../lib/format";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
@@ -70,23 +72,15 @@ export function HistoryChart() {
   const [active, setActive] = useState<Set<FuelId>>(() => new Set(FUEL_ORDER));
   const [days, setDays] = useState<number>(365);
   const [mode, setMode] = useState<ChartMode>("daily");
-  // Official CPC vs media-reported (unconfirmed) news prices.
-  const [priceSource, setPriceSource] = useState<PriceSource>("cpc");
+  // Pending media reports (only when they differ from CPC) — not a chart mode.
+  const [earlySignals, setEarlySignals] = useState<EarlySignal[]>([]);
 
   function switchMode(m: ChartMode) {
     setMode(m);
     if (m === "revisions") setShowForecast(false);
   }
 
-  function switchSource(s: PriceSource) {
-    setPriceSource(s);
-    // Trend overlay is CPC-only (forecast fits official history).
-    if (s === "news") setShowForecast(false);
-    // Force a fresh revisions fetch for the new source.
-    setAllRevisions(null);
-  }
-
-  // Daily mode: per-fuel time-series from /v1/prices/history
+  // Daily mode: per-fuel time-series from /v1/prices/history (official CPC only)
   const [series, setSeries] = useState<Record<FuelId, HistoryPoint[]>>({} as Record<FuelId, HistoryPoint[]>);
 
   // Revisions mode: all actual price change events from /v1/prices/changes
@@ -98,13 +92,26 @@ export function HistoryChart() {
   const [showForecast, setShowForecast] = useState(false);
   const [forecasts, setForecasts] = useState<Record<FuelId, ForecastResp>>({} as Record<FuelId, ForecastResp>);
 
-  // Fetch daily series whenever active fuels, range, mode, or source changes
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .latest()
+      .then((resp) => {
+        if (!cancelled) setEarlySignals(resolveEarlySignals(resp));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch daily series whenever active fuels, range, or mode changes
   useEffect(() => {
     if (mode !== "daily") return;
     let cancelled = false;
     Promise.all(
       Array.from(active).map((f) =>
-        api.history(f, days, priceSource).then((r) => [f, r.points] as const)
+        api.history(f, days, "cpc").then((r) => [f, r.points] as const)
       )
     )
       .then((entries) => {
@@ -118,11 +125,11 @@ export function HistoryChart() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, mode, priceSource, Array.from(active).join(",")]);
+  }, [days, mode, Array.from(active).join(",")]);
 
-  // Fetch forecasts for active fuels when trend overlay is toggled on (CPC only)
+  // Fetch forecasts for active fuels when trend overlay is toggled on
   useEffect(() => {
-    if (!showForecast || priceSource !== "cpc") return;
+    if (!showForecast) return;
     const fuelsNeeded = Array.from(active).filter((f) => !forecasts[f]);
     if (fuelsNeeded.length === 0) return;
     Promise.all(
@@ -135,22 +142,22 @@ export function HistoryChart() {
       setForecasts(next);
     }).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showForecast, priceSource, Array.from(active).join(",")]);
+  }, [showForecast, Array.from(active).join(",")]);
 
-  // Fetch revision events when switching to revisions mode or changing source
+  // Fetch revision events when switching to revisions mode
   useEffect(() => {
     if (mode !== "revisions" || allRevisions !== null) return;
     setRevisionsLoading(true);
     setRevisionsError(null);
     api
-      .changes(5000, priceSource)
+      .changes(5000, "cpc")
       .then((r) => setAllRevisions(r.changes))
       .catch((e: unknown) => {
         setRevisionsError(String(e));
         setAllRevisions([]);
       })
       .finally(() => setRevisionsLoading(false));
-  }, [mode, allRevisions, priceSource]);
+  }, [mode, allRevisions]);
 
   // Pull the sentiment snapshot off the first available forecast result
   const sentiment: SentimentData | null = useMemo(() => {
@@ -322,7 +329,7 @@ export function HistoryChart() {
     (f) => (f.ai_forecast_points ?? []).length > 0
   );
   const hasChartPoints = mergedData.length > 0;
-  const isNews = priceSource === "news";
+  const pendingSignals = earlySignals.filter((s) => Math.abs(s.delta_lkr) >= 0.01);
 
   return (
     <section id="history" className="container-x pt-16">
@@ -335,41 +342,6 @@ export function HistoryChart() {
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Official CPC vs media-reported (unconfirmed) */}
-            <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
-              <RadioGroup
-                value={priceSource}
-                onValueChange={(v) => switchSource(v as PriceSource)}
-                className="relative inline-grid grid-cols-2 items-center gap-0 text-xs font-semibold"
-              >
-                <div
-                  aria-hidden
-                  className="absolute inset-y-0 w-1/2 rounded-md bg-ink-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                  style={{
-                    transform: `translateX(${priceSource === "cpc" ? "0%" : "100%"})`,
-                    boxShadow:
-                      "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
-                  }}
-                />
-                {(
-                  [
-                    { id: "cpc" as const, label: "Official" },
-                    { id: "news" as const, label: "Unofficial" },
-                  ] as const
-                ).map((opt) => (
-                  <label
-                    key={opt.id}
-                    className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center px-3 transition-colors ${
-                      priceSource === opt.id ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
-                    }`}
-                  >
-                    {opt.label}
-                    <RadioGroupItem value={opt.id} className="sr-only" />
-                  </label>
-                ))}
-              </RadioGroup>
-            </div>
-
             {/* Mode: Daily interpolated vs Revisions only */}
             <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
               <RadioGroup
@@ -430,8 +402,8 @@ export function HistoryChart() {
               </RadioGroup>
             </div>
 
-            {/* Trend / forecast toggle — daily CPC mode only */}
-            {mode === "daily" && priceSource === "cpc" && (
+            {/* Trend / forecast toggle — daily mode only */}
+            {mode === "daily" && (
               <button
                 onClick={() => setShowForecast((v) => !v)}
                 title="Toggle 60-day trend forecast"
@@ -447,7 +419,7 @@ export function HistoryChart() {
             )}
 
             <a
-              href={api.historyCsvUrl(Array.from(active), days, priceSource)}
+              href={api.historyCsvUrl(Array.from(active), days, "cpc")}
               download
               title="Download CSV"
               className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
@@ -456,7 +428,7 @@ export function HistoryChart() {
               CSV
             </a>
             <a
-              href={api.historyJsonUrl(Array.from(active), days, priceSource)}
+              href={api.historyJsonUrl(Array.from(active), days, "cpc")}
               download
               title="Download JSON"
               className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
@@ -467,10 +439,31 @@ export function HistoryChart() {
           </div>
         </div>
 
-        {isNews && (
-          <p className="mt-2 text-xs text-amber-600/90">
-            Unofficial — media-reported prices ahead of or alongside CPC. Not an official revision.
-          </p>
+        {pendingSignals.length > 0 && (
+          <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90">
+            <span className="font-semibold text-amber-300">Pending media reports</span>
+            <span className="text-ink-500"> · chart stays on official CPC · </span>
+            {pendingSignals.map((s, i) => {
+              const up = s.delta_lkr > 0;
+              return (
+                <span key={`${s.source}-${s.fuel_type}`} className="text-ink-300">
+                  {i > 0 ? " · " : ""}
+                  {fuelLabel(s.fuel_type)}{" "}
+                  <span className="font-semibold tabular-nums text-ink-100">
+                    {lkr(s.price_lkr, { showSymbol: false })}
+                  </span>
+                  <span className={up ? "text-red-400" : "text-emerald-400"}>
+                    {" "}
+                    ({up ? "+" : ""}
+                    {lkr(s.delta_lkr, { showSymbol: false })})
+                  </span>
+                </span>
+              );
+            })}
+            <a href="#prices" className="ml-2 text-amber-300 underline-offset-2 hover:underline">
+              See price cards
+            </a>
+          </div>
         )}
         {mode === "revisions" && (
           <p className="mt-2 text-xs text-ink-500">
@@ -531,16 +524,7 @@ export function HistoryChart() {
             </div>
           ) : !hasChartPoints ? (
             <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center text-sm text-ink-500">
-              {isNews ? (
-                <>
-                  <span>No media-reported prices in this range yet.</span>
-                  <span className="text-xs text-ink-600">
-                    Unofficial points appear after the hourly news scrape finds a revision.
-                  </span>
-                </>
-              ) : (
-                <span>No price points in this range.</span>
-              )}
+              <span>No price points in this range.</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -606,7 +590,6 @@ export function HistoryChart() {
                     dataKey={f}
                     stroke={COLORS[f]}
                     strokeWidth={2}
-                    strokeDasharray={isNews ? "5 3" : undefined}
                     dot={mode === "revisions" ? { r: 3, fill: COLORS[f], strokeWidth: 0 } : false}
                     connectNulls
                     isAnimationActive={false}

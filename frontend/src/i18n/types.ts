@@ -39,6 +39,7 @@ export interface Messages {
     earlySignalNews: string;
     earlySignalLioc: string;
     earlySignalUnconfirmed: string;
+    mediaReports: string;
     awaitingData: string;
     lkrPer: string;
     loadError: string;
