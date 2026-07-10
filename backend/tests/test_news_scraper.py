@@ -111,7 +111,68 @@ def test_outlet_from_host():
     assert outlet_from_host("https://adaderana.lk") == "adaderana"
     assert outlet_from_host("https://www.dailymirror.lk/breaking-news/x/1") == "dailymirror"
     assert outlet_from_host("https://island.lk/fuel-prices-increased/") == "island"
+    assert outlet_from_host("https://www.onlanka.com/news/sri-lanka-revises-fuel-prices-from-june-30-2026.html") == "onlanka"
+    assert outlet_from_host("https://lankanewsweb.net/archives/226278/fuel-prices-reduced/") == "lankanewsweb"
     assert outlet_from_host("https://example.com") == "unknown"
+
+
+def test_extract_prices_lnw_fixed_at_and_octane_petrol_wording():
+    """LNW wording: 'Octane 92 petrol' + 'fixed at Rs. 382' after a long clause."""
+    text = (
+        "Under the latest revision, the price of Octane 92 petrol has been lowered by Rs. 20 "
+        "per litre, bringing its new retail price to Rs. 414. Lanka Auto Diesel (white diesel) "
+        "has received an even larger reduction of Rs. 25 per litre, with the revised selling "
+        "price now fixed at Rs. 382. The CEYPETCO confirmed that there will be no changes to "
+        "the prices of Octane 95 petrol, Super Diesel or Kerosene."
+    )
+    points = _extract_prices(text, fallback_date=date(2026, 6, 30), outlet="lankanewsweb")
+    by_fuel = {p.fuel_type: p.price_lkr for p in points}
+    assert by_fuel[fuel_mod.PETROL_92] == 414.0
+    assert by_fuel[fuel_mod.AUTO_DIESEL] == 382.0
+
+
+def test_extract_prices_onlanka_table_wording():
+    text = (
+        "The Ceylon Petroleum Corporation (CEYPETCO) has announced the updated fuel prices "
+        "as follows: The price of Petrol 92 Octane has been reduced by Rs. 20, bringing the "
+        "new price to Rs. 414. The price of Auto Diesel has been reduced by Rs. 25, bringing "
+        "the new price to Rs. 382. Petrol 95 Octane Unchanged Rs. 495. Super Diesel Unchanged "
+        "Rs. 478. Kerosene Unchanged Rs. 285."
+    )
+    points = _extract_prices(text, fallback_date=date(2026, 6, 29), outlet="onlanka")
+    by_fuel = {p.fuel_type: p.price_lkr for p in points}
+    assert by_fuel[fuel_mod.PETROL_92] == 414.0
+    assert by_fuel[fuel_mod.AUTO_DIESEL] == 382.0
+    assert by_fuel[fuel_mod.PETROL_95] == 495.0
+
+
+def test_extract_price_fixed_at_rs():
+    assert _extract_price("revised selling price now fixed at Rs. 382") == 382.0
+    assert _extract_price("new price set at Rs. 414") == 414.0
+
+
+def test_resolve_via_publisher_search_onlanka():
+    from app.scrapers.news import _resolve_via_publisher_search
+
+    url = _resolve_via_publisher_search(
+        "Sri Lanka revises fuel prices from June 30, 2026 - ONLANKA",
+        "https://www.onlanka.com",
+    )
+    assert url is not None
+    assert "onlanka.com" in url
+    assert "fuel-prices" in url.lower() or "june-30" in url.lower()
+
+
+def test_resolve_via_publisher_search_lankanewsweb():
+    from app.scrapers.news import _resolve_via_publisher_search
+
+    url = _resolve_via_publisher_search(
+        "Fuel Prices Reduced as CEYPETCO Announces Latest Revision - LNW",
+        "https://lankanewsweb.net",
+    )
+    assert url is not None
+    assert "lankanewsweb.net" in url
+    assert "fuel-prices" in url.lower() or "226278" in url
 
 
 def test_prefer_consensus_picks_majority_price():

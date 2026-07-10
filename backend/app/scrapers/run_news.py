@@ -39,6 +39,8 @@ OUTLET_TRUST: dict[str, float] = {
     "newswire": 1.0,
     "adaderana": 1.0,
     "dailymirror": 0.95,
+    "onlanka": 0.95,  # clean CPC revision tables every cycle
+    "lankanewsweb": 0.9,
     "economynext": 0.9,
     "island": 0.85,
     "srilankamirror": 0.8,

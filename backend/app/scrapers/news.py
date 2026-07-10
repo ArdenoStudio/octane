@@ -44,10 +44,14 @@ FEEDS = [
     "https://news.google.com/rss/search?q=site:adaderana.lk+(fuel+OR+petrol+OR+diesel)+(price+OR+prices)&hl=en-US&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=site:dailymirror.lk+(fuel+OR+petrol)+(price+OR+prices+OR+ceypetco+OR+CPC)&hl=en-US&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=site:island.lk+(fuel+OR+petrol)+(price+OR+prices+OR+ceypetco)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:onlanka.com+(fuel+OR+petrol)+(price+OR+prices+OR+ceypetco)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:lankanewsweb.net+(fuel+OR+petrol+OR+ceypetco)+(price+OR+prices)&hl=en-US&gl=US&ceid=US:en",
     "https://economynext.com/feed/",
     "https://www.newswire.lk/feed/",
     "https://adaderana.lk/rss.xml",
     "https://island.lk/feed/",
+    "https://www.onlanka.com/feed",
+    "https://lankanewsweb.net/feed",
 ]
 
 # Revision / change language. Titles are often short ("Fuel prices reduced in
@@ -64,12 +68,18 @@ FUEL_KEYWORDS = re.compile(
     r"fuel\s+prices?\s+(?:in\s+)?sri\s+lanka|"
     r"(?:breaking|update).{0,20}fuel\s+prices?|"
     r"cpc\s+announces\s+fuel|"
-    r"price\s+of\s+auto\s+diesel\s+(?:reduced|increased|revised)",
+    r"price\s+of\s+auto\s+diesel\s+(?:reduced|increased|revised)|"
+    r"revises?\s+fuel\s+prices?|"
+    r"fuel\s+prices?\s+(?:slashed|cut)|"
+    r"ceypetco\s+announces\s+(?:latest\s+)?revision",
     re.IGNORECASE,
 )
 
-# "to Rs. 340" captures the new price (not the old "from Rs. X" or delta "by Rs. X")
-TO_RS_RE = re.compile(r"to\s+Rs\.?\s*(\d{2,4}(?:\.\d{1,2})?)", re.IGNORECASE)
+# "to Rs. 340" / "fixed at Rs. 382" capture the new price (not "from Rs. X" / "by Rs. X")
+TO_RS_RE = re.compile(
+    r"(?:to|fixed\s+at|set\s+at|now\s+(?:at|priced\s+at))\s+Rs\.?\s*(\d{2,4}(?:\.\d{1,2})?)",
+    re.IGNORECASE,
+)
 RS_RE = re.compile(r"Rs\.?\s*(\d{2,4}(?:\.\d{1,2})?)", re.IGNORECASE)
 # Delta / old-price prefixes — skip these bare Rs. matches.
 RS_SKIP_PREFIX_RE = re.compile(r"\b(?:by|from|of)\s+$", re.IGNORECASE)
@@ -103,14 +113,17 @@ ARTICLE_BYLINE_DATE = re.compile(
 
 FUEL_NAME_RE: dict[str, re.Pattern[str]] = {
     "petrol_92": re.compile(
-        r"\b(?:petrol\s*(?:octane\s*)?92|LP\s*92|octane\s*92|92\s*octane)\b",
+        r"\b(?:petrol\s*(?:octane\s*)?92|LP\s*92|octane\s*92(?:\s*petrol)?|92\s*octane)\b",
         re.IGNORECASE,
     ),
     "petrol_95": re.compile(
-        r"\b(?:petrol\s*(?:octane\s*)?95|LP\s*95|octane\s*95|95\s*octane|super\s*petrol)\b",
+        r"\b(?:petrol\s*(?:octane\s*)?95|LP\s*95|octane\s*95(?:\s*petrol)?|95\s*octane|super\s*petrol)\b",
         re.IGNORECASE,
     ),
-    "auto_diesel": re.compile(r"\b(?:auto\s*diesel|lanka\s*auto\s*diesel)\b", re.IGNORECASE),
+    "auto_diesel": re.compile(
+        r"\b(?:auto\s*diesel|lanka\s*auto\s*diesel|white\s*diesel)\b",
+        re.IGNORECASE,
+    ),
     "super_diesel": re.compile(r"\b(?:super\s*diesel|lanka\s*super\s*diesel)\b", re.IGNORECASE),
     "kerosene": re.compile(r"\b(?:kerosene|lanka\s*kerosene)\b", re.IGNORECASE),
 }
@@ -127,6 +140,8 @@ OUTLET_HOSTS: list[tuple[str, str]] = [
     ("adaderana.lk", "adaderana"),
     ("dailymirror.lk", "dailymirror"),
     ("economynext.com", "economynext"),
+    ("onlanka.com", "onlanka"),
+    ("lankanewsweb.net", "lankanewsweb"),
     ("island.lk", "island"),
     ("srilankamirror.com", "srilankamirror"),
 ]
@@ -334,7 +349,19 @@ def _price_near_fuel(segment: str, fuel_re: re.Pattern[str]) -> float | None:
     multi-fuel sentences don't bleed prices across fuels.
     """
     for m in fuel_re.finditer(segment):
-        after = segment[m.end() : m.end() + 120]
+        # LNW-style sentences put the new price ~140 chars after the fuel name
+        # ("…reduction of Rs. 25… now fixed at Rs. 382").
+        after = segment[m.end() : m.end() + 180]
+        # Stop before the next *other* fuel type so "Petrol 92 … 414, while
+        # Auto Diesel … 382" does not assign 414 to diesel.
+        cut = len(after)
+        for other_re in FUEL_NAME_RE.values():
+            if other_re is fuel_re:
+                continue
+            om = other_re.search(after)
+            if om:
+                cut = min(cut, om.start())
+        after = after[:cut]
         price = _extract_price(after)
         if price is not None:
             return price
@@ -742,6 +769,18 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
         )
     elif "island.lk" in host:
         return _resolve_island_search(title)
+    elif "onlanka.com" in host:
+        search_url = "https://www.onlanka.com/?s=" + query.replace(" ", "+")
+        link_re = re.compile(
+            r"https://www\.onlanka\.com/news/[a-z0-9\-]+\.html",
+            re.IGNORECASE,
+        )
+    elif "lankanewsweb.net" in host:
+        search_url = "https://lankanewsweb.net/?s=" + query.replace(" ", "+")
+        link_re = re.compile(
+            r"https://lankanewsweb\.net/archives/\d+/[a-z0-9\-]+/?",
+            re.IGNORECASE,
+        )
     elif "adaderana.lk" in host:
         # Ada on-site search returns 410. Newer articles use cuid paths
         # (/news/cm…) as well as classic /news/<nid>/slug.
@@ -925,6 +964,24 @@ BRAVE_DISCOVERY: list[tuple[str, str, re.Pattern[str]]] = [
         "(reduced OR increased OR revised OR revision)",
         re.compile(
             r"https://www\.dailymirror\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "onlanka.com",
+        'site:onlanka.com ("fuel prices" OR "revises fuel") '
+        "(reduced OR revised OR revision OR cut)",
+        re.compile(
+            r"https://www\.onlanka\.com/news/[a-z0-9\-]+\.html",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "lankanewsweb.net",
+        'site:lankanewsweb.net (fuel OR petrol OR ceypetco) '
+        "(prices OR price OR revision) (reduced OR revised OR increased)",
+        re.compile(
+            r"https://lankanewsweb\.net/archives/\d+/[a-z0-9\-]+/?",
             re.IGNORECASE,
         ),
     ),
