@@ -139,7 +139,7 @@ export function PriceStrip() {
           )}
         </div>
 
-        {/* Today's revision notice — only shown when prices were actually revised today */}
+        {/* Today's revision notice — list all five fuels; mark unchanged ones */}
         {todayRevisions.length > 0 && (
           <FadeDiv className="mt-5">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
@@ -148,11 +148,22 @@ export function PriceStrip() {
                 {m.prices.revisedToday}
               </span>
               <span className="flex flex-wrap gap-x-4 gap-y-1">
-                {todayRevisions.map((c) => {
+                {FUEL_ORDER.map((fuel) => {
+                  const c = todayRevisions.find((r) => r.fuel_type === fuel);
+                  const row = cpcByFuel[fuel];
+                  if (!c && !row) return null;
+                  if (!c) {
+                    return (
+                      <span key={fuel} className="flex items-center gap-1 text-sm text-ink-500">
+                        <span>{fuelLabel(fuel)}</span>
+                        <span>unchanged · {lkr(row!.price_lkr, { showSymbol: false })}</span>
+                      </span>
+                    );
+                  }
                   const up = (c.delta_lkr ?? 0) > 0;
                   return (
-                    <span key={c.fuel_type} className="flex items-center gap-1 text-sm text-ink-300">
-                      <span className="text-ink-500">{fuelLabel(c.fuel_type as FuelId)}</span>
+                    <span key={fuel} className="flex items-center gap-1 text-sm text-ink-300">
+                      <span className="text-ink-500">{fuelLabel(fuel)}</span>
                       {up ? (
                         <RiArrowUpSLine className="size-4 text-red-400" />
                       ) : (
