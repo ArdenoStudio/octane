@@ -55,6 +55,82 @@ export interface EarlySignal {
   status: "unconfirmed" | "divergence" | string;
 }
 
+/** Days a news figure stays "early" after its effective date (matches backend). */
+const NEWS_SIGNAL_WINDOW_DAYS = 14;
+const LIOC_DIVERGENCE_LKR = 1.0;
+
+/**
+ * Derive early signals from a latest-prices payload.
+ * Prefer API `early_signals` when present; otherwise compare news/LIOC vs CPC
+ * so the UI still works if the backend field is missing.
+ */
+export function resolveEarlySignals(resp: LatestPricesResp): EarlySignal[] {
+  if (resp.early_signals && resp.early_signals.length > 0) {
+    return resp.early_signals;
+  }
+  return deriveEarlySignals(resp.prices);
+}
+
+function rowBySource(
+  rows: PriceRow[],
+  fuel: FuelId,
+  source: string
+): PriceRow | undefined {
+  return rows.find((r) => r.fuel_type === fuel && r.source === source);
+}
+
+export function deriveEarlySignals(rows: PriceRow[]): EarlySignal[] {
+  const today = new Date();
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - NEWS_SIGNAL_WINDOW_DAYS);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const out: EarlySignal[] = [];
+
+  for (const fuel of FUEL_ORDER) {
+    const cpc = rowBySource(rows, fuel, "cpc");
+    if (!cpc) continue;
+    const cpcPrice = cpc.price_lkr;
+    const cpcDate = cpc.recorded_at;
+
+    const news = rowBySource(rows, fuel, "news");
+    if (news) {
+      const differs = Math.abs(news.price_lkr - cpcPrice) >= 0.01;
+      const newerOrSame = news.recorded_at >= cpcDate;
+      const recent = news.recorded_at >= cutoffStr;
+      if (recent && newerOrSame && (news.recorded_at > cpcDate || differs)) {
+        out.push({
+          fuel_type: fuel,
+          source: "news",
+          price_lkr: news.price_lkr,
+          recorded_at: news.recorded_at,
+          scraped_at: news.scraped_at,
+          cpc_price_lkr: cpcPrice,
+          cpc_recorded_at: cpcDate,
+          delta_lkr: Math.round((news.price_lkr - cpcPrice) * 100) / 100,
+          status: "unconfirmed",
+        });
+      }
+    }
+
+    const ioc = rowBySource(rows, fuel, "lanka_ioc");
+    if (ioc && Math.abs(ioc.price_lkr - cpcPrice) >= LIOC_DIVERGENCE_LKR) {
+      out.push({
+        fuel_type: fuel,
+        source: "lanka_ioc",
+        price_lkr: ioc.price_lkr,
+        recorded_at: ioc.recorded_at,
+        scraped_at: ioc.scraped_at,
+        cpc_price_lkr: cpcPrice,
+        cpc_recorded_at: cpcDate,
+        delta_lkr: Math.round((ioc.price_lkr - cpcPrice) * 100) / 100,
+        status: "divergence",
+      });
+    }
+  }
+
+  return out;
+}
+
 export interface LatestPricesResp {
   prices: PriceRow[];
   /** When Octane last successfully checked CPC — independent of revision age. */

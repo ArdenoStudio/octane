@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownLine, RiArrowUpLine, RiCloseLine } from "@remixicon/react";
-import { api, EarlySignal, FUEL_ORDER, FuelId } from "../lib/api";
+import { api, EarlySignal, FUEL_ORDER, FuelId, resolveEarlySignals } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow } from "../lib/format";
 
@@ -41,7 +41,7 @@ export function LastVisitBanner() {
 
         const storedPricesRaw = localStorage.getItem(KEY_PRICES);
         const storedVisit = localStorage.getItem(KEY_VISIT);
-        const early: EarlySignal[] = resp.early_signals ?? [];
+        const early: EarlySignal[] = resolveEarlySignals(resp);
 
         if (storedPricesRaw && storedVisit) {
           try {

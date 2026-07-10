@@ -61,6 +61,7 @@ export const EN: Messages = {
     earlySignalNews: "News",
     earlySignalLioc: "Lanka IOC",
     earlySignalUnconfirmed: "Unconfirmed — awaiting CPC",
+    mediaReports: "Media reports",
     awaitingData: "Awaiting data",
     lkrPer: "LKR ·",
     loadError: "Couldn't load prices. The API may be offline.",

@@ -152,11 +152,12 @@ export function DataPage() {
               </p>
               <p>
                 When news outlets or Lanka IOC report a different figure ahead of
-                CPC, Octane surfaces it as an{" "}
-                <strong className="text-ink-200">unconfirmed early signal</strong>{" "}
-                — never as a replacement for the official CPC price. A daily
-                market-context strip (AI outlook, USD/LKR, Sri Lanka vs world)
-                updates even when retail prices are flat.
+                CPC, Octane extends the official history line with a{" "}
+                <strong className="text-ink-200">dashed media segment</strong> and
+                shows the figure on the price cards as unconfirmed — never as a
+                second graph. When CPC publishes the real revision, that extension
+                drops off. A daily market-context strip (AI outlook, USD/LKR, Sri
+                Lanka vs world) updates even when retail prices are flat.
               </p>
               <p>
                 World prices from Global Petrol Prices are updated weekly
