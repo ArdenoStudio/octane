@@ -8,7 +8,7 @@ interface Props {
   className?: string;
 }
 
-export function ShareButtons({ text, url = "https://octane.lk", className }: Props) {
+export function ShareButtons({ text, url = "https://octane-smoky.vercel.app/", className }: Props) {
   const [copied, setCopied] = useState(false);
   const full = `${text}\n\n${url}`;
   const waUrl = `https://wa.me/?text=${encodeURIComponent(full)}`;

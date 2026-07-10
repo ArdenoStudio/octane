@@ -2,7 +2,7 @@
 
 Invoked by:
   - Manual: `python -m app.scrapers.run`
-  - Cron:   GitHub Actions daily (see .github/workflows/scrape.yml)
+  - Cron:   GitHub Actions (see .github/workflows/scrape.yml) — 5× daily
 """
 from __future__ import annotations
 
@@ -27,14 +27,33 @@ def _persist_fuel(points: list[cpc.PricePoint]) -> int:
     with cursor() as cur:
         cur.executemany(
             """
-            INSERT INTO fuel_prices (recorded_at, fuel_type, price_lkr, source)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO fuel_prices (recorded_at, fuel_type, price_lkr, source, scraped_at)
+            VALUES (%s, %s, %s, %s, NOW())
             ON CONFLICT (recorded_at, fuel_type, source) DO UPDATE
-              SET price_lkr = EXCLUDED.price_lkr
+              SET price_lkr = EXCLUDED.price_lkr,
+                  scraped_at = NOW()
             """,
             rows,
         )
     return len(rows)
+
+
+def _record_scrape_run(
+    source: str,
+    rows_upserted: int,
+    *,
+    ok: bool = True,
+    detail: str | None = None,
+) -> None:
+    """Always record that we checked a source, even when prices did not change."""
+    with cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO scrape_runs (source, rows_upserted, ok, detail)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (source, rows_upserted, ok, detail),
+        )
 
 
 def _persist_world(points: list[world.WorldPrice]) -> int:
@@ -88,6 +107,7 @@ def run_all() -> dict[str, int]:
         summary["cpc"] = _persist_fuel(cpc_points)
         if summary["cpc"] == 0:
             log.error("cpc scraper returned 0 rows — site layout may have changed")
+            _record_scrape_run("cpc", 0, ok=False, detail="0 rows returned")
             _notify_admin(
                 "Octane: CPC scraper returned 0 rows",
                 "The CPC scraper ran but found no price data.\n\n"
@@ -95,25 +115,56 @@ def run_all() -> dict[str, int]:
                 "https://ceypetco.gov.lk/historical-prices/\n\n"
                 "— Octane health monitor",
             )
+        else:
+            _record_scrape_run("cpc", summary["cpc"])
     except Exception as e:  # noqa: BLE001
         log.exception("cpc scraper failed: %s", e)
         summary["cpc"] = 0
+        try:
+            _record_scrape_run("cpc", 0, ok=False, detail=str(e)[:500])
+        except Exception:  # noqa: BLE001
+            log.exception("failed to record cpc scrape_run")
 
     try:
         ioc_points = list(lanka_ioc.run())
         summary["lanka_ioc"] = _persist_fuel(ioc_points)
         if summary["lanka_ioc"] == 0:
             log.warning("lanka_ioc scraper returned 0 rows")
+            _record_scrape_run("lanka_ioc", 0, ok=False, detail="0 rows returned")
+        else:
+            _record_scrape_run("lanka_ioc", summary["lanka_ioc"])
     except Exception as e:  # noqa: BLE001
         log.exception("lanka_ioc scraper failed: %s", e)
         summary["lanka_ioc"] = 0
+        try:
+            _record_scrape_run("lanka_ioc", 0, ok=False, detail=str(e)[:500])
+        except Exception:  # noqa: BLE001
+            log.exception("failed to record lanka_ioc scrape_run")
 
     try:
-        news_points = list(news.run())
+        # Ingest broadly, then persist one consensus row per fuel (same as
+        # the hourly news job) so multi-outlet hits don't thrash the table.
+        from app.scrapers.run_news import prefer_consensus, consensus_summary
+
+        raw_news = list(news.run())
+        news_points = prefer_consensus(raw_news)
         summary["news"] = _persist_fuel(news_points)
+        fuels = consensus_summary(raw_news)
+        consensus_fuels = [f for f, s in fuels.items() if s["consensus"]]
+        detail = (
+            f"raw={len(raw_news)} selected={len(news_points)} "
+            f"consensus_fuels={consensus_fuels or 'none'}"
+            if news_points
+            else "0 rows (no matching headlines)"
+        )
+        _record_scrape_run("news", summary["news"], ok=True, detail=detail)
     except Exception as e:  # noqa: BLE001
         log.exception("news scraper failed: %s", e)
         summary["news"] = 0
+        try:
+            _record_scrape_run("news", 0, ok=False, detail=str(e)[:500])
+        except Exception:  # noqa: BLE001
+            log.exception("failed to record news scrape_run")
 
     try:
         world_points = world.run()

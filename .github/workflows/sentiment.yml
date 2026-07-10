@@ -1,0 +1,38 @@
+name: AI Sentiment Analysis
+
+on:
+  schedule:
+    # 02:00 UTC = 07:30 SL time — runs after major overnight news cycles
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # allow manual trigger for testing
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to commit backend/data/ai_sentiment.json
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install httpx groq
+
+      - name: Run sentiment analysis
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python scripts/sentiment_analysis.py
+
+      - name: Commit updated sentiment data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backend/data/ai_sentiment.json
+          git diff --staged --quiet && echo "No changes to commit" || (
+            git commit -m "chore: update AI fuel sentiment" &&
+            git push
+          )

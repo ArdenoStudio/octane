@@ -15,6 +15,9 @@ export type FuelId =
   | "super_diesel"
   | "kerosene";
 
+/** Official CPC vs media-reported (unconfirmed) news prices. */
+export type PriceSource = "cpc" | "news";
+
 export const FUEL_DISPLAY: Record<FuelId, string> = {
   petrol_92: "Petrol 92",
   petrol_95: "Petrol 95",
@@ -36,6 +39,42 @@ export interface PriceRow {
   source: string;
   price_lkr: number;
   recorded_at: string;
+  /** When Octane last wrote/verified this row (ISO timestamp), if available. */
+  scraped_at?: string | null;
+}
+
+export interface EarlySignal {
+  fuel_type: FuelId;
+  source: "news" | "lanka_ioc" | string;
+  price_lkr: number;
+  recorded_at: string;
+  scraped_at?: string | null;
+  cpc_price_lkr: number;
+  cpc_recorded_at: string;
+  delta_lkr: number;
+  status: "unconfirmed" | "divergence" | string;
+}
+
+export interface LatestPricesResp {
+  prices: PriceRow[];
+  /** When Octane last successfully checked CPC — independent of revision age. */
+  last_verified_at?: string | null;
+  /** News / LIOC figures ahead of or diverging from official CPC. */
+  early_signals?: EarlySignal[];
+}
+
+export interface MarketContextResp {
+  as_of: string;
+  fuel_type: FuelId;
+  sentiment: SentimentData | null;
+  fx: { usd_lkr: number; recorded_at: string } | null;
+  world: {
+    fuel_type: FuelId;
+    sri_lanka_usd: number | null;
+    world_average_usd: number | null;
+    delta_vs_world_pct: number | null;
+    fx_rate_used: number;
+  } | null;
 }
 
 export interface HistoryPoint {
@@ -68,6 +107,16 @@ export interface ForecastPoint {
   price_lkr: number;
 }
 
+export interface SentimentData {
+  direction: "up" | "down" | "stable";
+  confidence: number;
+  magnitude_lkr: number;
+  summary: string;
+  generated_at: string;
+  headlines_analyzed: number;
+  signals: string[];
+}
+
 export interface ForecastResp {
   fuel_type: FuelId;
   source: string;
@@ -75,6 +124,8 @@ export interface ForecastResp {
   slope_lkr_per_day: number | null;
   regression_points: ForecastPoint[];
   forecast_points: ForecastPoint[];
+  ai_forecast_points: ForecastPoint[];
+  sentiment: SentimentData | null;
   error?: string;
 }
 
@@ -87,6 +138,11 @@ export interface PriceChangeRow {
   delta_pct: number | null;
 }
 
+export interface AlertFire {
+  fired_at: string;
+  price_lkr: number;
+}
+
 export interface ManageAlertResp {
   id: number;
   email: string;
@@ -94,7 +150,9 @@ export interface ManageAlertResp {
   threshold: number;
   direction: "above" | "below";
   active: boolean;
+  confirmed: boolean;
   created_at: string;
+  fire_history: AlertFire[];
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -116,6 +174,19 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const r = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error(`${path}: ${r.status} ${text}`);
+  }
+  return r.json() as Promise<T>;
+}
+
 async function del<T>(path: string): Promise<T> {
   const r = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
   if (!r.ok) {
@@ -126,9 +197,13 @@ async function del<T>(path: string): Promise<T> {
 }
 
 export const api = {
-  latest: () => get<{ prices: PriceRow[] }>("/v1/prices/latest"),
-  history: (fuel: FuelId, days = 730) =>
-    get<{ points: HistoryPoint[] }>(`/v1/prices/history?fuel=${fuel}&days=${days}`),
+  latest: () => get<LatestPricesResp>("/v1/prices/latest"),
+  marketContext: (fuel: FuelId = "petrol_95") =>
+    get<MarketContextResp>(`/v1/market-context?fuel=${fuel}`),
+  history: (fuel: FuelId, days = 730, source: PriceSource = "cpc") =>
+    get<{ points: HistoryPoint[] }>(
+      `/v1/prices/history?fuel=${fuel}&days=${days}&source=${source}`
+    ),
   worldComparison: (fuel: FuelId) =>
     get<ComparisonResp>(`/v1/comparison/world?fuel=${fuel}`),
   trip: (distance: number, efficiency: number, fuel: FuelId) =>
@@ -146,30 +221,43 @@ export const api = {
     get<ForecastResp>(
       `/v1/prices/forecast?fuel=${fuel}&history_days=${historyDays}&horizon_days=${horizonDays}`
     ),
-  changes: (limit = 200) =>
+  sentiment: () =>
+    get<{ available: boolean; sentiment: SentimentData | null }>("/v1/prices/sentiment"),
+  changes: (limit = 200, source: PriceSource = "cpc") =>
     get<{ source: string; changes: PriceChangeRow[] }>(
-      `/v1/prices/changes?limit=${limit}`
+      `/v1/prices/changes?limit=${limit}&source=${source}`
+    ),
+  confirmAlert: (token: string) =>
+    get<{ ok: boolean; message: string }>(
+      `/v1/alerts/confirm?token=${encodeURIComponent(token)}`
     ),
   manageAlert: (token: string) =>
     get<ManageAlertResp>(
       `/v1/alerts/manage?token=${encodeURIComponent(token)}`
     ),
+  updateAlert: (token: string, payload: { threshold: number; direction: "above" | "below" }) =>
+    patch<{ ok: boolean }>(
+      `/v1/alerts/manage?token=${encodeURIComponent(token)}`,
+      payload,
+    ),
   unsubscribeAlert: (token: string) =>
     del<{ ok: boolean; message: string }>(
       `/v1/alerts/manage?token=${encodeURIComponent(token)}`
     ),
-  historyCsvUrl: (fuels: FuelId[], days: number): string => {
+  historyCsvUrl: (fuels: FuelId[], days: number, source: PriceSource = "cpc"): string => {
     const params = new URLSearchParams();
     fuels.forEach((f) => params.append("fuel", f));
     params.set("days", String(days));
+    params.set("source", source);
     return `${API_BASE}/v1/prices/history.csv?${params.toString()}`;
   },
   subscribeDigest: (email: string) =>
     post<{ ok: boolean; id: number }>("/v1/digest/subscribe", { email }),
-  historyJsonUrl: (fuels: FuelId[], days: number): string => {
+  historyJsonUrl: (fuels: FuelId[], days: number, source: PriceSource = "cpc"): string => {
     const params = new URLSearchParams();
     fuels.forEach((f) => params.append("fuel", f));
     params.set("days", String(days));
+    params.set("source", source);
     return `${API_BASE}/v1/prices/history.json?${params.toString()}`;
   },
   apiBase: API_BASE,

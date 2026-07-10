@@ -46,13 +46,34 @@ def subscribe(
     with cursor() as cur:
         cur.execute(
             """
-            INSERT INTO alerts (email, fuel_type, threshold, direction, telegram_chat_id)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id
+            INSERT INTO alerts (email, fuel_type, threshold, direction, telegram_chat_id, confirmed)
+            VALUES (%s, %s, %s, %s, %s, FALSE)
+            RETURNING id, confirm_token
             """,
             (email, fuel_type, threshold, direction, telegram_chat_id or None),
         )
-        return cur.fetchone()["id"]
+        row = cur.fetchone()
+        alert_id = row["id"]
+        confirm_token = str(row["confirm_token"])
+
+    fuel_name = _FUEL_LABELS.get(fuel_type, fuel_type)
+    threshold_fmt = int(threshold) if threshold == int(threshold) else threshold
+    _send_confirmation_email(email, fuel_name, threshold_fmt, direction, confirm_token)
+
+    return alert_id
+
+
+def confirm_by_token(token: str) -> bool:
+    with cursor() as cur:
+        cur.execute(
+            """
+            UPDATE alerts SET confirmed = TRUE
+            WHERE confirm_token = %s AND confirmed = FALSE
+            RETURNING id
+            """,
+            (token,),
+        )
+        return cur.fetchone() is not None
 
 
 def get_by_token(token: str) -> dict | None:
@@ -60,7 +81,7 @@ def get_by_token(token: str) -> dict | None:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, email, fuel_type, threshold, direction, active, created_at
+                SELECT id, email, fuel_type, threshold, direction, active, created_at, confirmed
                 FROM alerts WHERE unsubscribe_token = %s
                 """,
                 (token,),
@@ -71,6 +92,21 @@ def get_by_token(token: str) -> dict | None:
     row = dict(r)
     row["created_at"] = row["created_at"].isoformat()
     row["threshold"] = float(row["threshold"])
+
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT fired_at, price_lkr FROM alert_fires
+                WHERE alert_id = %s ORDER BY fired_at DESC LIMIT 20
+                """,
+                (row["id"],),
+            )
+            fires = cur.fetchall()
+    row["fire_history"] = [
+        {"fired_at": f["fired_at"].isoformat(), "price_lkr": float(f["price_lkr"])}
+        for f in fires
+    ]
     return row
 
 
@@ -87,6 +123,21 @@ def unsubscribe_by_token(token: str) -> bool:
         return cur.fetchone() is not None
 
 
+def update_by_token(token: str, threshold: float, direction: str) -> bool:
+    if direction not in ("above", "below"):
+        raise ValueError("direction must be 'above' or 'below'")
+    with cursor() as cur:
+        cur.execute(
+            """
+            UPDATE alerts SET threshold = %s, direction = %s
+            WHERE unsubscribe_token = %s AND active = TRUE
+            RETURNING id
+            """,
+            (threshold, direction, token),
+        )
+        return cur.fetchone() is not None
+
+
 def list_active() -> list[dict]:
     with connect() as conn:
         with conn.cursor() as cur:
@@ -95,7 +146,7 @@ def list_active() -> list[dict]:
                 SELECT id, email, fuel_type, threshold, direction,
                        last_fired_at, unsubscribe_token,
                        send_attempts, last_send_error, telegram_chat_id
-                FROM alerts WHERE active = TRUE
+                FROM alerts WHERE active = TRUE AND confirmed = TRUE
                 """
             )
             return [dict(r) for r in cur.fetchall()]
@@ -105,90 +156,217 @@ def list_active() -> list[dict]:
 # Email (HTML)
 # ---------------------------------------------------------------------------
 
+_CONFIRMATION_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
+  <tr><td align="center" style="padding:48px 16px 56px;">
+    <table width="580" cellpadding="0" cellspacing="0" style="max-width:100%;">
+
+      <!-- Logo -->
+      <tr>
+        <td align="center" style="padding-bottom:28px;">
+          <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
+               width="96" height="36" alt="Octane"
+               style="display:block;border:0;outline:none;">
+        </td>
+      </tr>
+
+      <!-- Card -->
+      <tr>
+        <td style="background:#ffffff;border-radius:20px;overflow:hidden;
+                   box-shadow:0 2px 4px rgba(80,60,20,0.06),0 16px 56px rgba(80,60,20,0.12);">
+          <table width="100%" cellpadding="0" cellspacing="0">
+
+            <!-- Amber bar -->
+            <tr><td style="background:#f59e0b;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:36px 40px 32px;">
+                <p style="margin:0 0 10px;font-size:10px;font-weight:600;letter-spacing:0.16em;
+                           text-transform:uppercase;color:#c4b99a;text-align:center;">Confirm your alert</p>
+
+                <h1 style="margin:0 0 16px;font-size:26px;font-weight:800;color:#1a1208;
+                            line-height:1.2;letter-spacing:-0.02em;text-align:center;">
+                  One tap to activate
+                </h1>
+
+                <p style="margin:0 0 28px;font-size:14px;color:#6b5e4e;line-height:1.6;text-align:center;">
+                  You asked Octane to notify you when <strong>{fuel_name}</strong> goes
+                  {direction} <strong>LKR&nbsp;{threshold}</strong>.
+                  Tap the button below to confirm.
+                </p>
+
+                <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+                  <tr>
+                    <td>
+                      <a href="{confirm_url}"
+                         style="display:inline-block;background:#f59e0b;color:#1a0f00;text-decoration:none;
+                                font-size:14px;font-weight:700;padding:14px 32px;border-radius:10px;
+                                letter-spacing:0.01em;">
+                        Confirm alert &rarr;
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:0;font-size:11px;color:#c4b99a;text-align:center;line-height:1.6;">
+                  If you didn't request this, you can safely ignore this email.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
+                <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;">
+                  Sent by
+                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>
+                  &mdash; Sri Lanka fuel price alerts.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>
+"""
+
+_CONFIRMATION_TEXT = """\
+Confirm your Octane alert
+==========================
+
+You asked to be notified when {fuel_name} goes {direction} LKR {threshold}.
+
+Confirm your alert:
+{confirm_url}
+
+If you didn't request this, ignore this email.
+
+— Octane (octane.lk)
+"""
+
 _EMAIL_HTML = """\
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;">
-  <tr><td align="center" style="padding:40px 16px;">
-    <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e4e4e7;border-radius:16px;overflow:hidden;max-width:100%;">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>@import url('https://fonts.cdnfonts.com/css/cal-sans');</style>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:'Cal Sans',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
+  <tr><td align="center" style="padding:48px 16px 56px;">
+    <table width="580" cellpadding="0" cellspacing="0" style="max-width:100%;">
 
-      <!-- Header -->
+      <!-- Logo -->
       <tr>
-        <td style="padding:24px 32px 20px;border-bottom:3px solid #f59e0b;">
-          <span style="font-size:20px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">Octane</span>
-          <span style="font-size:11px;font-weight:500;color:#a1a1aa;margin-left:8px;">octane.lk</span>
+        <td align="center" style="padding-bottom:28px;">
+          <img src="https://octane-smoky.vercel.app/octane-logo-nav.svg"
+               width="96" height="36" alt="Octane"
+               style="display:block;border:0;outline:none;">
         </td>
       </tr>
 
-      <!-- Label -->
+      <!-- Card -->
       <tr>
-        <td style="padding:28px 32px 0;">
-          <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#a1a1aa;">Price alert triggered</p>
-        </td>
-      </tr>
+        <td style="background:#ffffff;border-radius:20px;overflow:hidden;
+                   box-shadow:0 2px 4px rgba(80,60,20,0.06),0 16px 56px rgba(80,60,20,0.12);">
+          <table width="100%" cellpadding="0" cellspacing="0">
 
-      <!-- Headline -->
-      <tr>
-        <td style="padding:8px 32px 24px;">
-          <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">{fuel_name} is now LKR&nbsp;{price}</h1>
-        </td>
-      </tr>
+            <!-- Amber bar -->
+            <tr><td style="background:#f59e0b;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
-      <!-- Price card -->
-      <tr>
-        <td style="padding:0 32px 24px;">
-          <table cellpadding="0" cellspacing="0" width="100%" style="background:#f9f9f9;border:1px solid #e4e4e7;border-radius:12px;">
+            <!-- Hero -->
             <tr>
-              <td style="padding:20px 24px;">
-                <table cellpadding="0" cellspacing="0" width="100%">
+              <td style="padding:36px 40px 24px;">
+
+                <!-- Eyebrow -->
+                <p style="margin:0 0 22px;font-size:10px;font-weight:600;letter-spacing:0.16em;
+                           text-transform:uppercase;color:#c4b99a;text-align:center;font-family:'Cal Sans',-apple-system,sans-serif;">Price alert triggered</p>
+
+                <!-- Fuel + delta -->
+                <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:10px;">
                   <tr>
-                    <td>
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Current price</p>
-                      <p style="margin:0;font-size:30px;font-weight:800;letter-spacing:-0.04em;color:#09090b;">LKR&nbsp;{price}</p>
+                    <td style="vertical-align:middle;">
+                      <p style="margin:0;font-size:14px;font-weight:500;color:#8c7d66;letter-spacing:-0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">{fuel_name}</p>
                     </td>
-                    <td align="right" style="vertical-align:top;">
-                      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;">Your threshold</p>
-                      <p style="margin:0;font-size:16px;font-weight:700;color:#3f3f46;">{direction_cap} LKR&nbsp;{threshold}</p>
+                    <td align="right" style="vertical-align:middle;">{delta_badge}</td>
+                  </tr>
+                </table>
+
+                <!-- Price -->
+                <p style="margin:0 0 28px;font-size:76px;font-weight:800;
+                           color:#1a1208;line-height:0.9;font-variant-numeric:tabular-nums;font-family:'Cal Sans',-apple-system,sans-serif;">
+                  <span style="font-size:28px;font-weight:700;color:#c4b99a;
+                               vertical-align:middle;margin-right:6px;">LKR</span>{price}</p>
+
+              </td>
+            </tr>
+
+            <!-- Chart — full bleed -->
+            <tr>
+              <td style="padding:0;line-height:0;font-size:0;background:#ffffff;">{chart_html}</td>
+            </tr>
+
+            <!-- Warm divider -->
+            <tr><td style="background:#ede8df;height:1px;font-size:0;line-height:0;"></td></tr>
+
+            <!-- Details -->
+            <tr>
+              <td style="padding:26px 40px 28px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="50%" style="vertical-align:top;">
+                      <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
+                                 text-transform:uppercase;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Your threshold</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;font-family:'Cal Sans',-apple-system,sans-serif;">{direction_cap} LKR&nbsp;{threshold}</p>
+                    </td>
+                    <td width="50%" style="vertical-align:top;">
+                      <p style="margin:0 0 5px;font-size:10px;font-weight:600;letter-spacing:0.14em;
+                                 text-transform:uppercase;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Recorded on</p>
+                      <p style="margin:0;font-size:15px;font-weight:600;color:#2d2319;letter-spacing:-0.02em;font-family:'Cal Sans',-apple-system,sans-serif;">{recorded_at}</p>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td style="padding:0 40px 38px;">
+                <a href="{manage_url}"
+                   style="display:inline-block;background:#f59e0b;color:#1a0f00;text-decoration:none;
+                          font-size:13px;font-weight:700;padding:13px 28px;border-radius:10px;
+                          letter-spacing:0.01em;font-family:'Cal Sans',-apple-system,sans-serif;">
+                  Manage this alert &rarr;
+                </a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:16px 40px;background:#faf7f2;border-top:1px solid #ede8df;">
+                <p style="margin:0;font-size:11px;color:#c4b99a;line-height:1.7;">
+                  You set up this alert on
+                  <a href="https://octane-smoky.vercel.app" style="color:#f59e0b;text-decoration:none;font-weight:600;">Octane</a>.
+                  &nbsp;&middot;&nbsp;
+                  <a href="{manage_url}" style="color:#c4b99a;text-decoration:underline;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>
+
           </table>
-        </td>
-      </tr>
-
-      <!-- Meta note -->
-      <tr>
-        <td style="padding:0 32px 28px;">
-          <p style="margin:0;font-size:13px;color:#71717a;">
-            Recorded on <strong style="color:#3f3f46;">{recorded_at}</strong>
-            by the Ceylon Petroleum Corporation.
-          </p>
-        </td>
-      </tr>
-
-      <!-- CTA -->
-      <tr>
-        <td style="padding:0 32px 32px;">
-          <a href="{manage_url}"
-             style="display:inline-block;background:#09090b;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;">
-            Manage this alert →
-          </a>
-        </td>
-      </tr>
-
-      <!-- Footer -->
-      <tr>
-        <td style="padding:18px 32px;background:#f9f9f9;border-top:1px solid #e4e4e7;">
-          <p style="margin:0;font-size:11px;color:#a1a1aa;line-height:1.6;">
-            You're receiving this because you set up a price alert on
-            <a href="https://octane.lk" style="color:#f59e0b;text-decoration:none;">octane.lk</a>.
-            &nbsp;·&nbsp;
-            <a href="{manage_url}" style="color:#a1a1aa;text-decoration:underline;">Unsubscribe</a>
-          </p>
         </td>
       </tr>
 
@@ -216,10 +394,6 @@ Manage or unsubscribe:
 
 
 def _send_email(to_email: str, subject: str, body: str) -> tuple[bool, str | None]:
-    """Send a plain-text email. Returns (sent, error_or_None).
-
-    Returns (False, None) when SMTP is not configured — not treated as a failure.
-    """
     s = get_settings()
     if not s.smtp_host or not s.smtp_user:
         log.info("[alert] would send to %s: %s", to_email, subject)
@@ -245,7 +419,6 @@ def _send_html_email(
     html_body: str,
     text_body: str,
 ) -> tuple[bool, str | None]:
-    """Send a multipart HTML+text email."""
     s = get_settings()
     if not s.smtp_host or not s.smtp_user:
         log.info("[alert] would send to %s: %s", to_email, subject)
@@ -267,12 +440,38 @@ def _send_html_email(
         return False, str(exc)[:500]
 
 
+def _send_confirmation_email(
+    to_email: str,
+    fuel_name: str,
+    threshold: int | float,
+    direction: str,
+    confirm_token: str,
+) -> None:
+    s = get_settings()
+    confirm_url = f"{s.site_url}/confirm?token={confirm_token}"
+    subject = f"Confirm your Octane alert — {fuel_name} {direction} LKR {threshold}"
+    html_body = _CONFIRMATION_HTML.format(
+        fuel_name=fuel_name,
+        threshold=threshold,
+        direction=direction,
+        confirm_url=confirm_url,
+    )
+    text_body = _CONFIRMATION_TEXT.format(
+        fuel_name=fuel_name,
+        threshold=threshold,
+        direction=direction,
+        confirm_url=confirm_url,
+    )
+    sent, err = _send_html_email(to_email, subject, html_body, text_body)
+    if err:
+        log.error("[alert] confirmation email failed for %s: %s", to_email, err)
+
+
 # ---------------------------------------------------------------------------
 # Telegram
 # ---------------------------------------------------------------------------
 
 def _send_telegram(chat_id: str, text: str) -> tuple[bool, str | None]:
-    """Send a message via Telegram Bot API. Returns (sent, error_or_None)."""
     s = get_settings()
     if not s.telegram_bot_token:
         log.info("[alert] telegram not configured, skipping chat_id=%s", chat_id)
@@ -304,12 +503,114 @@ def _send_telegram(chat_id: str, text: str) -> tuple[bool, str | None]:
 
 
 # ---------------------------------------------------------------------------
+# Mini chart
+# ---------------------------------------------------------------------------
+
+def _mini_chart(fuel_type: str, threshold: float) -> tuple[str, float | None]:
+    """Return (svg_html, delta_lkr). Uses 12-month history with a threshold line."""
+    delta: float | None = None
+    vals: list[float] = []
+
+    hist = prices.history(fuel_type, days=365)
+    if len(hist) >= 2:
+        deduped = [hist[0]]
+        for r in hist[1:]:
+            if r["price_lkr"] != deduped[-1]["price_lkr"]:
+                deduped.append(r)
+        if hist[-1]["price_lkr"] != deduped[-1]["price_lkr"]:
+            deduped.append(hist[-1])
+        if len(deduped) >= 2:
+            vals = [r["price_lkr"] for r in deduped[-8:]]
+            delta = vals[-1] - vals[-2]
+
+    if len(vals) < 2:
+        all_changes = prices.changes(limit=200)
+        fuel_changes = [r for r in all_changes if r["fuel_type"] == fuel_type]
+        fuel_changes = list(reversed(fuel_changes))[-8:]
+        if len(fuel_changes) < 2:
+            return "", None
+        vals = [r["price_lkr"] for r in fuel_changes]
+        delta = fuel_changes[-1]["delta_lkr"]
+
+    W, H, PAD = 580, 72, 10
+    raw_lo = min(min(vals), threshold)
+    raw_hi = max(max(vals), threshold)
+    pad_amt = (raw_hi - raw_lo) * 0.18 or 15
+    lo, hi = raw_lo - pad_amt, raw_hi + pad_amt
+    span = hi - lo
+    n = len(vals)
+
+    def px(i: int) -> float:
+        return PAD + i * (W - 2 * PAD) / (n - 1)
+
+    def py(v: float) -> float:
+        return PAD + (1 - (v - lo) / span) * (H - 2 * PAD)
+
+    pts = " ".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(vals))
+    lx, ly = f"{px(n - 1):.1f}", f"{py(vals[-1]):.1f}"
+    fill = (
+        f"M{px(0):.1f},{py(vals[0]):.1f} "
+        + " ".join(f"L{px(i):.1f},{py(v):.1f}" for i, v in enumerate(vals))
+        + f" L{px(n - 1):.1f},{H} L{px(0):.1f},{H} Z"
+    )
+    ty = py(threshold)
+    t_label = int(threshold) if threshold == int(threshold) else threshold
+
+    svg = (
+        f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
+        f'style="display:block;width:100%;" xmlns="http://www.w3.org/2000/svg">'
+        f'<defs>'
+        f'<linearGradient id="oct-g" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="#f59e0b" stop-opacity="0.22"/>'
+        f'<stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>'
+        f'</linearGradient>'
+        f'</defs>'
+        f'<line x1="{PAD}" y1="{ty:.1f}" x2="{W - PAD}" y2="{ty:.1f}" '
+        f'stroke="#c4b99a" stroke-width="1" stroke-dasharray="4 3"/>'
+        f'<text x="{W - PAD - 3}" y="{ty - 4:.1f}" font-size="8.5" fill="#c4b99a" '
+        f'text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,sans-serif">'
+        f'LKR {t_label}</text>'
+        f'<path d="{fill}" fill="url(#oct-g)"/>'
+        f'<polyline points="{pts}" fill="none" stroke="#f59e0b" stroke-width="2" '
+        f'stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<circle cx="{lx}" cy="{ly}" r="4.5" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>'
+        f'</svg>'
+    )
+    return svg, delta
+
+
+def _delta_badge(delta: float | None) -> str:
+    if delta is None:
+        return ""
+    delta_fmt = int(delta) if delta == int(delta) else delta
+    sign = "+" if delta >= 0 else ""
+    arrow = "&#9650;" if delta >= 0 else "&#9660;"
+    bg = "#fef2f2" if delta >= 0 else "#f0fdf4"
+    fg = "#dc2626" if delta >= 0 else "#16a34a"
+    return (
+        f'<span style="display:inline-block;font-size:11px;font-weight:700;'
+        f'color:{fg};background:{bg};padding:3px 8px;border-radius:6px;'
+        f'letter-spacing:-0.01em;">{arrow}&nbsp;{sign}{delta_fmt}</span>'
+    )
+
+
+# ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
 
 def dispatch_pending() -> int:
-    """Find alerts whose threshold is currently met and notify subscribers."""
+    """Find confirmed alerts whose threshold is currently met and notify subscribers.
+
+    Each alert fires once then deactivates — users must set a new alert if they
+    want to be notified again.
+    """
     s = get_settings()
+    has_email = bool(s.smtp_host and s.smtp_user)
+    has_telegram = bool(s.telegram_bot_token)
+    if not has_email and not has_telegram:
+        log.warning("[dispatch] no delivery channels configured, skipping")
+        return 0
+
     fired = 0
     for alert in list_active():
         if (alert.get("send_attempts") or 0) >= MAX_SEND_ATTEMPTS:
@@ -336,23 +637,34 @@ def dispatch_pending() -> int:
         fuel_name = _FUEL_LABELS.get(alert["fuel_type"], alert["fuel_type"])
         manage_url = f"{s.site_url}/manage?token={alert['unsubscribe_token']}"
         recorded_at = latest["recorded_at"]
+        price_fmt = int(price) if price == int(price) else price
+        threshold_fmt = int(threshold) if threshold == int(threshold) else threshold
+        chart_html, delta = _mini_chart(alert["fuel_type"], threshold)
+        try:
+            from datetime import datetime as _dt
+            _d = _dt.strptime(recorded_at, "%Y-%m-%d")
+            recorded_at_fmt = f"{_d.day} {_d.strftime('%B %Y')}"
+        except Exception:
+            recorded_at_fmt = recorded_at
 
         # ── Email ────────────────────────────────────────────────────────────
-        subject = f"Octane alert: {fuel_name} is now LKR {price}"
+        subject = f"Octane alert: {fuel_name} is now LKR {price_fmt}"
         html_body = _EMAIL_HTML.format(
             fuel_name=fuel_name,
-            price=price,
+            price=price_fmt,
             direction=alert["direction"],
             direction_cap=alert["direction"].capitalize(),
-            threshold=threshold,
-            recorded_at=recorded_at,
+            threshold=threshold_fmt,
+            recorded_at=recorded_at_fmt,
             manage_url=manage_url,
+            chart_html=chart_html,
+            delta_badge=_delta_badge(delta),
         )
         text_body = _EMAIL_TEXT.format(
             fuel_name=fuel_name,
-            price=price,
+            price=price_fmt,
             direction=alert["direction"],
-            threshold=threshold,
+            threshold=threshold_fmt,
             recorded_at=recorded_at,
             manage_url=manage_url,
         )
@@ -374,18 +686,24 @@ def dispatch_pending() -> int:
             )
             tg_sent, tg_err = _send_telegram(chat_id, tg_text)
 
-        # ── Mark fired / track failures ───────────────────────────────────────
+        # ── Mark fired or track failure ───────────────────────────────────────
         delivery_ok = email_sent or tg_sent
         error = email_err or tg_err
+
         if delivery_ok:
+            # One-shot: deactivate after firing and log to history
             with cursor() as cur:
                 cur.execute(
                     """
                     UPDATE alerts
-                    SET last_fired_at = %s, send_attempts = 0, last_send_error = NULL
+                    SET active = FALSE, last_fired_at = %s
                     WHERE id = %s
                     """,
                     (datetime.now(timezone.utc), alert["id"]),
+                )
+                cur.execute(
+                    "INSERT INTO alert_fires (alert_id, price_lkr) VALUES (%s, %s)",
+                    (alert["id"], price),
                 )
             fired += 1
         elif error:

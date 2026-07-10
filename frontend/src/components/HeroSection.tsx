@@ -37,7 +37,9 @@ function Card({ title, description, Icon, href }: FeatureCard) {
         // inset border
         "shadow-[inset_0_0_0_1px_#e4e4e7]",
         // transition
-        "transition-all duration-150 ease-in-out",
+        "transition-all duration-200 ease-out",
+        // lift on hover
+        "hover:-translate-y-1 hover:shadow-[inset_0_0_0_1px_#d4d4d8,0_8px_24px_rgba(24,24,27,0.08)]",
         // fold — diagonal square behind corner (before)
         "before:absolute before:top-0 before:right-0 before:z-[3]",
         "before:h-[30px] before:w-[30px]",
@@ -105,7 +107,7 @@ export function HeroSection() {
         </FadeDiv>
 
         {/* Headline */}
-        <h1 className="mt-8 font-display text-5xl font-extrabold tracking-tightest text-ink-100 sm:text-7xl sm:leading-[1.05]">
+        <h1 className="mt-8 font-display text-5xl font-bold tracking-tightest text-ink-100 sm:text-7xl sm:leading-[1.05]">
           <FadeSpan delay={60}>{m.hero.h1a}</FadeSpan>{" "}
           <FadeSpan delay={110}>{m.hero.h1b}</FadeSpan>
           <br />
@@ -122,13 +124,13 @@ export function HeroSection() {
         <FadeDiv delay={420} className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <a
             href="#prices"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border-b-[1.5px] border-amber-600 bg-gradient-to-b from-amber-400 to-accent px-5 py-3 text-sm font-semibold leading-4 tracking-wide text-zinc-900 shadow-[0_0_0_2px_rgba(0,0,0,0.04),0_0_14px_0_rgba(255,255,255,0.19)] transition-all duration-200 ease-in-out hover:shadow-amber-300 whitespace-nowrap"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border-b-[1.5px] border-amber-600 bg-gradient-to-b from-amber-400 to-accent px-5 py-3 text-sm font-semibold leading-4 tracking-wide text-zinc-900 shadow-[0_0_0_2px_rgba(0,0,0,0.04),0_0_14px_0_rgba(255,255,255,0.19)] transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(245,158,11,0.45)] active:translate-y-0 active:scale-100 whitespace-nowrap"
           >
             {m.hero.ctaPrices}
           </a>
           <a
             href="#alerts"
-            className="inline-flex items-center gap-1 rounded-md border border-ink-700 px-5 py-3 text-sm font-semibold text-ink-300 transition-all duration-150 hover:bg-ink-900 hover:text-ink-200 whitespace-nowrap"
+            className="inline-flex items-center gap-1 rounded-md border border-ink-700 px-5 py-3 text-sm font-semibold text-ink-300 transition-all duration-150 hover:-translate-y-0.5 hover:bg-ink-900 hover:text-ink-200 hover:shadow-sm whitespace-nowrap"
           >
             {m.hero.ctaAlerts}
             <RiArrowRightUpLine className="size-4 text-ink-400" />

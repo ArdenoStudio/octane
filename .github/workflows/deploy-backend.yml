@@ -7,6 +7,10 @@ on:
       - 'backend/**'
       - '.github/workflows/deploy-backend.yml'
 
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -15,6 +19,15 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: superfly/flyctl-actions/setup-flyctl@v1
+
+      - name: Release stale VM leases
+        working-directory: backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl machines list --json | \
+            jq -r '.[].id' | \
+            xargs -r -I{} sh -c 'flyctl machine leases clear {} 2>/dev/null || true'
 
       - name: Deploy
         working-directory: backend

@@ -42,36 +42,44 @@ export function DigestSignup() {
             </div>
           </div>
 
-          {/* Form */}
-          {status === "ok" ? (
-            <p className="text-sm text-emerald-600 font-medium">
-              Subscribed — see you Monday.
+          {/* Form + consent */}
+          <div className="flex flex-col gap-2 w-full sm:w-auto">
+            {status === "ok" ? (
+              <p className="text-sm text-emerald-600 font-medium">
+                Subscribed — see you Monday.
+              </p>
+            ) : (
+              <form onSubmit={submit} className="flex w-full items-center gap-2 sm:w-auto">
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="input h-9 flex-1 min-w-0 sm:w-52 text-sm"
+                />
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="btn-primary h-9 shrink-0 text-sm disabled:opacity-60"
+                >
+                  {busy ? "…" : "Subscribe"}
+                </button>
+              </form>
+            )}
+            {status === "err" && (
+              <p className="text-xs text-red-500">
+                Something went wrong — check your email and try again.
+              </p>
+            )}
+            <p className="text-xs text-ink-600">
+              By subscribing you agree to our{" "}
+              <a href="/privacy" className="underline underline-offset-2 hover:text-ink-400 transition-colors">Privacy Policy</a>
+              {" "}and{" "}
+              <a href="/terms" className="underline underline-offset-2 hover:text-ink-400 transition-colors">Terms of Use</a>
+              . Unsubscribe anytime via the link in any email.
             </p>
-          ) : (
-            <form onSubmit={submit} className="flex w-full items-center gap-2 sm:w-auto">
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="input h-9 flex-1 min-w-0 sm:w-52 text-sm"
-              />
-              <button
-                type="submit"
-                disabled={busy}
-                className="btn-primary h-9 shrink-0 text-sm disabled:opacity-60"
-              >
-                {busy ? "…" : "Subscribe"}
-              </button>
-            </form>
-          )}
-
-          {status === "err" && (
-            <p className="w-full text-xs text-red-500 sm:hidden">
-              Something went wrong — check your email and try again.
-            </p>
-          )}
+          </div>
         </div>
       </div>
     </section>

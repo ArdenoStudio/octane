@@ -21,6 +21,11 @@
   mask-image: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(0,0,0,1) 0%, transparent 85%);
 }
 
+@keyframes btn-shine {
+  0%   { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(300%) skewX(-20deg); }
+}
+
 @keyframes octane-enter {
   from { opacity: 0; transform: translateY(8px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0)  scale(1); }
@@ -62,7 +67,11 @@
     @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
   }
   .card {
-    @apply rounded-2xl border border-ink-800 bg-white shadow-sm;
+    @apply rounded-2xl border border-ink-800 bg-white;
+    box-shadow:
+      0 1px 3px rgba(24,24,27,0.05),
+      0 4px 16px rgba(24,24,27,0.05),
+      0 0 48px rgba(245,158,11,0.04);
   }
   .btn {
     @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition;
@@ -78,5 +87,22 @@
   }
   .label {
     @apply text-xs font-medium uppercase tracking-[0.12em] text-ink-400;
+  }
+  .btn-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shine::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: 0;
+    width: 40%;
+    height: 140%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
+    transform: translateX(-120%) skewX(-20deg);
+    animation: btn-shine 3.2s ease-in-out infinite;
+    animation-delay: 0.8s;
+    pointer-events: none;
   }
 }

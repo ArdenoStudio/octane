@@ -1,4 +1,4 @@
-"""Simple linear-regression price forecast.
+"""Simple linear-regression price forecast, optionally blended with AI sentiment.
 
 Uses pure-Python math (no scipy/numpy) so it adds zero dependencies.
 The regression is fitted on recent price history and projected forward.
@@ -8,12 +8,19 @@ Strategy
 Because CPC prices are step functions (constant until a revision), we
 fit the regression on *revision events only* rather than daily fills —
 the slope reflects the genuine rate of change between official revisions.
+
+AI overlay
+----------
+When a sentiment snapshot is available (backend/data/ai_sentiment.json),
+a second projection line is generated using the AI's predicted revision
+magnitude. Both lines are returned; the frontend renders them separately.
 """
 from __future__ import annotations
 
 from datetime import date, timedelta
 
 from app.db.connection import connect
+from app.services import sentiment as sentiment_svc
 
 
 # ---------------------------------------------------------------------------
@@ -90,14 +97,12 @@ def forecast(
         {
           "fuel_type": str,
           "source": str,
-          "r_squared": float,          # 0-1 confidence
-          "slope_lkr_per_day": float,  # how fast price is moving
-          "regression_points": [       # fitted line over history window
-              {"date": "YYYY-MM-DD", "price_lkr": float}, ...
-          ],
-          "forecast_points": [         # projected prices beyond today
-              {"date": "YYYY-MM-DD", "price_lkr": float}, ...
-          ],
+          "r_squared": float,           # 0-1 confidence
+          "slope_lkr_per_day": float,   # how fast price is moving
+          "regression_points": [...],   # fitted line over history window
+          "forecast_points": [...],     # linear projection beyond today
+          "ai_forecast_points": [...],  # AI-adjusted projection (may be [])
+          "sentiment": {...} | null,    # current AI sentiment snapshot
         }
     """
     revisions = _fetch_revisions(fuel_type, source, history_days)
@@ -109,6 +114,8 @@ def forecast(
             "slope_lkr_per_day": None,
             "regression_points": [],
             "forecast_points": [],
+            "ai_forecast_points": [],
+            "sentiment": None,
             "error": "Not enough revision history to compute a trend.",
         }
 
@@ -120,6 +127,7 @@ def forecast(
     slope, intercept, r2 = _linreg(xs, ys)
 
     today = date.today()
+    today_x = float(today.toordinal() - epoch)
 
     # Regression line over the history window (one point per revision date +
     # today's end-of-window point for visual continuity)
@@ -132,7 +140,7 @@ def forecast(
         for d in reg_dates
     ]
 
-    # Forecast: daily points for the next horizon_days
+    # Linear forecast: daily points for the next horizon_days
     forecast_points = []
     for i in range(1, horizon_days + 1):
         fd = today + timedelta(days=i)
@@ -142,6 +150,39 @@ def forecast(
             "price_lkr": round(projected, 2),
         })
 
+    # AI-adjusted forecast (uses sentiment magnitude if available)
+    ai_forecast_points: list[dict] = []
+    sentiment_out: dict | None = None
+
+    sent = sentiment_svc.load()
+    if sent is not None:
+        sentiment_out = {
+            "direction": sent.direction,
+            "confidence": sent.confidence,
+            "magnitude_lkr": sent.magnitude_lkr,
+            "summary": sent.summary,
+            "generated_at": sent.generated_at,
+            "headlines_analyzed": sent.headlines_analyzed,
+            "signals": sent.signals,
+        }
+
+        # AI slope: assume the predicted revision happens within 30 days,
+        # then prices flatten at that new level.
+        # We use the regression value at today as the base so the frontend's
+        # existing offset-anchoring logic keeps the line connected correctly.
+        today_reg_price = slope * today_x + intercept
+        revision_horizon = 30  # days until expected revision
+        ai_daily_slope = sent.magnitude_lkr / revision_horizon
+
+        for i in range(1, horizon_days + 1):
+            fd = today + timedelta(days=i)
+            delta = ai_daily_slope * min(i, revision_horizon)
+            ai_projected = today_reg_price + delta
+            ai_forecast_points.append({
+                "date": fd.isoformat(),
+                "price_lkr": round(ai_projected, 2),
+            })
+
     return {
         "fuel_type": fuel_type,
         "source": source,
@@ -149,4 +190,6 @@ def forecast(
         "slope_lkr_per_day": round(slope, 4),
         "regression_points": regression_points,
         "forecast_points": forecast_points,
+        "ai_forecast_points": ai_forecast_points,
+        "sentiment": sentiment_out,
     }

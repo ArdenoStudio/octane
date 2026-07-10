@@ -10,7 +10,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, FUEL_ORDER, FuelId, ForecastResp, HistoryPoint, PriceChangeRow } from "../lib/api";
+import {
+  api,
+  FUEL_ORDER,
+  FuelId,
+  ForecastResp,
+  HistoryPoint,
+  PriceChangeRow,
+  PriceSource,
+  SentimentData,
+} from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
@@ -31,13 +40,51 @@ const RANGES = [
 
 type ChartMode = "daily" | "revisions";
 
+function SentimentBadge({ sentiment }: { sentiment: SentimentData }) {
+  const arrow = sentiment.direction === "up" ? "↑" : sentiment.direction === "down" ? "↓" : "→";
+  const label = sentiment.direction === "up" ? "Bullish" : sentiment.direction === "down" ? "Bearish" : "Neutral";
+  const colorClass =
+    sentiment.direction === "up"
+      ? "text-red-400 border-red-400/30 bg-red-400/10"
+      : sentiment.direction === "down"
+      ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
+      : "text-ink-400 border-ink-600 bg-ink-800/40";
+
+  return (
+    <span
+      title={`${sentiment.summary} (${sentiment.headlines_analyzed} headlines analysed)`}
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold ${colorClass}`}
+    >
+      <span>{arrow}</span>
+      <span>AI {label}</span>
+      <span className="opacity-60">·</span>
+      <span className="opacity-80">{(sentiment.confidence * 100).toFixed(0)}%</span>
+    </span>
+  );
+}
+
 export function HistoryChart() {
   const fuelLabel = useFuelLabel();
-  const [active, setActive] = useState<Set<FuelId>>(
-    () => new Set(["petrol_92", "auto_diesel"])
-  );
+  // Default: all five fuels so Petrol 95 / Super Diesel / Kerosene are visible
+  // without an extra click (users can still deselect).
+  const [active, setActive] = useState<Set<FuelId>>(() => new Set(FUEL_ORDER));
   const [days, setDays] = useState<number>(365);
   const [mode, setMode] = useState<ChartMode>("daily");
+  // Official CPC vs media-reported (unconfirmed) news prices.
+  const [priceSource, setPriceSource] = useState<PriceSource>("cpc");
+
+  function switchMode(m: ChartMode) {
+    setMode(m);
+    if (m === "revisions") setShowForecast(false);
+  }
+
+  function switchSource(s: PriceSource) {
+    setPriceSource(s);
+    // Trend overlay is CPC-only (forecast fits official history).
+    if (s === "news") setShowForecast(false);
+    // Force a fresh revisions fetch for the new source.
+    setAllRevisions(null);
+  }
 
   // Daily mode: per-fuel time-series from /v1/prices/history
   const [series, setSeries] = useState<Record<FuelId, HistoryPoint[]>>({} as Record<FuelId, HistoryPoint[]>);
@@ -51,29 +98,36 @@ export function HistoryChart() {
   const [showForecast, setShowForecast] = useState(false);
   const [forecasts, setForecasts] = useState<Record<FuelId, ForecastResp>>({} as Record<FuelId, ForecastResp>);
 
-  // Fetch daily series whenever active fuels, range, or mode changes
+  // Fetch daily series whenever active fuels, range, mode, or source changes
   useEffect(() => {
     if (mode !== "daily") return;
+    let cancelled = false;
     Promise.all(
-      Array.from(active).map((f) => api.history(f, days).then((r) => [f, r.points] as const))
+      Array.from(active).map((f) =>
+        api.history(f, days, priceSource).then((r) => [f, r.points] as const)
+      )
     )
       .then((entries) => {
-        const next: Record<FuelId, HistoryPoint[]> = { ...series };
+        if (cancelled) return;
+        const next = {} as Record<FuelId, HistoryPoint[]>;
         for (const [f, pts] of entries) next[f] = pts;
         setSeries(next);
       })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, mode, Array.from(active).join(",")]);
+  }, [days, mode, priceSource, Array.from(active).join(",")]);
 
-  // Fetch forecasts for active fuels when trend overlay is toggled on
+  // Fetch forecasts for active fuels when trend overlay is toggled on (CPC only)
   useEffect(() => {
-    if (!showForecast) return;
+    if (!showForecast || priceSource !== "cpc") return;
     const fuelsNeeded = Array.from(active).filter((f) => !forecasts[f]);
     if (fuelsNeeded.length === 0) return;
     Promise.all(
       fuelsNeeded.map((f) =>
-        api.forecast(f, Math.min(days, 365), 90).then((r) => [f, r] as const)
+        api.forecast(f, Math.min(days, 365), 60).then((r) => [f, r] as const)
       )
     ).then((entries) => {
       const next = { ...forecasts };
@@ -81,22 +135,32 @@ export function HistoryChart() {
       setForecasts(next);
     }).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showForecast, Array.from(active).join(",")]);
+  }, [showForecast, priceSource, Array.from(active).join(",")]);
 
-  // Fetch all revision events once when first switching to revisions mode
+  // Fetch revision events when switching to revisions mode or changing source
   useEffect(() => {
     if (mode !== "revisions" || allRevisions !== null) return;
     setRevisionsLoading(true);
     setRevisionsError(null);
     api
-      .changes(5000)
+      .changes(5000, priceSource)
       .then((r) => setAllRevisions(r.changes))
       .catch((e: unknown) => {
         setRevisionsError(String(e));
         setAllRevisions([]);
       })
       .finally(() => setRevisionsLoading(false));
-  }, [mode, allRevisions]);
+  }, [mode, allRevisions, priceSource]);
+
+  // Pull the sentiment snapshot off the first available forecast result
+  const sentiment: SentimentData | null = useMemo(() => {
+    if (!showForecast) return null;
+    for (const f of FUEL_ORDER) {
+      const s = forecasts[f]?.sentiment;
+      if (s) return s;
+    }
+    return null;
+  }, [showForecast, forecasts]);
 
   // Merge forecast regression + forward projection into chart data
   const chartDataWithForecast = useMemo(() => {
@@ -105,14 +169,17 @@ export function HistoryChart() {
     const allDates = new Set<string>();
     const regByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
     const fwdByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
+    const aiFwdByFuel: Partial<Record<FuelId, Map<string, number>>> = {};
 
     for (const f of active) {
       const fc = forecasts[f];
       if (!fc) continue;
       regByFuel[f] = new Map(fc.regression_points.map((p) => [p.date, p.price_lkr]));
       fwdByFuel[f] = new Map(fc.forecast_points.map((p) => [p.date, p.price_lkr]));
+      aiFwdByFuel[f] = new Map((fc.ai_forecast_points ?? []).map((p) => [p.date, p.price_lkr]));
       fc.regression_points.forEach((p) => allDates.add(p.date));
       fc.forecast_points.forEach((p) => allDates.add(p.date));
+      (fc.ai_forecast_points ?? []).forEach((p) => allDates.add(p.date));
     }
 
     return Array.from(allDates)
@@ -122,8 +189,10 @@ export function HistoryChart() {
         for (const f of active) {
           const reg = regByFuel[f]?.get(d);
           const fwd = fwdByFuel[f]?.get(d);
+          const aiFwd = aiFwdByFuel[f]?.get(d);
           if (reg != null) row[`${f}_reg`] = reg;
           if (fwd != null) row[`${f}_fwd`] = fwd;
+          if (aiFwd != null) row[`${f}_ai_fwd`] = aiFwd;
         }
         return row;
       });
@@ -194,13 +263,66 @@ export function HistoryChart() {
       const existing = map.get(row.date as string) ?? { date: row.date };
       map.set(row.date as string, { ...existing, ...row });
     }
-    return Array.from(map.values()).sort((a, b) =>
+    const merged = Array.from(map.values()).sort((a, b) =>
       (a.date as string).localeCompare(b.date as string)
     );
-  }, [chartData, chartDataWithForecast]);
+
+    // Anchor each fuel's trend lines to its last actual price and hide any
+    // projected points that fall inside the historical period.
+    const offsets: Partial<Record<FuelId, number>> = {};
+    const anchorIndices: Partial<Record<FuelId, number>> = {};
+    for (const f of active) {
+      for (let i = merged.length - 1; i >= 0; i--) {
+        const row = merged[i];
+        if (row[f] != null && row[`${f}_reg`] != null) {
+          offsets[f] = (row[f] as number) - (row[`${f}_reg`] as number);
+          anchorIndices[f] = i;
+          break;
+        }
+      }
+    }
+
+    return merged.map((row, i) => {
+      const next = { ...row };
+      for (const f of active) {
+        const off = offsets[f];
+        const anchor = anchorIndices[f];
+        if (off == null || anchor == null) continue;
+
+        // Linear regression forward projection
+        if (i === anchor) {
+          next[`${f}_fwd`] = next[f] as number;
+        } else if (next[`${f}_fwd`] != null) {
+          if (i > anchor) {
+            next[`${f}_fwd`] = (next[`${f}_fwd`] as number) + off;
+          } else {
+            delete next[`${f}_fwd`];
+          }
+        }
+
+        // AI forward projection (same offset/anchor logic)
+        if (i === anchor) {
+          next[`${f}_ai_fwd`] = next[f] as number;
+        } else if (next[`${f}_ai_fwd`] != null) {
+          if (i > anchor) {
+            next[`${f}_ai_fwd`] = (next[`${f}_ai_fwd`] as number) + off;
+          } else {
+            delete next[`${f}_ai_fwd`];
+          }
+        }
+      }
+      return next;
+    });
+  }, [chartData, chartDataWithForecast, active]);
 
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
+  const hasSentiment = sentiment !== null;
+  const hasAiForecast = showForecast && Object.values(forecasts).some(
+    (f) => (f.ai_forecast_points ?? []).length > 0
+  );
+  const hasChartPoints = mergedData.length > 0;
+  const isNews = priceSource === "news";
 
   return (
     <section id="history" className="container-x pt-16">
@@ -208,16 +330,51 @@ export function HistoryChart() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="label">Price history</div>
-            <h2 className="mt-1 font-display text-2xl font-extrabold tracking-tightest sm:text-3xl">
+            <h2 className="mt-1 font-display text-2xl font-bold tracking-tightest sm:text-3xl">
               Every revision since the records begin.
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Official CPC vs media-reported (unconfirmed) */}
+            <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
+              <RadioGroup
+                value={priceSource}
+                onValueChange={(v) => switchSource(v as PriceSource)}
+                className="relative inline-grid grid-cols-2 items-center gap-0 text-xs font-semibold"
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-y-0 w-1/2 rounded-md bg-ink-100 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{
+                    transform: `translateX(${priceSource === "cpc" ? "0%" : "100%"})`,
+                    boxShadow:
+                      "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
+                  }}
+                />
+                {(
+                  [
+                    { id: "cpc" as const, label: "Official" },
+                    { id: "news" as const, label: "Unofficial" },
+                  ] as const
+                ).map((opt) => (
+                  <label
+                    key={opt.id}
+                    className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center px-3 transition-colors ${
+                      priceSource === opt.id ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
+                    }`}
+                  >
+                    {opt.label}
+                    <RadioGroupItem value={opt.id} className="sr-only" />
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+
             {/* Mode: Daily interpolated vs Revisions only */}
             <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
               <RadioGroup
                 value={mode}
-                onValueChange={(v) => setMode(v as ChartMode)}
+                onValueChange={(v) => switchMode(v as ChartMode)}
                 className="relative inline-grid grid-cols-2 items-center gap-0 text-xs font-semibold"
               >
                 <div
@@ -273,22 +430,24 @@ export function HistoryChart() {
               </RadioGroup>
             </div>
 
-            {/* Trend / forecast toggle */}
-            <button
-              onClick={() => setShowForecast((v) => !v)}
-              title="Toggle 90-day trend forecast"
-              className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
-                showForecast
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
-              }`}
-            >
-              <RiLineChartLine className="size-3.5" />
-              Trend
-            </button>
+            {/* Trend / forecast toggle — daily CPC mode only */}
+            {mode === "daily" && priceSource === "cpc" && (
+              <button
+                onClick={() => setShowForecast((v) => !v)}
+                title="Toggle 60-day trend forecast"
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
+                  showForecast
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-ink-700 text-ink-400 hover:border-ink-600 hover:text-ink-200"
+                }`}
+              >
+                <RiLineChartLine className="size-3.5" />
+                Trend
+              </button>
+            )}
 
             <a
-              href={api.historyCsvUrl(Array.from(active), days)}
+              href={api.historyCsvUrl(Array.from(active), days, priceSource)}
               download
               title="Download CSV"
               className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
@@ -297,7 +456,7 @@ export function HistoryChart() {
               CSV
             </a>
             <a
-              href={api.historyJsonUrl(Array.from(active), days)}
+              href={api.historyJsonUrl(Array.from(active), days, priceSource)}
               download
               title="Download JSON"
               className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
@@ -308,21 +467,33 @@ export function HistoryChart() {
           </div>
         </div>
 
+        {isNews && (
+          <p className="mt-2 text-xs text-amber-600/90">
+            Unofficial — media-reported prices ahead of or alongside CPC. Not an official revision.
+          </p>
+        )}
         {mode === "revisions" && (
           <p className="mt-2 text-xs text-ink-500">
             Only dates when prices actually changed — no daily interpolation.
           </p>
         )}
         {showForecast && (
-          <p className="mt-2 text-xs text-ink-500">
-            <span className="font-semibold text-accent">Trend</span>: dashed line shows a linear regression fit over the selected period. Projected 90 days ahead — for indicative purposes only.
-            {Object.keys(forecasts).length > 0 && (() => {
-              const f = Array.from(active).find((k) => forecasts[k]?.r_squared != null);
-              if (!f) return null;
-              const r2 = forecasts[f]?.r_squared;
-              return r2 != null ? <> R² = {(r2 * 100).toFixed(0)}%.</> : null;
-            })()}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-ink-500">
+              <span className="font-semibold text-accent">Trend</span>: dashed line projects 60 days ahead using linear regression —{" "}
+              {hasAiForecast && (
+                <>bright dashed line is the <span className="font-semibold text-ink-300">AI forecast</span> (Groq · Llama 3.1) based on news sentiment — </>
+              )}
+              for indicative purposes only.
+              {Object.keys(forecasts).length > 0 && (() => {
+                const f = Array.from(active).find((k) => forecasts[k]?.r_squared != null);
+                if (!f) return null;
+                const r2 = forecasts[f]?.r_squared;
+                return r2 != null ? <> R² = {(r2 * 100).toFixed(0)}%.</> : null;
+              })()}
+            </p>
+            {hasSentiment && <SentimentBadge sentiment={sentiment!} />}
+          </div>
         )}
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -358,6 +529,19 @@ export function HistoryChart() {
             <div className="flex h-full items-center justify-center text-sm text-red-400">
               Couldn't load revision data. Try refreshing.
             </div>
+          ) : !hasChartPoints ? (
+            <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center text-sm text-ink-500">
+              {isNews ? (
+                <>
+                  <span>No media-reported prices in this range yet.</span>
+                  <span className="text-xs text-ink-600">
+                    Unofficial points appear after the hourly news scrape finds a revision.
+                  </span>
+                </>
+              ) : (
+                <span>No price points in this range.</span>
+              )}
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={mergedData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
@@ -367,7 +551,7 @@ export function HistoryChart() {
                   tickFormatter={(d) => String(d).slice(0, 7)}
                   stroke="#a1a1aa"
                   fontSize={11}
-                  minTickGap={32}
+                  minTickGap={70}
                 />
                 <YAxis
                   stroke="#a1a1aa"
@@ -376,17 +560,35 @@ export function HistoryChart() {
                   domain={["auto", "auto"]}
                 />
                 <Tooltip
-                  contentStyle={{
-                    background: "#ffffff",
-                    border: "1px solid #e4e4e7",
-                    borderRadius: 12,
-                    fontSize: 12,
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const items = payload.filter((p) => {
+                      const key = p.dataKey as string;
+                      return FUEL_ORDER.includes(key as FuelId) || key.endsWith("_ai_fwd");
+                    });
+                    if (!items.length) return null;
+                    return (
+                      <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, fontSize: 12, padding: "8px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+                        <div style={{ color: "#71717a", marginBottom: 6 }}>{label}</div>
+                        {items.map((p) => {
+                          const key = p.dataKey as string;
+                          const isAI = key.endsWith("_ai_fwd");
+                          const fuel = (isAI ? key.replace("_ai_fwd", "") : key) as FuelId;
+                          return (
+                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                              <span style={{ color: p.color, fontSize: 8 }}>●</span>
+                              <span style={{ color: "#3f3f46" }}>
+                                {fuelLabel(fuel)}{isAI ? <span style={{ color: "#a1a1aa" }}> · AI</span> : null}
+                              </span>
+                              <span style={{ marginLeft: "auto", paddingLeft: 12, fontWeight: 500 }}>
+                                LKR {(p.value as number).toFixed(2)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
                   }}
-                  labelStyle={{ color: "#71717a" }}
-                  formatter={(value: number, name: string) => [
-                    `LKR ${value.toFixed(2)}`,
-                    FUEL_ORDER.includes(name as FuelId) ? fuelLabel(name as FuelId) : name,
-                  ]}
                 />
                 {mode === "revisions" &&
                   chartData.map((d) => (
@@ -404,31 +606,14 @@ export function HistoryChart() {
                     dataKey={f}
                     stroke={COLORS[f]}
                     strokeWidth={2}
+                    strokeDasharray={isNews ? "5 3" : undefined}
                     dot={mode === "revisions" ? { r: 3, fill: COLORS[f], strokeWidth: 0 } : false}
                     connectNulls
                     isAnimationActive={false}
                   />
                 ))}
 
-                {/* Forecast: regression line over history */}
-                {showForecast && Array.from(active).map((f) =>
-                  forecasts[f] ? (
-                    <Line
-                      key={`${f}_reg`}
-                      type="linear"
-                      dataKey={`${f}_reg`}
-                      stroke={COLORS[f]}
-                      strokeWidth={1.5}
-                      strokeDasharray="6 3"
-                      dot={false}
-                      connectNulls
-                      isAnimationActive={false}
-                      legendType="none"
-                    />
-                  ) : null
-                )}
-
-                {/* Forecast: forward projection (90 days ahead) */}
+                {/* Linear regression forward projection — dim dashed */}
                 {showForecast && Array.from(active).map((f) =>
                   forecasts[f] ? (
                     <Line
@@ -438,7 +623,26 @@ export function HistoryChart() {
                       stroke={COLORS[f]}
                       strokeWidth={1.5}
                       strokeDasharray="4 4"
-                      strokeOpacity={0.6}
+                      strokeOpacity={0.35}
+                      dot={false}
+                      connectNulls
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                  ) : null
+                )}
+
+                {/* AI-adjusted forward projection — brighter dashed */}
+                {showForecast && hasAiForecast && Array.from(active).map((f) =>
+                  (forecasts[f]?.ai_forecast_points ?? []).length > 0 ? (
+                    <Line
+                      key={`${f}_ai_fwd`}
+                      type="linear"
+                      dataKey={`${f}_ai_fwd`}
+                      stroke={COLORS[f]}
+                      strokeWidth={2}
+                      strokeDasharray="6 3"
+                      strokeOpacity={0.75}
                       dot={false}
                       connectNulls
                       isAnimationActive={false}

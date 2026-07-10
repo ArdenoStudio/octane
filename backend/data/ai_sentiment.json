@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-07-10T05:47:49.230299+00:00",
+  "headlines_analyzed": 30,
+  "headlines_sample": [
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
+    "Sri Lanka cuts fuel prices, inflation hits 3-year high",
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
+    "Will airfares get cheaper? Jet fuel prices cut to Rs 110/litre"
+  ],
+  "direction": "down",
+  "confidence": 0.8,
+  "magnitude_lkr": -15.0,
+  "summary": "Recent price cuts and easing global oil prices suggest a downward revision.",
+  "signals": [
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Will airfares get cheaper? Jet fuel prices cut to Rs 110/litre"
+  ]
+}

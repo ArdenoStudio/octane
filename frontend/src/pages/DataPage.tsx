@@ -60,7 +60,7 @@ export function DataPage() {
             <p className="mt-3 text-ink-300">
               Octane is an independent data project by{" "}
               <a
-                href="https://ardeno.studio"
+                href="https://ardeno-studio-website.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-ink-200 hover:text-accent transition-colors underline-offset-2 hover:underline"
@@ -83,10 +83,11 @@ export function DataPage() {
           <div className="mt-10 space-y-8">
             <Section title="Data sources">
               <p>
-                Octane scrapes three primary sources. All prices are denominated
-                in Sri Lankan Rupees (LKR) per litre.
+                Octane scrapes several sources. Domestic retail prices are
+                denominated in Sri Lankan Rupees (LKR) per litre. CPC remains the
+                official figure shown on the price cards.
               </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Source
                   name="Ceylon Petroleum Corporation (CPC)"
                   url="https://ceypetco.gov.lk"
@@ -95,7 +96,12 @@ export function DataPage() {
                 <Source
                   name="Lanka IOC"
                   url="https://www.lankaiocoil.lk"
-                  desc="Indian Oil Corporation's Sri Lanka subsidiary. Prices typically follow CPC but may differ slightly. Used for cross-verification."
+                  desc="Indian Oil Corporation's Sri Lanka subsidiary. Prices typically follow CPC but may differ slightly. Used for cross-verification and divergence alerts."
+                />
+                <Source
+                  name="News outlets"
+                  url="https://news.google.com"
+                  desc="RSS feeds from Sri Lankan outlets. Used as an early signal when media report a revision before CPC's website updates. Shown as unconfirmed until CPC confirms."
                 />
                 <Source
                   name="Global Petrol Prices"
@@ -107,17 +113,18 @@ export function DataPage() {
 
             <Section title="Collection methodology">
               <p>
-                A scheduled scraper runs daily at{" "}
-                <strong className="text-ink-200">08:00 Sri Lanka Time (UTC+5:30)</strong>
-                . It fetches the current published prices from each source and
-                stores them in a PostgreSQL database. Only revisions — records
-                where the price differs from the prior entry for the same fuel
-                and source — are stored as distinct events.
+                A scheduled scraper checks CPC and Lanka IOC{" "}
+                <strong className="text-ink-200">five times a day</strong>{" "}
+                (approximately 08:00, 12:00, 16:00, 20:00, and midnight Sri Lanka
+                Time). Each run fetches the currently published prices and
+                upserts them into PostgreSQL, recording a verification timestamp
+                even when CPC has not published a new revision.
               </p>
               <p>
-                Historical data going back to when records begin on each source
-                website has been backfilled. The exact backfill date varies by
-                fuel type and source.
+                Historical revision tables are backfilled from each source
+                website. The exact backfill date varies by fuel type and source.
+                Charts and change feeds highlight revision events — dates when
+                the published price actually changed.
               </p>
             </Section>
 
@@ -134,10 +141,22 @@ export function DataPage() {
 
             <Section title="Data freshness">
               <p>
-                Domestic CPC prices are refreshed daily. If the CPC website is
-                unavailable or returns an unexpected format, the scraper logs an
-                error and retains the last known price — no stale data is served
-                without an explicit "last updated" timestamp.
+                Octane distinguishes <strong className="text-ink-200">last CPC revision</strong>{" "}
+                (when the published retail price changed) from{" "}
+                <strong className="text-ink-200">last checked</strong> (when our
+                scraper last successfully verified the source). CPC often leaves
+                prices unchanged for weeks; that does not mean Octane stopped
+                updating. If the CPC website is unavailable or returns an
+                unexpected format, the scraper logs an error and retains the last
+                known price.
+              </p>
+              <p>
+                When news outlets or Lanka IOC report a different figure ahead of
+                CPC, Octane surfaces it as an{" "}
+                <strong className="text-ink-200">unconfirmed early signal</strong>{" "}
+                — never as a replacement for the official CPC price. A daily
+                market-context strip (AI outlook, USD/LKR, Sri Lanka vs world)
+                updates even when retail prices are flat.
               </p>
               <p>
                 World prices from Global Petrol Prices are updated weekly
@@ -152,7 +171,7 @@ export function DataPage() {
                 and policy analysis. When citing, please use:
               </p>
               <div className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-3 font-mono text-xs text-ink-300">
-                Octane — Live Sri Lanka Fuel Price Intelligence (octane.lk),
+                Octane — Live Sri Lanka Fuel Price Intelligence (octane-smoky.vercel.app),
                 Ardeno Studio. Data sourced from CPC (ceypetco.gov.lk) and
                 Lanka IOC (lankaiocoil.lk). Retrieved [date].
               </div>
@@ -161,7 +180,7 @@ export function DataPage() {
             <Section title="API access">
               <p>
                 All data is available programmatically through the{" "}
-                <a href="/#api" className="text-accent hover:underline">
+                <a href="/developers" className="text-accent hover:underline">
                   free public API
                 </a>
                 . Historical data can be downloaded directly as CSV from the{" "}
@@ -174,10 +193,10 @@ export function DataPage() {
                 For higher rate limits, bulk data exports, or commercial
                 licensing, contact{" "}
                 <a
-                  href="mailto:hello@ardeno.studio"
+                  href="mailto:ardenostudio@gmail.com"
                   className="text-accent hover:underline"
                 >
-                  hello@ardeno.studio
+                  ardenostudio@gmail.com
                 </a>
                 .
               </p>
@@ -186,8 +205,9 @@ export function DataPage() {
             <Section title="Known limitations">
               <ul className="list-inside list-disc space-y-1 text-ink-400">
                 <li>
-                  CPC publishes prices on an ad-hoc basis. Between revisions,
-                  the displayed price may be several weeks or months old.
+                  CPC publishes prices on an ad-hoc basis. Between revisions the
+                  retail price itself may be weeks old, even while Octane keeps
+                  verifying the source several times a day.
                 </li>
                 <li>
                   Scraping accuracy depends on source website structure not

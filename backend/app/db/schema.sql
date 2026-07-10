@@ -6,11 +6,29 @@ CREATE TABLE IF NOT EXISTS fuel_prices (
   fuel_type   TEXT NOT NULL,
   price_lkr   NUMERIC(8,2) NOT NULL,
   source      TEXT NOT NULL,
+  scraped_at  TIMESTAMPTZ,
   UNIQUE (recorded_at, fuel_type, source)
 );
 
 CREATE INDEX IF NOT EXISTS idx_fuel_prices_lookup
   ON fuel_prices (fuel_type, source, recorded_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_fuel_prices_scraped_at
+  ON fuel_prices (source, scraped_at DESC);
+
+-- One row per scraper invocation — proves Octane checked the source even when
+-- CPC has not published a new revision.
+CREATE TABLE IF NOT EXISTS scrape_runs (
+  id            SERIAL PRIMARY KEY,
+  source        TEXT NOT NULL,
+  checked_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  rows_upserted INTEGER NOT NULL DEFAULT 0,
+  ok            BOOLEAN NOT NULL DEFAULT TRUE,
+  detail        TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_scrape_runs_source_checked
+  ON scrape_runs (source, checked_at DESC);
 
 CREATE TABLE IF NOT EXISTS world_prices (
   id          SERIAL PRIMARY KEY,
