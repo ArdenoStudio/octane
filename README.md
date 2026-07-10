@@ -19,6 +19,7 @@
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/ci.yml/badge.svg" alt="CI" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/deploy-backend.yml/badge.svg" alt="Deploy backend" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/scrape.yml/badge.svg" alt="Scrape fuel prices" />
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/scrape-news.yml/badge.svg" alt="Scrape news signals" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/digest.yml/badge.svg" alt="Digest" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/dispatch-alerts.yml/badge.svg" alt="Dispatch alerts" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/sentiment.yml/badge.svg" alt="Sentiment" />
@@ -45,7 +46,7 @@ Octane checks CPC fuel prices several times a day and surfaces revisions the mom
 | Layer | Tech |
 |---|---|
 | Backend | FastAPI · PostgreSQL · Fly.io |
-| Scrapers | `httpx` + `BeautifulSoup` · GitHub Actions 5× daily |
+| Scrapers | `httpx` + `BeautifulSoup` · full scrape 5× daily · news hourly (multi-outlet consensus) |
 | Frontend | React 18 · Vite · Tailwind CSS · Recharts |
 | Hosting | Vercel (frontend) · Fly.io (backend + DB) |
 | Sources | `ceypetco.gov.lk` · `lankaiocoil.lk` · `globalpetrolprices.com` |
@@ -69,7 +70,8 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env          # set DATABASE_URL
 python -m app.db.init         # create tables
-python -m app.scrapers.run    # seed prices
+python -m app.scrapers.run         # seed prices (CPC + LIOC + news + world + FX)
+python -m app.scrapers.run_news --dry-run   # news-only dry run (no DB write)
 uvicorn app.main:app --reload --port 8000
 
 # Frontend

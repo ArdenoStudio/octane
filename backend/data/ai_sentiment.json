@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-09T05:51:12.113461+00:00",
+  "generated_at": "2026-07-10T05:47:49.230299+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fuel price shock: what policy responses reveal about resilience",
@@ -11,7 +11,7 @@
   "direction": "down",
   "confidence": 0.8,
   "magnitude_lkr": -15.0,
-  "summary": "Recent news suggests a decrease in fuel prices due to easing global oil prices.",
+  "summary": "Recent price cuts and easing global oil prices suggest a downward revision.",
   "signals": [
     "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
     "Fuel price shock: what policy responses reveal about resilience",

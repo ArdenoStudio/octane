@@ -15,6 +15,9 @@ export type FuelId =
   | "super_diesel"
   | "kerosene";
 
+/** Official CPC vs media-reported (unconfirmed) news prices. */
+export type PriceSource = "cpc" | "news";
+
 export const FUEL_DISPLAY: Record<FuelId, string> = {
   petrol_92: "Petrol 92",
   petrol_95: "Petrol 95",
@@ -197,8 +200,10 @@ export const api = {
   latest: () => get<LatestPricesResp>("/v1/prices/latest"),
   marketContext: (fuel: FuelId = "petrol_95") =>
     get<MarketContextResp>(`/v1/market-context?fuel=${fuel}`),
-  history: (fuel: FuelId, days = 730) =>
-    get<{ points: HistoryPoint[] }>(`/v1/prices/history?fuel=${fuel}&days=${days}`),
+  history: (fuel: FuelId, days = 730, source: PriceSource = "cpc") =>
+    get<{ points: HistoryPoint[] }>(
+      `/v1/prices/history?fuel=${fuel}&days=${days}&source=${source}`
+    ),
   worldComparison: (fuel: FuelId) =>
     get<ComparisonResp>(`/v1/comparison/world?fuel=${fuel}`),
   trip: (distance: number, efficiency: number, fuel: FuelId) =>
@@ -218,9 +223,9 @@ export const api = {
     ),
   sentiment: () =>
     get<{ available: boolean; sentiment: SentimentData | null }>("/v1/prices/sentiment"),
-  changes: (limit = 200) =>
+  changes: (limit = 200, source: PriceSource = "cpc") =>
     get<{ source: string; changes: PriceChangeRow[] }>(
-      `/v1/prices/changes?limit=${limit}`
+      `/v1/prices/changes?limit=${limit}&source=${source}`
     ),
   confirmAlert: (token: string) =>
     get<{ ok: boolean; message: string }>(
@@ -239,18 +244,20 @@ export const api = {
     del<{ ok: boolean; message: string }>(
       `/v1/alerts/manage?token=${encodeURIComponent(token)}`
     ),
-  historyCsvUrl: (fuels: FuelId[], days: number): string => {
+  historyCsvUrl: (fuels: FuelId[], days: number, source: PriceSource = "cpc"): string => {
     const params = new URLSearchParams();
     fuels.forEach((f) => params.append("fuel", f));
     params.set("days", String(days));
+    params.set("source", source);
     return `${API_BASE}/v1/prices/history.csv?${params.toString()}`;
   },
   subscribeDigest: (email: string) =>
     post<{ ok: boolean; id: number }>("/v1/digest/subscribe", { email }),
-  historyJsonUrl: (fuels: FuelId[], days: number): string => {
+  historyJsonUrl: (fuels: FuelId[], days: number, source: PriceSource = "cpc"): string => {
     const params = new URLSearchParams();
     fuels.forEach((f) => params.append("fuel", f));
     params.set("days", String(days));
+    params.set("source", source);
     return `${API_BASE}/v1/prices/history.json?${params.toString()}`;
   },
   apiBase: API_BASE,

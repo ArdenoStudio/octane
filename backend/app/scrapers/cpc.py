@@ -48,6 +48,9 @@ class PricePoint:
     fuel_type: str
     price_lkr: float
     source: str = SOURCE
+    # Optional provenance for news consensus (ignored by CPC/LIOC persist).
+    outlet: str | None = None
+    article_url: str | None = None
 
 
 def _parse_date(raw: str) -> date | None:
