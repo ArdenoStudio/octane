@@ -260,12 +260,28 @@ def test_resolve_via_publisher_search_newswire():
 
 
 def test_resolve_via_publisher_search_island():
-    from app.scrapers.news import _resolve_via_publisher_search
+    """Island on-site search is flaky (500s) — unit-test ranking, not live HTML."""
+    from app.scrapers import news as news_mod
 
-    url = _resolve_via_publisher_search(
-        "Fuel prices increased - The island.lk",
-        "http://island.lk",
-    )
+    html = """
+    <html><body>
+      <a href="http://island.lk/archives/">Archives</a>
+      <a href="http://island.lk/fuel-prices-increased/">Fuel prices increased</a>
+      <a href="http://island.lk/unrelated-cricket-match/">Cricket</a>
+    </body></html>
+    """
+
+    class _Resp:
+        text = html
+        def raise_for_status(self):
+            return None
+
+    with patch("httpx.Client") as client_cls:
+        client_cls.return_value.__enter__.return_value.get.return_value = _Resp()
+        url = news_mod._resolve_via_publisher_search(
+            "Fuel prices increased - The island.lk",
+            "http://island.lk",
+        )
     assert url is not None
     assert "island.lk" in url
     assert "fuel" in url.lower()
