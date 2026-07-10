@@ -20,10 +20,14 @@ describe("applyNewsExtensions", () => {
       { date: "2026-06-01", petrol_92: 400 },
       { date: "2026-06-15", petrol_92: 400 },
     ];
-    const out = applyNewsExtensions(rows, [signal], ["petrol_92"], "2026-07-10");
+    const out = applyNewsExtensions(rows, [signal], ["petrol_92"], {
+      today: "2026-07-10",
+    });
     const start = out.find((r) => r.date === "2026-06-01");
+    const mid = out.find((r) => r.date === "2026-06-15");
     const end = out.find((r) => r.date === "2026-07-09");
     expect(start?.[extKey("petrol_92")]).toBe(400);
+    expect(mid?.[extKey("petrol_92")]).toBe(400);
     expect(end?.[extKey("petrol_92")]).toBe(420);
   });
 
@@ -33,8 +37,42 @@ describe("applyNewsExtensions", () => {
       recorded_at: "2026-06-01",
     };
     const rows = [{ date: "2026-06-01", petrol_92: 400 }];
-    const out = applyNewsExtensions(rows, [sameDay], ["petrol_92"], "2026-07-10");
+    const out = applyNewsExtensions(rows, [sameDay], ["petrol_92"], {
+      today: "2026-07-10",
+    });
     expect(out.find((r) => r.date === "2026-07-10")?.[extKey("petrol_92")]).toBe(420);
+  });
+
+  it("clamps the extension start to the visible chart range", () => {
+    const rows = [
+      { date: "2026-06-15", petrol_92: 400 },
+      { date: "2026-06-20", petrol_92: 400 },
+    ];
+    const out = applyNewsExtensions(rows, [signal], ["petrol_92"], {
+      today: "2026-07-10",
+      rangeStart: "2026-06-15",
+    });
+    // Must not inject 2026-06-01 (outside 1Y/window) and blow the x-axis.
+    expect(out.some((r) => r.date === "2026-06-01")).toBe(false);
+    expect(out.find((r) => r.date === "2026-06-15")?.[extKey("petrol_92")]).toBe(400);
+    expect(out.find((r) => r.date === "2026-07-09")?.[extKey("petrol_92")]).toBe(420);
+  });
+
+  it("still draws a stub when CPC and news share the same day", () => {
+    const todaySignal: EarlySignal = {
+      ...signal,
+      cpc_recorded_at: "2026-07-10",
+      recorded_at: "2026-07-10",
+      cpc_price_lkr: 400,
+      price_lkr: 420,
+      delta_lkr: 20,
+    };
+    const rows = [{ date: "2026-07-10", petrol_92: 400 }];
+    const out = applyNewsExtensions(rows, [todaySignal], ["petrol_92"], {
+      today: "2026-07-10",
+    });
+    expect(out.find((r) => r.date === "2026-07-10")?.[extKey("petrol_92")]).toBe(400);
+    expect(out.find((r) => r.date === "2026-07-11")?.[extKey("petrol_92")]).toBe(420);
   });
 
   it("drops the extension when there are no pending signals (CPC caught up)", () => {
@@ -42,7 +80,7 @@ describe("applyNewsExtensions", () => {
       { date: "2026-06-01", petrol_92: 400 },
       { date: "2026-07-09", petrol_92: 420 },
     ];
-    const out = applyNewsExtensions(rows, [], ["petrol_92"], "2026-07-10");
+    const out = applyNewsExtensions(rows, [], ["petrol_92"], { today: "2026-07-10" });
     expect(out.every((r) => r[extKey("petrol_92")] == null)).toBe(true);
     expect(out).toEqual(rows);
   });
@@ -50,7 +88,7 @@ describe("applyNewsExtensions", () => {
   it("ignores zero-delta signals", () => {
     const flat: EarlySignal = { ...signal, price_lkr: 400, delta_lkr: 0 };
     const rows = [{ date: "2026-06-01", petrol_92: 400 }];
-    const out = applyNewsExtensions(rows, [flat], ["petrol_92"], "2026-07-10");
+    const out = applyNewsExtensions(rows, [flat], ["petrol_92"], { today: "2026-07-10" });
     expect(out.every((r) => r[extKey("petrol_92")] == null)).toBe(true);
   });
 });
