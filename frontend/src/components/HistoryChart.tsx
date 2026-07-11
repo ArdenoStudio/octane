@@ -23,7 +23,7 @@ import {
 } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr } from "../lib/format";
-import { buildForwardFilledSeries } from "../lib/chartSeries";
+import { buildForwardFilledSeries, expandToDailyCalendar } from "../lib/chartSeries";
 import { applyNewsExtensions, extKey } from "../lib/newsExtension";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
@@ -229,9 +229,13 @@ export function HistoryChart() {
       return buildForwardFilledSeries(byFuel, active);
     }
 
-    // Timeline mode — merge revision dates and forward-fill so each fuel stays
-    // flat until it actually changes (CPC is a step function).
-    return buildForwardFilledSeries(series, active);
+    // Timeline: forward-fill revisions, then expand to one point per calendar
+    // day so plateaus and drops are visually obvious (day-proportional X).
+    const filled = buildForwardFilledSeries(series, active);
+    return expandToDailyCalendar(filled, {
+      endDate: new Date().toISOString().slice(0, 10),
+      fuels: Array.from(active),
+    });
   }, [mode, series, allRevisions, active, days]);
 
   function toggle(f: FuelId) {
@@ -245,14 +249,14 @@ export function HistoryChart() {
   // Merge actual + forecast points by date for the combined chart
   const mergedData = useMemo(() => {
     if (!chartDataWithForecast) return chartData;
-    const map = new Map<string, Record<string, string | number>>();
-    for (const row of chartData) map.set(row.date as string, { ...row });
+    const map = new Map<string, Record<string, string | number | boolean>>();
+    for (const row of chartData) map.set(String(row.date), { ...row });
     for (const row of chartDataWithForecast) {
-      const existing = map.get(row.date as string) ?? { date: row.date };
-      map.set(row.date as string, { ...existing, ...row });
+      const existing = map.get(String(row.date)) ?? { date: row.date };
+      map.set(String(row.date), { ...existing, ...row });
     }
     const merged = Array.from(map.values()).sort((a, b) =>
-      (a.date as string).localeCompare(b.date as string)
+      String(a.date).localeCompare(String(b.date))
     );
 
     // Anchor each fuel's trend lines to its last actual price and hide any
@@ -637,9 +641,32 @@ export function HistoryChart() {
                     type="stepAfter"
                     dataKey={f}
                     stroke={COLORS[f]}
-                    strokeWidth={2}
-                    dot={mode === "revisions" ? { r: 3, fill: COLORS[f], strokeWidth: 0 } : false}
-                    activeDot={{ r: 5, strokeWidth: 0, fill: COLORS[f] }}
+                    strokeWidth={2.25}
+                    dot={
+                      mode === "revisions"
+                        ? { r: 3.5, fill: COLORS[f], strokeWidth: 0 }
+                        : (props: {
+                            cx?: number;
+                            cy?: number;
+                            payload?: { _revision?: boolean; date?: string };
+                          }) => {
+                            const { cx, cy, payload } = props;
+                            if (cx == null || cy == null || !payload?._revision) {
+                              return <g />;
+                            }
+                            return (
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r={4}
+                                fill={COLORS[f]}
+                                stroke="#fff"
+                                strokeWidth={1.5}
+                              />
+                            );
+                          }
+                    }
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "#fff", fill: COLORS[f] }}
                     connectNulls
                     isAnimationActive={false}
                   />
