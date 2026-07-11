@@ -8,6 +8,18 @@ export function extKey(fuel: FuelId): string {
   return `${fuel}_ext`;
 }
 
+function addDays(isoDate: string, days: number): string {
+  const d = new Date(`${isoDate}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export interface NewsExtensionOptions {
+  /** ISO date — do not inject anchors before this (selected chart window). */
+  rangeStart?: string | null;
+  today?: string;
+}
+
 /**
  * Overlay a dashed "extension" of the official CPC line toward a media-reported
  * price. When CPC revises (early signal clears), callers pass no signals and the
@@ -17,8 +29,14 @@ export function applyNewsExtensions(
   rows: ChartRow[],
   signals: EarlySignal[],
   active: Iterable<FuelId>,
-  today: string = new Date().toISOString().slice(0, 10)
+  options: NewsExtensionOptions | string = {}
 ): ChartRow[] {
+  // Back-compat: older call sites passed `today` as the 4th arg.
+  const opts: NewsExtensionOptions =
+    typeof options === "string" ? { today: options } : options;
+  const today = opts.today ?? new Date().toISOString().slice(0, 10);
+  const rangeStart = opts.rangeStart ?? null;
+
   const activeSet = active instanceof Set ? active : new Set(active);
   const pending = signals.filter(
     (s) =>
@@ -33,17 +51,34 @@ export function applyNewsExtensions(
     byDate.set(String(row.date), { ...row });
   }
 
+  // First visible date in the current series (fallback clamp).
+  const firstRowDate =
+    rows.length > 0 ? String([...rows].sort((a, b) => String(a.date).localeCompare(String(b.date)))[0].date) : null;
+  const clampStart = rangeStart ?? firstRowDate;
+
   for (const s of pending) {
     const f = s.fuel_type;
-    const startDate = s.cpc_recorded_at;
+    let startDate = s.cpc_recorded_at;
+    if (clampStart && startDate < clampStart) startDate = clampStart;
+
     let endDate = s.recorded_at > startDate ? s.recorded_at : today;
     if (endDate <= startDate) endDate = today;
-    if (endDate <= startDate) continue;
+    // Same-day CPC + news: still show a short stub so the dashed tip is visible.
+    if (endDate <= startDate) endDate = addDays(startDate, 1);
 
     const startRow = byDate.get(startDate) ?? { date: startDate };
     startRow[extKey(f)] = s.cpc_price_lkr;
     if (startRow[f] == null) startRow[f] = s.cpc_price_lkr;
     byDate.set(startDate, startRow);
+
+    // Dense fill so the dashed segment is continuous across intermediate dates.
+    const dates = Array.from(byDate.keys()).sort();
+    for (const d of dates) {
+      if (d > startDate && d < endDate) {
+        const mid = byDate.get(d)!;
+        mid[extKey(f)] = s.cpc_price_lkr;
+      }
+    }
 
     const endRow = byDate.get(endDate) ?? { date: endDate };
     endRow[extKey(f)] = s.price_lkr;

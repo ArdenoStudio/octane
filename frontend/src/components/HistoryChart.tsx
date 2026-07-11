@@ -23,6 +23,7 @@ import {
 } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr } from "../lib/format";
+import { buildForwardFilledSeries } from "../lib/chartSeries";
 import { applyNewsExtensions, extKey } from "../lib/newsExtension";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
@@ -208,50 +209,29 @@ export function HistoryChart() {
 
   const chartData = useMemo(() => {
     if (mode === "revisions" && allRevisions) {
-      // Show only dates when prices actually changed — no interpolation
+      // Revision events only — still forward-fill so multi-fuel rows don't
+      // leave gaps that Recharts would slope across.
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - days);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
 
-      const priceMap: Partial<Record<FuelId, Map<string, number>>> = {};
-      const dateSet = new Set<string>();
-      for (const f of active) priceMap[f] = new Map();
+      const byFuel: Partial<Record<FuelId, { recorded_at: string; price_lkr: number }[]>> = {};
+      for (const f of active) byFuel[f] = [];
 
       for (const c of allRevisions) {
         if (!active.has(c.fuel_type as FuelId)) continue;
         if (c.recorded_at < cutoffStr) continue;
-        dateSet.add(c.recorded_at);
-        priceMap[c.fuel_type as FuelId]!.set(c.recorded_at, c.price_lkr);
-      }
-
-      return Array.from(dateSet)
-        .sort()
-        .map((d) => {
-          const row: Record<string, string | number> = { date: d };
-          for (const f of active) {
-            const v = priceMap[f]!.get(d);
-            if (v != null) row[f] = v;
-          }
-          return row;
+        byFuel[c.fuel_type as FuelId]!.push({
+          recorded_at: c.recorded_at,
+          price_lkr: c.price_lkr,
         });
+      }
+      return buildForwardFilledSeries(byFuel, active);
     }
 
-    // Daily mode — merge per-fuel series by date
-    const dateSet = new Set<string>();
-    Object.values(series).forEach((arr) => arr?.forEach((p) => dateSet.add(p.recorded_at)));
-    const dates = Array.from(dateSet).sort();
-    const indices: Partial<Record<FuelId, Map<string, number>>> = {};
-    (Object.keys(series) as FuelId[]).forEach((f) => {
-      indices[f] = new Map(series[f]!.map((p) => [p.recorded_at, p.price_lkr]));
-    });
-    return dates.map((d) => {
-      const row: Record<string, string | number> = { date: d };
-      (Object.keys(indices) as FuelId[]).forEach((f) => {
-        const v = indices[f]!.get(d);
-        if (v != null) row[f] = v;
-      });
-      return row;
-    });
+    // Timeline mode — merge revision dates and forward-fill so each fuel stays
+    // flat until it actually changes (CPC is a step function).
+    return buildForwardFilledSeries(series, active);
   }, [mode, series, allRevisions, active, days]);
 
   function toggle(f: FuelId) {
@@ -323,13 +303,50 @@ export function HistoryChart() {
     });
   }, [chartData, chartDataWithForecast, active]);
 
-  const pendingSignals = earlySignals.filter((s) => Math.abs(s.delta_lkr) >= 0.01);
+  const pendingSignals = useMemo(
+    () => earlySignals.filter((s) => Math.abs(s.delta_lkr) >= 0.01),
+    [earlySignals]
+  );
+
+  const rangeStart = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return cutoff.toISOString().slice(0, 10);
+  }, [days]);
 
   // Single graph: solid CPC + dashed media extension that clears when CPC revises.
   const displayData = useMemo(
-    () => applyNewsExtensions(mergedData, pendingSignals, active),
-    [mergedData, pendingSignals, active]
+    () =>
+      applyNewsExtensions(mergedData, pendingSignals, active, {
+        rangeStart,
+        today: new Date().toISOString().slice(0, 10),
+      }),
+    [mergedData, pendingSignals, active, rangeStart]
   );
+
+  const chartRemountKey = `${mode}-${days}-${Array.from(active).join(",")}-${displayData.length}-${String(displayData.at(-1)?.date ?? "")}`;
+
+  const yDomain = useMemo((): [number | "auto", number | "auto"] | [(n: number) => number, (n: number) => number] => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (const row of displayData) {
+      for (const f of active) {
+        const v = row[f];
+        if (typeof v === "number") {
+          min = Math.min(min, v);
+          max = Math.max(max, v);
+        }
+        const ext = row[extKey(f)];
+        if (typeof ext === "number") {
+          min = Math.min(min, ext);
+          max = Math.max(max, ext);
+        }
+      }
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return ["auto", "auto"];
+    const pad = Math.max(5, (max - min) * 0.08);
+    return [Math.floor(min - pad), Math.ceil(max + pad)];
+  }, [displayData, active]);
 
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
@@ -350,7 +367,7 @@ export function HistoryChart() {
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Mode: Daily interpolated vs Revisions only */}
+            {/* Mode: forward-filled timeline vs revision events only */}
             <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
               <RadioGroup
                 value={mode}
@@ -366,15 +383,20 @@ export function HistoryChart() {
                       "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
                   }}
                 />
-                {(["daily", "revisions"] as const).map((m) => (
+                {(
+                  [
+                    { id: "daily" as const, label: "Timeline" },
+                    { id: "revisions" as const, label: "Revisions" },
+                  ] as const
+                ).map((m) => (
                   <label
-                    key={m}
-                    className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center px-3 capitalize transition-colors ${
-                      mode === m ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
+                    key={m.id}
+                    className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center px-3 transition-colors ${
+                      mode === m.id ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
                     }`}
                   >
-                    {m}
-                    <RadioGroupItem value={m} className="sr-only" />
+                    {m.label}
+                    <RadioGroupItem value={m.id} className="sr-only" />
                   </label>
                 ))}
               </RadioGroup>
@@ -536,7 +558,11 @@ export function HistoryChart() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={displayData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <LineChart
+                key={chartRemountKey}
+                data={displayData}
+                margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+              >
                 <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="date"
@@ -549,9 +575,11 @@ export function HistoryChart() {
                   stroke="#a1a1aa"
                   fontSize={11}
                   tickFormatter={(v) => String(v)}
-                  domain={["auto", "auto"]}
+                  domain={yDomain}
+                  allowDataOverflow={false}
                 />
                 <Tooltip
+                  cursor={{ stroke: "#a1a1aa", strokeDasharray: "3 3" }}
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null;
                     const items = payload.filter((p) => {
@@ -606,11 +634,12 @@ export function HistoryChart() {
                 {Array.from(active).map((f) => (
                   <Line
                     key={f}
-                    type={mode === "revisions" ? "stepAfter" : "monotone"}
+                    type="stepAfter"
                     dataKey={f}
                     stroke={COLORS[f]}
                     strokeWidth={2}
                     dot={mode === "revisions" ? { r: 3, fill: COLORS[f], strokeWidth: 0 } : false}
+                    activeDot={{ r: 5, strokeWidth: 0, fill: COLORS[f] }}
                     connectNulls
                     isAnimationActive={false}
                   />
@@ -622,13 +651,14 @@ export function HistoryChart() {
                     pendingSignals.some((s) => s.fuel_type === f) ? (
                       <Line
                         key={extKey(f)}
-                        type="linear"
+                        type="stepAfter"
                         dataKey={extKey(f)}
                         stroke={COLORS[f]}
-                        strokeWidth={2}
-                        strokeDasharray="6 4"
-                        strokeOpacity={0.85}
+                        strokeWidth={2.5}
+                        strokeDasharray="7 4"
+                        strokeOpacity={0.9}
                         dot={{ r: 3.5, fill: COLORS[f], strokeWidth: 0 }}
+                        activeDot={{ r: 5, strokeWidth: 0, fill: COLORS[f] }}
                         connectNulls
                         isAnimationActive={false}
                         legendType="none"
