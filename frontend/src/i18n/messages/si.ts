@@ -61,6 +61,8 @@ export const SI: Messages = {
     earlySignalLioc: "Lanka IOC",
     earlySignalUnconfirmed: "තහවුරු නොවී — CPC බලාපොරොත්තුව",
     mediaReports: "මාධ්‍ය වාර්තා",
+    official: "නිල",
+    unconfirmed: "තහවුරු නොවී",
     awaitingData: "දත්ත එනකම් බලන්නේ",
     lkrPer: "රු. ·",
     loadError:

@@ -40,6 +40,8 @@ export interface Messages {
     earlySignalLioc: string;
     earlySignalUnconfirmed: string;
     mediaReports: string;
+    official: string;
+    unconfirmed: string;
     awaitingData: string;
     lkrPer: string;
     loadError: string;

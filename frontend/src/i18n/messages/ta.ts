@@ -61,6 +61,8 @@ export const TA: Messages = {
     earlySignalLioc: "Lanka IOC",
     earlySignalUnconfirmed: "உறுதிப்படுத்தப்படவில்லை — CPC காத்திருப்பு",
     mediaReports: "ஊடக அறிக்கை",
+    official: "அதிகாரப்பூர்வ",
+    unconfirmed: "உறுதிப்படுத்தப்படவில்லை",
     awaitingData: "தரவுக்காகக் காத்திருக்கிறது",
     lkrPer: "ரூ. ·",
     loadError: "விலைகளை ஏற்ற முடியவில்லை. API இணைப்பு இல்லாமல் இருக்கலாம்.",
