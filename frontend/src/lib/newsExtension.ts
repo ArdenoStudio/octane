@@ -1,7 +1,7 @@
 import type { EarlySignal, FuelId } from "./api";
 import { FUEL_ORDER } from "./api";
 
-export type ChartRow = Record<string, string | number>;
+export type ChartRow = Record<string, string | number | boolean>;
 
 /** dataKey suffix for the dashed media-report extension segment. */
 export function extKey(fuel: FuelId): string {
