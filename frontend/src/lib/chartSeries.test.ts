@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildForwardFilledSeries,
+  buildSparseSeries,
   daySpan,
   DAILY_EXPAND_MAX_DAYS,
   expandToDailyCalendar,
@@ -48,6 +49,46 @@ describe("buildForwardFilledSeries", () => {
     expect(rows[0].petrol_95).toBe(495);
     expect(rows[1].petrol_95).toBe(495);
     expect(rows[1].petrol_92).toBe(414);
+  });
+});
+
+describe("buildSparseSeries", () => {
+  it("only sets a fuel on its own revision days", () => {
+    const rows = buildSparseSeries(
+      {
+        petrol_92: [
+          { recorded_at: "2026-05-31", price_lkr: 434 },
+          { recorded_at: "2026-06-30", price_lkr: 414 },
+        ],
+        auto_diesel: [
+          { recorded_at: "2026-05-31", price_lkr: 407 },
+          { recorded_at: "2026-06-15", price_lkr: 400 },
+          { recorded_at: "2026-06-30", price_lkr: 382 },
+        ],
+      },
+      ["petrol_92", "auto_diesel"]
+    );
+
+    expect(rows).toEqual([
+      { date: "2026-05-31", petrol_92: 434, auto_diesel: 407 },
+      { date: "2026-06-15", auto_diesel: 400 },
+      { date: "2026-06-30", petrol_92: 414, auto_diesel: 382 },
+    ]);
+  });
+
+  it("anchors last known prices on endDate only", () => {
+    const rows = buildSparseSeries(
+      {
+        petrol_92: [
+          { recorded_at: "2026-05-31", price_lkr: 434 },
+          { recorded_at: "2026-06-30", price_lkr: 414 },
+        ],
+      },
+      ["petrol_92"],
+      { endDate: "2026-07-12" }
+    );
+    expect(rows.at(-1)).toEqual({ date: "2026-07-12", petrol_92: 414 });
+    expect(rows).toHaveLength(3);
   });
 });
 
