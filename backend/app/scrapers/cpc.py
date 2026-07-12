@@ -18,7 +18,7 @@ from typing import Iterable
 from bs4 import BeautifulSoup, Tag
 
 from app import fuel as fuel_mod
-from app.scrapers.http import client
+from app.scrapers.http import get_text
 
 SOURCE = "cpc"
 HISTORICAL_URL = "https://ceypetco.gov.lk/historical-prices/"
@@ -204,11 +204,14 @@ def parse_latest_html(html: str, as_of: date | None = None) -> list[PricePoint]:
     return list(by_fuel.values())
 
 
+def _fetch_html(url: str) -> str:
+    # ceypetco.gov.lk has periodically served an expired TLS cert; fall back
+    # to insecure verify so the pipeline keeps collecting official prices.
+    return get_text(url, tls_fallback=True)
+
+
 def fetch_historical() -> list[PricePoint]:
-    with client() as c:
-        r = c.get(HISTORICAL_URL)
-        r.raise_for_status()
-        return _parse_table(r.text)
+    return _parse_table(_fetch_html(HISTORICAL_URL))
 
 
 def fetch_latest() -> list[PricePoint]:
@@ -218,10 +221,7 @@ def fetch_latest() -> list[PricePoint]:
     historical table is the source of truth; this is just a daily ping
     to detect changes between revisions.
     """
-    with client() as c:
-        r = c.get(LATEST_URL)
-        r.raise_for_status()
-    return parse_latest_html(r.text)
+    return parse_latest_html(_fetch_html(LATEST_URL))
 
 
 def run() -> Iterable[PricePoint]:

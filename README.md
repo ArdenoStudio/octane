@@ -49,7 +49,7 @@ Octane checks CPC fuel prices several times a day and surfaces revisions the mom
 | Scrapers | `httpx` + `BeautifulSoup` · full scrape 5× daily · news hourly (multi-outlet consensus) |
 | Frontend | React 18 · Vite · Tailwind CSS · Recharts |
 | Hosting | Vercel (frontend) · Fly.io (backend + DB) |
-| Sources | `ceypetco.gov.lk` · `lankaiocoil.lk` · `globalpetrolprices.com` |
+| Sources | `ceypetco.gov.lk` · LIOC via news (lankaioc.com) · `globalpetrolprices.com` |
 
 ## Project layout
 

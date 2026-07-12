@@ -144,6 +144,7 @@ OUTLET_HOSTS: list[tuple[str, str]] = [
     ("lankanewsweb.net", "lankanewsweb"),
     ("island.lk", "island"),
     ("srilankamirror.com", "srilankamirror"),
+    ("newsfirst.lk", "newsfirst"),
 ]
 
 
@@ -869,9 +870,11 @@ def _scrape_article(
     *,
     title: str | None = None,
     source_url: str | None = None,
+    max_age_hours: int | None = None,
 ) -> list[PricePoint]:
     fallback_date = pub_date.date() if pub_date else date.today()
     outlet = outlet_from_host(source_url or url)
+    age_limit_hours = DEFAULT_MAX_AGE_HOURS if max_age_hours is None else max_age_hours
     try:
         with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
             r = c.get(url)
@@ -911,7 +914,7 @@ def _scrape_article(
         # for re-indexed older stories).
         fallback_date = published
         age_days = (date.today() - published).days
-        if age_days > (DEFAULT_MAX_AGE_HOURS // 24) + 1:
+        if age_days > (age_limit_hours // 24) + 1:
             log.info(
                 "skipping stale article %s published %s (%d days old)",
                 article_url,
