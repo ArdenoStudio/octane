@@ -182,6 +182,77 @@ export function composeMarketContext(
   };
 }
 
+/** Daily Groq output committed to master by .github/workflows/sentiment.yml */
+export const SENTIMENT_RAW_URL =
+  "https://raw.githubusercontent.com/ArdenoStudio/octane/master/backend/data/ai_sentiment.json";
+
+/** Prefer GitHub-committed sentiment when the Fly API copy is older than this. */
+export const SENTIMENT_STALE_MS = 36 * 60 * 60 * 1000;
+
+export function isSentimentStale(
+  sentiment: SentimentData | null | undefined,
+  nowMs: number = Date.now(),
+  maxAgeMs: number = SENTIMENT_STALE_MS,
+): boolean {
+  if (!sentiment?.generated_at) return true;
+  const t = Date.parse(sentiment.generated_at);
+  if (Number.isNaN(t)) return true;
+  return nowMs - t > maxAgeMs;
+}
+
+export function parseSentimentPayload(data: unknown): SentimentData | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  const confidence = Number(d.confidence ?? 0);
+  if (!(confidence > 0)) return null;
+  const direction = String(d.direction ?? "stable");
+  if (direction !== "up" && direction !== "down" && direction !== "stable") {
+    return null;
+  }
+  return {
+    direction,
+    confidence,
+    magnitude_lkr: Number(d.magnitude_lkr ?? 0),
+    summary: String(d.summary ?? ""),
+    generated_at: String(d.generated_at ?? ""),
+    headlines_analyzed: Number(d.headlines_analyzed ?? 0),
+    signals: Array.isArray(d.signals) ? d.signals.map(String) : [],
+  };
+}
+
+/** Load the latest committed sentiment JSON from GitHub (bypasses stale Fly bake-in). */
+export async function fetchCommittedSentiment(): Promise<SentimentData | null> {
+  try {
+    const r = await fetch(SENTIMENT_RAW_URL, { cache: "no-store" });
+    if (!r.ok) return null;
+    return parseSentimentPayload(await r.json());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Prefer API sentiment when fresh; otherwise use the daily GitHub commit.
+ * Sentiment is written to git daily, but Fly only serves the copy baked into
+ * the last successful image deploy — which can lag for months when deploys fail.
+ */
+export async function preferFreshSentiment(
+  apiSentiment: SentimentData | null | undefined,
+): Promise<SentimentData | null> {
+  if (!isSentimentStale(apiSentiment)) {
+    return apiSentiment ?? null;
+  }
+  const committed = await fetchCommittedSentiment();
+  if (!committed) return apiSentiment ?? null;
+  if (!apiSentiment) return committed;
+  // Both present and API is stale — keep whichever generated_at is newer.
+  const apiT = Date.parse(apiSentiment.generated_at);
+  const rawT = Date.parse(committed.generated_at);
+  if (Number.isNaN(rawT)) return apiSentiment;
+  if (Number.isNaN(apiT) || rawT >= apiT) return committed;
+  return apiSentiment;
+}
+
 export interface HistoryPoint {
   recorded_at: string;
   price_lkr: number;
@@ -306,7 +377,11 @@ export const api = {
   marketContext: async (fuel: FuelId = "petrol_95"): Promise<MarketContextResp> => {
     const r = await fetch(`${API_BASE}/v1/market-context?fuel=${fuel}`);
     if (r.ok) {
-      return r.json() as Promise<MarketContextResp>;
+      const data = (await r.json()) as MarketContextResp;
+      // Even when the dedicated route exists, Fly may serve a months-old
+      // baked-in sentiment file — refresh from the daily git commit if stale.
+      data.sentiment = await preferFreshSentiment(data.sentiment);
+      return data;
     }
     // Fly backend deploy has been stuck (billing) since before this route shipped.
     // Compose from endpoints that older production builds already expose.
@@ -319,7 +394,8 @@ export const api = {
           () => null,
         ),
       ]);
-      return composeMarketContext(fuel, sentWrap.sentiment, world);
+      const sentiment = await preferFreshSentiment(sentWrap.sentiment);
+      return composeMarketContext(fuel, sentiment, world);
     }
     throw new Error(`/v1/market-context: ${r.status}`);
   },
@@ -344,8 +420,13 @@ export const api = {
     get<ForecastResp>(
       `/v1/prices/forecast?fuel=${fuel}&history_days=${historyDays}&horizon_days=${horizonDays}`
     ),
-  sentiment: () =>
-    get<{ available: boolean; sentiment: SentimentData | null }>("/v1/prices/sentiment"),
+  sentiment: async () => {
+    const fromApi = await get<{ available: boolean; sentiment: SentimentData | null }>(
+      "/v1/prices/sentiment",
+    ).catch(() => ({ available: false, sentiment: null }));
+    const sentiment = await preferFreshSentiment(fromApi.sentiment);
+    return { available: sentiment != null, sentiment };
+  },
   changes: (limit = 200, source: PriceSource = "cpc") =>
     get<{ source: string; changes: PriceChangeRow[] }>(
       `/v1/prices/changes?limit=${limit}&source=${source}`
