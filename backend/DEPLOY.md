@@ -39,15 +39,30 @@ same ECR image.
 
 ## Secrets
 
-- **`octane/database-url`** (AWS Secrets Manager, ap-southeast-1) — the Postgres connection string. Read by the ECS task at container start (`secrets` in the task definition) and by the `scrape.yml`/`digest.yml` GitHub Actions workflows at runtime (via the OIDC role — no `DATABASE_URL` GitHub secret needed or used anymore).
+- **`octane/database-url`** (AWS Secrets Manager, ap-southeast-1) — the Postgres connection string. Read by the ECS task at container start (`secrets` in the task definition). No `DATABASE_URL` GitHub secret is used anymore.
 - **`DISPATCH_SECRET`** (GitHub Actions secret) — rotated during this migration since the old Fly-era value couldn't be read back. Injected into the ECS task definition at deploy time by `deploy-backend.yml`.
 - `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` / `ALERT_FROM_EMAIL` / `SITE_URL` (GitHub Actions secrets, optional) — same as before, unchanged.
+
+## Why scrape.yml/digest.yml run as one-off ECS tasks instead of on the runner directly
+
+RDS is in a private VPC with no public access (deliberately — the original plan called for a
+locked-down security group, not the whole internet). GitHub-hosted runners have no network path
+into that VPC, so `scrape.yml` and `digest.yml` no longer run Python directly on the runner.
+Instead they call `aws ecs run-task` (via the OIDC role) to run the exact same container image
+with an overridden command inside the VPC, wait for it to stop, and check its exit code. The
+task reads `DATABASE_URL` from Secrets Manager itself via the ECS execution role, same as the
+live service.
 
 ## Deploying
 
 Push to `master` with changes under `backend/**` (or run `deploy-backend.yml` manually via
 workflow_dispatch). The workflow assumes `octane-gh-actions-role` via OIDC, builds and pushes
 the Docker image to ECR, renders a new task definition revision, and updates the ECS service.
+
+## First-time schema setup
+
+RDS starts empty — `python -m app.db.init` (schema) was run once as a one-off ECS task before
+the first scrape. `app/main.py` only runs incremental migrations on startup, not the base schema.
 
 ## Estimated monthly cost
 
