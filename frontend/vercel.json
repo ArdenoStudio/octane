@@ -20,13 +20,13 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://vitals.vercel-insights.com https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://octane-api.fly.dev https://raw.githubusercontent.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://vercel.live wss://vercel.live https://fonts.googleapis.com https://fonts.gstatic.com; frame-src 'self' https://vercel.live; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://vitals.vercel-insights.com https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://d2w9pgvodb18rj.cloudfront.net https://raw.githubusercontent.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://vercel.live wss://vercel.live https://fonts.googleapis.com https://fonts.gstatic.com; frame-src 'self' https://vercel.live; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     }
   ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "env": {
-    "VITE_API_BASE": "https://octane-api.fly.dev"
+    "VITE_API_BASE": "https://d2w9pgvodb18rj.cloudfront.net"
   }
 }

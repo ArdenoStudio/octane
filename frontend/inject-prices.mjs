@@ -15,7 +15,7 @@ async function main() {
   let lastUpdated = '';
 
   try {
-    const res = await fetch('https://octane-api.fly.dev/v1/prices/latest');
+    const res = await fetch('https://d2w9pgvodb18rj.cloudfront.net/v1/prices/latest');
     const data = await res.json();
     const cpcPrices = data.prices.filter((p) => p.source === 'cpc');
     prices = FUEL_ORDER.map((fuel) => cpcPrices.find((p) => p.fuel_type === fuel)).filter(Boolean);
