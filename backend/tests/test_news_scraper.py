@@ -279,6 +279,24 @@ def test_sanitize_drops_petrol_95_equal_to_super_diesel():
     assert fuel_mod.PETROL_95 not in by_fuel
 
 
+def test_guess_slmirror_urls_and_resolve():
+    from app.scrapers.news import _guess_slmirror_urls, _resolve_via_publisher_search
+
+    guesses = _guess_slmirror_urls("Fuel prices slashed - Sri Lanka Mirror")
+    assert "https://srilankamirror.com/biz/fuel-prices-slashed/" in guesses
+    assert "https://srilankamirror.com/biz/fuel-prices-slashed-3/" in guesses
+
+    # Live: slug guess should find the June 29 wire via Jina when search is mocked empty.
+    with patch("app.scrapers.news._resolve_via_web_search", return_value=None):
+        url = _resolve_via_publisher_search(
+            "Fuel prices slashed - Sri Lanka Mirror",
+            "https://srilankamirror.com/",
+        )
+    assert url is not None
+    assert "fuel-prices-slashed" in url
+    assert "srilankamirror.com" in url
+
+
 def test_scrape_article_uses_jina_text_mode():
     from datetime import datetime, timezone
     from app.scrapers.news import _scrape_article

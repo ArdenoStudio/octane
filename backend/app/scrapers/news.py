@@ -695,6 +695,24 @@ def _jina_title(text: str) -> str:
     return ""
 
 
+def _guess_slmirror_urls(title: str) -> list[str]:
+    """Guess Sri Lanka Mirror article paths from the headline slug.
+
+    Mirror uses /biz/<slug>/ and /news/<slug>/ with optional -2/-3 suffixes
+    when titles repeat across revisions.
+    """
+    clean = _strip_outlet_suffix(title).lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", clean).strip("-")
+    if len(slug) < 8:
+        return []
+    urls: list[str] = []
+    for section in ("biz", "news"):
+        urls.append(f"https://srilankamirror.com/{section}/{slug}/")
+        for n in range(2, 6):
+            urls.append(f"https://srilankamirror.com/{section}/{slug}-{n}/")
+    return urls
+
+
 def _fetch_via_jina(url: str) -> str | None:
     """Fetch article text via Jina reader — bypasses CF JS challenges.
 
@@ -796,10 +814,11 @@ def _brave_note_rate_limit(delay: float) -> None:
     _brave_cooldown_until = max(_brave_cooldown_until, time.monotonic() + delay)
 
 
-def _brave_search_urls(query: str) -> list[str]:
+def _brave_search_urls(query: str, *, max_attempts: int = 3) -> list[str]:
     """Brave Search HTML — reliable from datacenter IPs when DDG returns 202."""
     html = ""
-    for attempt in range(3):
+    attempts = max(1, max_attempts)
+    for attempt in range(attempts):
         _brave_throttle()
         try:
             with httpx.Client(
@@ -818,9 +837,18 @@ def _brave_search_urls(query: str) -> list[str]:
                     # Extra cushion — Brave HTML often needs > Retry-After.
                     delay = max(delay, 5.0)
                     _brave_note_rate_limit(delay)
+                    if attempt + 1 >= attempts:
+                        log.warning(
+                            "brave 429 on final attempt %d/%d — giving up (%s)",
+                            attempt + 1,
+                            attempts,
+                            query[:80],
+                        )
+                        break
                     log.warning(
-                        "brave 429 on attempt %d — sleeping %.1fs (%s)",
+                        "brave 429 on attempt %d/%d — sleeping %.1fs (%s)",
                         attempt + 1,
+                        attempts,
                         delay,
                         query[:80],
                     )
@@ -834,6 +862,10 @@ def _brave_search_urls(query: str) -> list[str]:
             return []
     else:
         log.warning("brave search gave up after retries: %s", query[:80])
+        return []
+
+    if not html:
+        log.warning("brave search empty after rate limits: %s", query[:80])
         return []
 
     urls: list[str] = []
@@ -880,8 +912,14 @@ def _ddg_search_urls(query: str) -> list[str]:
 
 
 def _web_search_urls(query: str) -> list[str]:
-    """Prefer Brave; fall back to DuckDuckGo if Brave is empty."""
-    urls = _brave_search_urls(query)
+    """Prefer Brave; fall back to DuckDuckGo if Brave is empty or cooling down.
+
+    Per-article URL resolution uses a single Brave attempt so a 429 storm
+    fails over to DDG quickly instead of sleeping ~20s per headline.
+    """
+    if time.monotonic() < _brave_cooldown_until:
+        return _ddg_search_urls(query)
+    urls = _brave_search_urls(query, max_attempts=1)
     if urls:
         return urls
     return _ddg_search_urls(query)
@@ -1080,15 +1118,27 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
         )
     elif "srilankamirror.com" in host:
         # Cloudflare often blocks direct fetch; Brave still indexes article URLs.
-        return _resolve_via_web_search(
-            title,
-            "srilankamirror.com",
-            re.compile(
-                r"https?://(?:www\.)?srilankamirror\.com/"
-                r"(?:news|biz|business|news-features)/[A-Za-z0-9\-]+/?",
-                re.IGNORECASE,
-            ),
+        link_re = re.compile(
+            r"https?://(?:www\.)?srilankamirror\.com/"
+            r"(?:news|biz|business|news-features)/[A-Za-z0-9\-]+/?",
+            re.IGNORECASE,
         )
+        found = _resolve_via_web_search(title, "srilankamirror.com", link_re)
+        if found:
+            return found
+        # Brave/DDG often fail from Actions IPs — guess /biz|/news slugs and
+        # confirm via Jina (which clears Cloudflare).
+        want = _title_tokens(title)
+        for guess in _guess_slmirror_urls(title):
+            text = _fetch_via_jina(guess)
+            if not text:
+                continue
+            page_title = _jina_title(text)
+            have = _title_tokens(page_title) or _title_tokens(text[:300])
+            if len(want & have) >= max(2, min(4, len(want) // 2)):
+                log.info("slmirror slug guess matched %s", guess)
+                return guess
+        return None
     else:
         return None
 
@@ -1411,10 +1461,22 @@ def _discover_via_brave(
     results: list[tuple[str, datetime | None, str, str, str | None]] = []
     seen: set[str] = set()
     max_age_days = (max_age_hours // 24) + 1
+    consecutive_fails = 0
     for host, query, link_re in BRAVE_DISCOVERY:
-        urls = _brave_search_urls(query)
+        # Don't burn minutes retrying every outlet when Brave is hard-limiting.
+        if consecutive_fails >= 2:
+            log.warning(
+                "aborting brave discovery after %d consecutive failures (rate limit)",
+                consecutive_fails,
+            )
+            break
+        urls = _brave_search_urls(query, max_attempts=2)
         matched = [u for u in urls if link_re.search(u)]
         log.info("brave discovery %s → %d candidate urls", host, len(matched))
+        if not matched:
+            consecutive_fails += 1
+            continue
+        consecutive_fails = 0
         for url in matched[:8]:
             key = url.split("?")[0].rstrip("/")
             if key in seen:
