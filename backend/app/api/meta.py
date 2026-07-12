@@ -13,20 +13,21 @@ router = APIRouter(prefix="/v1", tags=["meta"])
 
 
 def _data_freshness() -> dict:
-    """Check scrape verification freshness (not CPC revision age).
+    """Check scrape verification freshness (not revision age).
 
-    CPC may leave retail prices unchanged for weeks. Health should reflect
-    whether Octane is still successfully checking the source.
+    Official prices may sit unchanged for weeks. Health should reflect
+    whether Octane is still successfully checking CPC or Lanka IOC.
     """
-    last_verified = price_service.last_verified_at("cpc")
+    last_verified = price_service.last_verified_at("official")
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT MAX(recorded_at) AS latest
                 FROM fuel_prices
-                WHERE source = 'cpc'
-                """
+                WHERE source = ANY(%s)
+                """,
+                (list(price_service.OFFICIAL_SOURCES),),
             )
             r = cur.fetchone()
     latest_revision = r["latest"] if r else None

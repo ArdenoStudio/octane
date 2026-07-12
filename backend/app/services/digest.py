@@ -75,8 +75,10 @@ def _mark_sent(subscriber_id: int) -> None:
 # ---------------------------------------------------------------------------
 
 def _build_price_rows(latest: list[dict]) -> str:
-    """Build HTML table rows for each CPC fuel price."""
-    by_fuel: dict[str, dict] = {r["fuel_type"]: r for r in latest if r["source"] == "cpc"}
+    """Build HTML table rows for each official fuel price (CPC or LIOC)."""
+    by_fuel: dict[str, dict] = {
+        r["fuel_type"]: r for r in prices.official_latest(latest)
+    }
 
     # Get 7-day change for each fuel
     changes_7d: dict[str, float | None] = {}
@@ -179,7 +181,7 @@ _DIGEST_HTML = """\
             <!-- Note -->
             <tr>
               <td style="padding:14px 40px 28px;">
-                <p style="margin:0;font-size:11px;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Source: Ceylon Petroleum Corporation (CPC). Prices in LKR per litre.</p>
+                <p style="margin:0;font-size:11px;color:#c4b99a;font-family:'Cal Sans',-apple-system,sans-serif;">Source: CPC or Lanka IOC (whichever revised more recently). Prices in LKR per litre.</p>
               </td>
             </tr>
 
@@ -222,11 +224,11 @@ _DIGEST_TEXT = """\
 Octane Weekly Fuel Price Digest — Week of {week_of}
 =====================================================
 
-Sri Lanka CPC Fuel Prices (LKR per litre):
+Sri Lanka fuel prices (LKR per litre) — CPC / Lanka IOC:
 
 {price_text}
 
-Source: Ceylon Petroleum Corporation
+Source: CPC or Lanka IOC (whichever revised more recently)
 
 View live prices, history & world comparison:
 https://octane.lk
@@ -244,12 +246,12 @@ def send_weekly_digest() -> int:
     from app.config import get_settings
     s = get_settings()
 
-    # Current prices
+    # Current prices — more recent of CPC vs Lanka IOC per fuel
     latest = prices.latest_all()
-    by_fuel = {r["fuel_type"]: r for r in latest if r["source"] == "cpc"}
+    by_fuel = {r["fuel_type"]: r for r in prices.official_latest(latest)}
 
     if not by_fuel:
-        log.warning("digest: no CPC prices found, skipping")
+        log.warning("digest: no official prices found, skipping")
         return 0
 
     week_of = datetime.now(timezone.utc).strftime("%B %d, %Y")

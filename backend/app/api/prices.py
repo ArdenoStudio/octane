@@ -21,11 +21,18 @@ router = APIRouter(prefix="/v1/prices", tags=["prices"])
 @router.get("/latest")
 def latest():
     rows = prices.latest_all()
+    official = prices.official_latest(rows)
     return {
         "prices": rows,
-        # When Octane last successfully checked CPC — independent of revision age.
-        "last_verified_at": prices.last_verified_at("cpc"),
-        # News / LIOC figures ahead of or diverging from official CPC.
+        # Per-fuel official pick: more recent of CPC vs Lanka IOC.
+        "official": official,
+        # Fresher of CPC / Lanka IOC scrape checks — independent of revision age.
+        "last_verified_at": prices.last_verified_at("official"),
+        "last_verified_by_source": {
+            "cpc": prices.last_verified_at("cpc"),
+            "lanka_ioc": prices.last_verified_at("lanka_ioc"),
+        },
+        # News figures ahead of the winning official source.
         "early_signals": signals_svc.early_signals(rows),
     }
 

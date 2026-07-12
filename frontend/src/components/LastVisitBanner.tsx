@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownLine, RiArrowUpLine, RiCloseLine } from "@remixicon/react";
-import { api, EarlySignal, FUEL_ORDER, FuelId, resolveEarlySignals } from "../lib/api";
+import {
+  api,
+  EarlySignal,
+  FUEL_ORDER,
+  FuelId,
+  resolveEarlySignals,
+  resolveOfficialPrices,
+} from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow } from "../lib/format";
 
@@ -13,9 +20,9 @@ interface PriceChange {
   from: number;
   to: number;
   delta: number;
-  /** Media-reported (unconfirmed) when CPC did not move this fuel. */
+  /** Media-reported (unconfirmed) when official did not move this fuel. */
   viaNews?: boolean;
-  /** CPC did not revise this fuel — shown for completeness. */
+  /** Official did not revise this fuel — shown for completeness. */
   unchanged?: boolean;
 }
 
@@ -33,11 +40,9 @@ export function LastVisitBanner() {
       .latest()
       .then((resp) => {
         const current: StoredPrices = {};
-        resp.prices
-          .filter((r) => r.source === "cpc")
-          .forEach((r) => {
-            current[r.fuel_type] = r.price_lkr;
-          });
+        resolveOfficialPrices(resp).forEach((r) => {
+          current[r.fuel_type] = r.price_lkr;
+        });
 
         const storedPricesRaw = localStorage.getItem(KEY_PRICES);
         const storedVisit = localStorage.getItem(KEY_VISIT);
@@ -49,7 +54,7 @@ export function LastVisitBanner() {
             const diffs: PriceChange[] = [];
             const changedFuels = new Set<FuelId>();
 
-            // 1) Official CPC moves since last visit — all five fuels.
+            // 1) Official (CPC / LIOC) moves since last visit — all five fuels.
             FUEL_ORDER.forEach((fuel) => {
               const prev = stored[fuel];
               const curr = current[fuel];
@@ -59,15 +64,15 @@ export function LastVisitBanner() {
               }
             });
 
-            // 2) Also surface media-reported early signals for fuels CPC has
-            //    not revised yet (e.g. Petrol 95 still flat officially).
+            // 2) Also surface media-reported early signals for fuels official
+            //    has not revised yet.
             for (const s of early) {
               const fuel = s.fuel_type as FuelId;
               if (!FUEL_ORDER.includes(fuel) || changedFuels.has(fuel)) continue;
               if (Math.abs(s.delta_lkr) < 0.01) continue;
               diffs.push({
                 fuel,
-                from: s.cpc_price_lkr,
+                from: s.official_price_lkr ?? s.cpc_price_lkr,
                 to: s.price_lkr,
                 delta: s.delta_lkr,
                 viaNews: true,

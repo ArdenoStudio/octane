@@ -15,8 +15,9 @@ export type FuelId =
   | "super_diesel"
   | "kerosene";
 
-/** Official CPC vs media-reported (unconfirmed) news prices. */
-export type PriceSource = "cpc" | "news";
+/** Official administered sources vs media-reported (unconfirmed) news. */
+export type PriceSource = "cpc" | "news" | "lanka_ioc";
+export type OfficialSource = "cpc" | "lanka_ioc";
 
 export const FUEL_DISPLAY: Record<FuelId, string> = {
   petrol_92: "Petrol 92",
@@ -34,6 +35,11 @@ export const FUEL_ORDER: FuelId[] = [
   "kerosene",
 ];
 
+export const OFFICIAL_SOURCE_LABEL: Record<OfficialSource, string> = {
+  cpc: "CPC",
+  lanka_ioc: "Lanka IOC",
+};
+
 export interface PriceRow {
   fuel_type: FuelId;
   source: string;
@@ -45,31 +51,23 @@ export interface PriceRow {
 
 export interface EarlySignal {
   fuel_type: FuelId;
-  source: "news" | "lanka_ioc" | string;
+  source: "news" | string;
   price_lkr: number;
   recorded_at: string;
   scraped_at?: string | null;
+  /** Winning official source the news figure is compared against. */
+  official_source?: OfficialSource | string;
+  official_price_lkr?: number;
+  official_recorded_at?: string;
+  /** Aliases of official_* for chart media extensions / older payloads. */
   cpc_price_lkr: number;
   cpc_recorded_at: string;
   delta_lkr: number;
-  status: "unconfirmed" | "divergence" | string;
+  status: "unconfirmed" | string;
 }
 
 /** Days a news figure stays "early" after its effective date (matches backend). */
 const NEWS_SIGNAL_WINDOW_DAYS = 14;
-const LIOC_DIVERGENCE_LKR = 1.0;
-
-/**
- * Derive early signals from a latest-prices payload.
- * Prefer API `early_signals` when present; otherwise compare news/LIOC vs CPC
- * so the UI still works if the backend field is missing.
- */
-export function resolveEarlySignals(resp: LatestPricesResp): EarlySignal[] {
-  if (resp.early_signals && resp.early_signals.length > 0) {
-    return resp.early_signals;
-  }
-  return deriveEarlySignals(resp.prices);
-}
 
 function rowBySource(
   rows: PriceRow[],
@@ -77,6 +75,49 @@ function rowBySource(
   source: string
 ): PriceRow | undefined {
   return rows.find((r) => r.fuel_type === fuel && r.source === source);
+}
+
+function parseScrapedMs(value?: string | null): number {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const t = Date.parse(value);
+  return Number.isFinite(t) ? t : Number.NEGATIVE_INFINITY;
+}
+
+/**
+ * Pick the more recently revised official price between CPC and Lanka IOC.
+ * Tie on recorded_at → newer scraped_at, then prefer CPC.
+ */
+export function pickOfficial(
+  cpc: PriceRow | undefined,
+  ioc: PriceRow | undefined
+): PriceRow | undefined {
+  if (!cpc && !ioc) return undefined;
+  if (!cpc) return ioc;
+  if (!ioc) return cpc;
+  if (ioc.recorded_at > cpc.recorded_at) return ioc;
+  if (cpc.recorded_at > ioc.recorded_at) return cpc;
+  if (parseScrapedMs(ioc.scraped_at) > parseScrapedMs(cpc.scraped_at)) return ioc;
+  return cpc;
+}
+
+/** Resolve official prices from a latest payload (API `official` or local pick). */
+export function resolveOfficialPrices(resp: LatestPricesResp): PriceRow[] {
+  if (resp.official && resp.official.length > 0) return resp.official;
+  return FUEL_ORDER.map((fuel) =>
+    pickOfficial(rowBySource(resp.prices, fuel, "cpc"), rowBySource(resp.prices, fuel, "lanka_ioc"))
+  ).filter((r): r is PriceRow => !!r);
+}
+
+/**
+ * Derive early signals from a latest-prices payload.
+ * Prefer API `early_signals` when present; otherwise compare news vs the
+ * winning official (CPC or LIOC).
+ */
+export function resolveEarlySignals(resp: LatestPricesResp): EarlySignal[] {
+  if (resp.early_signals && resp.early_signals.length > 0) {
+    return resp.early_signals;
+  }
+  return deriveEarlySignals(resp.prices);
 }
 
 export function deriveEarlySignals(rows: PriceRow[]): EarlySignal[] {
@@ -87,43 +128,32 @@ export function deriveEarlySignals(rows: PriceRow[]): EarlySignal[] {
   const out: EarlySignal[] = [];
 
   for (const fuel of FUEL_ORDER) {
-    const cpc = rowBySource(rows, fuel, "cpc");
-    if (!cpc) continue;
-    const cpcPrice = cpc.price_lkr;
-    const cpcDate = cpc.recorded_at;
+    const official = pickOfficial(
+      rowBySource(rows, fuel, "cpc"),
+      rowBySource(rows, fuel, "lanka_ioc")
+    );
+    if (!official) continue;
 
     const news = rowBySource(rows, fuel, "news");
-    if (news) {
-      const differs = Math.abs(news.price_lkr - cpcPrice) >= 0.01;
-      const newerOrSame = news.recorded_at >= cpcDate;
-      const recent = news.recorded_at >= cutoffStr;
-      if (recent && newerOrSame && (news.recorded_at > cpcDate || differs)) {
-        out.push({
-          fuel_type: fuel,
-          source: "news",
-          price_lkr: news.price_lkr,
-          recorded_at: news.recorded_at,
-          scraped_at: news.scraped_at,
-          cpc_price_lkr: cpcPrice,
-          cpc_recorded_at: cpcDate,
-          delta_lkr: Math.round((news.price_lkr - cpcPrice) * 100) / 100,
-          status: "unconfirmed",
-        });
-      }
-    }
+    if (!news) continue;
 
-    const ioc = rowBySource(rows, fuel, "lanka_ioc");
-    if (ioc && Math.abs(ioc.price_lkr - cpcPrice) >= LIOC_DIVERGENCE_LKR) {
+    const differs = Math.abs(news.price_lkr - official.price_lkr) >= 0.01;
+    const newerOrSame = news.recorded_at >= official.recorded_at;
+    const recent = news.recorded_at >= cutoffStr;
+    if (recent && newerOrSame && (news.recorded_at > official.recorded_at || differs)) {
       out.push({
         fuel_type: fuel,
-        source: "lanka_ioc",
-        price_lkr: ioc.price_lkr,
-        recorded_at: ioc.recorded_at,
-        scraped_at: ioc.scraped_at,
-        cpc_price_lkr: cpcPrice,
-        cpc_recorded_at: cpcDate,
-        delta_lkr: Math.round((ioc.price_lkr - cpcPrice) * 100) / 100,
-        status: "divergence",
+        source: "news",
+        price_lkr: news.price_lkr,
+        recorded_at: news.recorded_at,
+        scraped_at: news.scraped_at,
+        official_source: official.source,
+        official_price_lkr: official.price_lkr,
+        official_recorded_at: official.recorded_at,
+        cpc_price_lkr: official.price_lkr,
+        cpc_recorded_at: official.recorded_at,
+        delta_lkr: Math.round((news.price_lkr - official.price_lkr) * 100) / 100,
+        status: "unconfirmed",
       });
     }
   }
@@ -133,9 +163,15 @@ export function deriveEarlySignals(rows: PriceRow[]): EarlySignal[] {
 
 export interface LatestPricesResp {
   prices: PriceRow[];
-  /** When Octane last successfully checked CPC — independent of revision age. */
+  /** Per-fuel official pick (CPC vs Lanka IOC). */
+  official?: PriceRow[];
+  /** Fresher of CPC / Lanka IOC scrape checks. */
   last_verified_at?: string | null;
-  /** News / LIOC figures ahead of or diverging from official CPC. */
+  last_verified_by_source?: {
+    cpc?: string | null;
+    lanka_ioc?: string | null;
+  };
+  /** News figures ahead of the winning official source. */
   early_signals?: EarlySignal[];
 }
 
