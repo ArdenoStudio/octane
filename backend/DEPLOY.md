@@ -47,11 +47,13 @@ same ECR image.
 
 RDS is in a private VPC with no public access (deliberately — the original plan called for a
 locked-down security group, not the whole internet). GitHub-hosted runners have no network path
-into that VPC, so `scrape.yml` and `digest.yml` no longer run Python directly on the runner.
-Instead they call `aws ecs run-task` (via the OIDC role) to run the exact same container image
-with an overridden command inside the VPC, wait for it to stop, and check its exit code. The
-task reads `DATABASE_URL` from Secrets Manager itself via the ECS execution role, same as the
-live service.
+into that VPC, so `scrape.yml`, `scrape-news.yml`, and `digest.yml` no longer run Python directly
+on the runner. Instead they call `aws ecs run-task` (via the OIDC role) to run the exact same
+container image with an overridden command inside the VPC, wait for it to stop, and check its
+exit code. The task reads `DATABASE_URL` from Secrets Manager itself via the ECS execution role,
+same as the live service. The `price_changed` step output (used to conditionally dispatch AI
+sentiment analysis) is recovered by grepping the task's CloudWatch log stream, since the script
+can't write to the runner's `GITHUB_OUTPUT` file from inside the container.
 
 ## Deploying
 
