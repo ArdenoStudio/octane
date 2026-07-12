@@ -34,6 +34,14 @@ _BROWSER_UA = (
     "Chrome/124.0.0.0 Safari/537.36"
 )
 
+# Jina AI reader proxies the page and returns markdown — clears Cloudflare
+# JS challenges that block datacenter httpx (Sri Lanka Mirror, etc.).
+JINA_READER_PREFIX = "https://r.jina.ai/"
+
+# Brave HTML search rate-limits bursty datacenter IPs (~1 req/s).
+_BRAVE_MIN_INTERVAL_S = 1.25
+_brave_last_request_at = 0.0
+
 # Google News RSS aggregates SL outlets (Ada Derana, Daily Mirror, etc.)
 # without triggering their Cloudflare WAF. Prefer en-US locale — en-LK
 # redirects and sometimes returns thinner results from Actions runners.
@@ -489,7 +497,36 @@ def _extract_prices(
 
     # De-dup by fuel type within one article
     seen: set[str] = set()
-    return [p for p in points if not (p.fuel_type in seen or seen.add(p.fuel_type))]  # type: ignore[func-returns-value]
+    deduped = [p for p in points if not (p.fuel_type in seen or seen.add(p.fuel_type))]  # type: ignore[func-returns-value]
+    return _sanitize_extracted_prices(deduped)
+
+
+def _sanitize_extracted_prices(points: list[PricePoint]) -> list[PricePoint]:
+    """Drop implausible same-article prices (publisher table typos).
+
+    Sri Lanka Mirror's June 2026 wire copied Super Diesel's Rs. 478 onto
+    Petrol 95 (should be ~495). Reject P95 when it equals Super Diesel in
+    the same article, or when it undercuts Petrol 92.
+    """
+    by = {p.fuel_type: p for p in points}
+    drop: set[str] = set()
+    p92 = by.get("petrol_92")
+    p95 = by.get("petrol_95")
+    sd = by.get("super_diesel")
+    if p92 and p95 and p95.price_lkr < p92.price_lkr:
+        log.info(
+            "dropping petrol_95=%.0f < petrol_92=%.0f (implausible)",
+            p95.price_lkr,
+            p92.price_lkr,
+        )
+        drop.add("petrol_95")
+    if p92 and p95 and sd and abs(p95.price_lkr - sd.price_lkr) < 0.01:
+        log.info(
+            "dropping petrol_95=%.0f identical to super_diesel (likely table typo)",
+            p95.price_lkr,
+        )
+        drop.add("petrol_95")
+    return [p for p in points if p.fuel_type not in drop]
 
 
 # Keep news hits aligned with the UI early-signal window (14 days).
@@ -634,19 +671,153 @@ def _score_url_against_title(url: str, title: str) -> int:
     return sum(1 for t in tokens if t in path)
 
 
-def _brave_search_urls(query: str) -> list[str]:
-    """Brave Search HTML — reliable from datacenter IPs when DDG returns 202."""
+def _looks_like_cloudflare(status_code: int, body: str) -> bool:
+    """Detect Cloudflare bot interstitial / hard block pages."""
+    if status_code in (403, 503):
+        return True
+    head = (body or "")[:2500].lower()
+    return (
+        "just a moment" in head
+        or "cf-browser-verification" in head
+        or "cdn-cgi/challenge" in head
+        or "attention required" in head
+        or "enable javascript and cookies" in head
+    )
+
+
+def _jina_title(text: str) -> str:
+    """Pull the Title: line from a Jina reader markdown response."""
+    for line in text.splitlines()[:20]:
+        if line.lower().startswith("title:"):
+            return _strip_outlet_suffix(line.split(":", 1)[1].strip())
+    return ""
+
+
+def _fetch_via_jina(url: str) -> str | None:
+    """Fetch article text via Jina reader — bypasses CF JS challenges.
+
+    Returns markdown/plain text, or None when Jina itself is blocked / empty.
+    """
+    if not url or not url.startswith("http"):
+        return None
+    reader_url = JINA_READER_PREFIX + url
+    try:
+        with httpx.Client(
+            headers={
+                "User-Agent": _BROWSER_UA,
+                "Accept": "text/plain,*/*",
+            },
+            timeout=30.0,
+            follow_redirects=True,
+        ) as c:
+            r = c.get(reader_url)
+            r.raise_for_status()
+    except Exception as exc:
+        log.warning("jina reader failed %s: %s", url, exc)
+        return None
+
+    text = r.text or ""
+    low = text[:800].lower()
+    if (
+        "maybe requiring captcha" in low
+        or "just a moment" in low
+        or "cf-browser-verification" in low
+    ):
+        log.warning("jina reader still blocked for %s", url)
+        return None
+    if len(text) < 200:
+        log.warning("jina reader empty/short for %s (%d chars)", url, len(text))
+        return None
+    log.info("jina reader ok %s (%d chars)", url, len(text))
+    return text
+
+
+def _fetch_article_content(url: str) -> tuple[str, str, str] | None:
+    """Fetch an article; fall back to Jina on Cloudflare blocks.
+
+    Returns (final_url, content, mode) where mode is ``html`` or ``text``.
+    """
     try:
         with httpx.Client(
             headers={"User-Agent": _BROWSER_UA},
-            timeout=15.0,
+            timeout=20.0,
             follow_redirects=True,
         ) as c:
-            r = c.get("https://search.brave.com/search", params={"q": query})
-            r.raise_for_status()
-            html = r.text
+            r = c.get(url)
+            body = r.text or ""
+            if r.is_success and not _looks_like_cloudflare(r.status_code, body):
+                return (str(r.url), body, "html")
+            if _looks_like_cloudflare(r.status_code, body):
+                log.info(
+                    "cloudflare/block on %s (status=%s) — trying jina reader",
+                    url,
+                    r.status_code,
+                )
+            else:
+                r.raise_for_status()
+                return (str(r.url), body, "html")
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status not in (403, 503):
+            log.warning("article fetch failed %s: %s", url, exc)
+            return None
+        log.info("http %s on %s — trying jina reader", status, url)
     except Exception as exc:
-        log.warning("brave search failed %s: %s", query, exc)
+        log.warning("article fetch failed %s: %s", url, exc)
+        # Network errors: still try Jina (it fetches from its own egress).
+        log.info("direct fetch error on %s — trying jina reader", url)
+
+    text = _fetch_via_jina(url)
+    if not text:
+        return None
+    return (url, text, "text")
+
+
+def _brave_throttle() -> None:
+    """Ensure ≥_BRAVE_MIN_INTERVAL_S between Brave HTML search calls."""
+    global _brave_last_request_at
+    now = time.monotonic()
+    wait = _BRAVE_MIN_INTERVAL_S - (now - _brave_last_request_at)
+    if wait > 0:
+        time.sleep(wait)
+    _brave_last_request_at = time.monotonic()
+
+
+def _brave_search_urls(query: str) -> list[str]:
+    """Brave Search HTML — reliable from datacenter IPs when DDG returns 202."""
+    html = ""
+    for attempt in range(3):
+        _brave_throttle()
+        try:
+            with httpx.Client(
+                headers={"User-Agent": _BROWSER_UA},
+                timeout=15.0,
+                follow_redirects=True,
+            ) as c:
+                r = c.get("https://search.brave.com/search", params={"q": query})
+                if r.status_code == 429:
+                    retry_after = r.headers.get("Retry-After")
+                    delay = (
+                        float(retry_after)
+                        if retry_after and str(retry_after).replace(".", "", 1).isdigit()
+                        else (2.0 * (attempt + 1))
+                    )
+                    log.warning(
+                        "brave 429 on attempt %d — sleeping %.1fs (%s)",
+                        attempt + 1,
+                        delay,
+                        query[:80],
+                    )
+                    time.sleep(delay)
+                    continue
+                r.raise_for_status()
+                html = r.text
+                break
+        except Exception as exc:
+            log.warning("brave search failed %s: %s", query, exc)
+            return []
+    else:
+        log.warning("brave search gave up after retries: %s", query[:80])
         return []
 
     urls: list[str] = []
@@ -705,18 +876,15 @@ def _page_title_matches(url: str, title: str) -> bool:
     want = _title_tokens(title)
     if not want:
         return False
-    try:
-        with httpx.Client(
-            headers={"User-Agent": _BROWSER_UA},
-            timeout=12.0,
-            follow_redirects=True,
-        ) as c:
-            r = c.get(url)
-            r.raise_for_status()
-    except Exception:
+    fetched = _fetch_article_content(url)
+    if not fetched:
         return False
-    soup = BeautifulSoup(r.text, "lxml")
-    page_title = soup.title.get_text(" ", strip=True) if soup.title else ""
+    _final_url, content, mode = fetched
+    if mode == "text":
+        page_title = _jina_title(content) or content[:200]
+    else:
+        soup = BeautifulSoup(content, "lxml")
+        page_title = soup.title.get_text(" ", strip=True) if soup.title else ""
     have = _title_tokens(page_title)
     # Require majority of distinctive title tokens (ignore tiny overlap).
     overlap = len(want & have)
@@ -984,38 +1152,66 @@ def _scrape_article(
 ) -> list[PricePoint]:
     fallback_date = pub_date.date() if pub_date else date.today()
     outlet = outlet_from_host(source_url or url)
-    try:
-        with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
-            r = c.get(url)
-            r.raise_for_status()
-    except Exception as exc:
-        log.warning("article fetch failed %s: %s", url, exc)
-        return []
 
-    article_url = str(r.url)
+    fetched = _fetch_article_content(url)
+    if not fetched:
+        return []
+    article_url, content, mode = fetched
+
     # If we're still on Google's servers, resolve the publisher URL.
-    if "news.google.com" in article_url:
+    if "news.google.com" in article_url and mode == "html":
         actual_url = _resolve_publisher_url(
-            url, r.text, title=title, source_url=source_url
+            url, content, title=title, source_url=source_url
         )
         if actual_url:
             log.info("google news url resolved to %s", actual_url)
-            try:
-                with httpx.Client(headers={"User-Agent": _BROWSER_UA}, timeout=20.0, follow_redirects=True) as c:
-                    r2 = c.get(actual_url)
-                    r2.raise_for_status()
-                    r = r2
-                    article_url = str(r2.url)
-                    outlet = outlet_from_host(article_url)
-            except Exception as exc:
-                log.warning("publisher article fetch failed %s: %s", actual_url, exc)
+            fetched2 = _fetch_article_content(actual_url)
+            if fetched2:
+                article_url, content, mode = fetched2
+                outlet = outlet_from_host(article_url)
+            else:
+                log.warning("publisher article fetch failed %s", actual_url)
         else:
             log.info("could not resolve publisher URL — mining Google preview for %s", url)
 
     if outlet == "unknown":
         outlet = outlet_from_host(article_url)
 
-    soup = BeautifulSoup(r.text, "lxml")
+    if mode == "text":
+        # Jina markdown — no HTML structure; extract from plain text.
+        if not title:
+            title = _jina_title(content) or title
+        url_hint = _date_hint_from_url(article_url)
+        published = url_hint
+        if published is None:
+            # Best-effort date from reader text (e.g. "June 29").
+            published = _parse_article_published_date(
+                BeautifulSoup(f"<html><body>{content[:4000]}</body></html>", "lxml"),
+                article_url,
+            )
+        if published is not None:
+            fallback_date = published
+            age_days = (date.today() - published).days
+            if age_days > (DEFAULT_MAX_AGE_HOURS // 24) + 1:
+                log.info(
+                    "skipping stale article %s published %s (%d days old)",
+                    article_url,
+                    published,
+                    age_days,
+                )
+                return []
+        if _is_speculative_piece(title, article_url):
+            log.info("skipping speculative article %s", article_url)
+            return []
+        return _extract_prices(
+            content,
+            fallback_date,
+            outlet=outlet,
+            article_url=article_url,
+            title=title,
+        )
+
+    soup = BeautifulSoup(content, "lxml")
 
     published = _parse_article_published_date(soup, article_url)
     url_hint = _date_hint_from_url(article_url)
@@ -1202,8 +1398,6 @@ def _discover_via_brave(
         urls = _brave_search_urls(query)
         matched = [u for u in urls if link_re.search(u)]
         log.info("brave discovery %s → %d candidate urls", host, len(matched))
-        # Pace Brave HTML search — bursty loops trip 429 from Actions / cloud IPs.
-        time.sleep(0.8)
         for url in matched[:8]:
             key = url.split("?")[0].rstrip("/")
             if key in seen:
@@ -1213,25 +1407,31 @@ def _discover_via_brave(
             if url_hint is not None and (date.today() - url_hint).days > max_age_days:
                 continue
             # Fetch title from the page so keyword / speculative filters work.
-            try:
-                with httpx.Client(
-                    headers={"User-Agent": _BROWSER_UA},
-                    timeout=15.0,
-                    follow_redirects=True,
-                ) as c:
-                    r = c.get(url)
-                    r.raise_for_status()
-            except Exception as exc:
-                log.warning("brave discovery fetch failed %s: %s", url, exc)
+            # Jina fallback clears Cloudflare (Sri Lanka Mirror).
+            fetched = _fetch_article_content(url)
+            if not fetched:
+                log.warning("brave discovery fetch failed %s", url)
                 continue
-            soup = BeautifulSoup(r.text, "lxml")
-            title = soup.title.get_text(" ", strip=True) if soup.title else ""
-            title = _strip_outlet_suffix(title)
+            final_url, content, mode = fetched
+            if mode == "text":
+                title = _jina_title(content) or _strip_outlet_suffix(key.rsplit("/", 1)[-1])
+                published = url_hint
+                if published is None:
+                    published = _parse_article_published_date(
+                        BeautifulSoup(
+                            f"<html><body>{content[:4000]}</body></html>", "lxml"
+                        ),
+                        final_url,
+                    )
+            else:
+                soup = BeautifulSoup(content, "lxml")
+                title = soup.title.get_text(" ", strip=True) if soup.title else ""
+                title = _strip_outlet_suffix(title)
+                published = url_hint or _parse_article_published_date(soup, str(final_url))
             if not FUEL_KEYWORDS.search(title):
                 continue
             if _is_speculative_piece(title, url):
                 continue
-            published = url_hint or _parse_article_published_date(soup, str(r.url))
             if published is not None:
                 age_hours = (date.today() - published).days * 24
                 if age_hours > max_age_hours + 24:
@@ -1243,7 +1443,7 @@ def _discover_via_brave(
                 # No reliable date — Brave ranks evergreen wires highly; skip.
                 continue
             source_url = f"https://{host}"
-            results.append((str(r.url), pub_dt, title, title, source_url))
+            results.append((str(final_url), pub_dt, title, title, source_url))
     return results
 
 

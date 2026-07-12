@@ -146,6 +146,123 @@ def test_date_hint_from_url_and_ft_byline():
     ) == date(2026, 1, 6)
 
 
+def test_looks_like_cloudflare():
+    from app.scrapers.news import _looks_like_cloudflare
+
+    assert _looks_like_cloudflare(403, "forbidden")
+    assert _looks_like_cloudflare(200, "<html><title>Just a moment...</title></html>")
+    assert not _looks_like_cloudflare(200, "<html><title>Fuel prices reduced</title></html>")
+
+
+def test_fetch_article_content_falls_back_to_jina_on_403():
+    from unittest.mock import MagicMock
+    from app.scrapers.news import _fetch_article_content, JINA_READER_PREFIX
+
+    blocked = MagicMock()
+    blocked.is_success = False
+    blocked.status_code = 403
+    blocked.text = "<html><title>Just a moment...</title></html>"
+    blocked.url = "https://srilankamirror.com/biz/fuel-prices-slashed-3/"
+
+    jina = MagicMock()
+    jina.is_success = True
+    jina.status_code = 200
+    jina.text = (
+        "Title: Fuel prices slashed\n\n"
+        "URL Source: https://srilankamirror.com/biz/fuel-prices-slashed-3/\n\n"
+        "Markdown Content:\n"
+        "The Ceylon Petroleum Corporation (Ceypetco) has announced a revision "
+        "of fuel prices, effective from midnight today (June 29).\n"
+        "Auto Diesel – Rs. 382 (reduced by Rs. 25)\n"
+        "Super Diesel – Rs. 478 (unchanged)\n"
+        "Petrol 92 Octane – Rs. 414 (reduced by Rs. 20)\n"
+        "Petrol 95 Octane – Rs. 495 (unchanged)\n"
+        "Kerosene – Rs. 285 (unchanged)\n"
+    )
+    jina.raise_for_status = MagicMock()
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get(self, url, **kwargs):
+            if url.startswith(JINA_READER_PREFIX):
+                return jina
+            return blocked
+
+    with patch("app.scrapers.news.httpx.Client", FakeClient):
+        fetched = _fetch_article_content(
+            "https://srilankamirror.com/biz/fuel-prices-slashed-3/"
+        )
+    assert fetched is not None
+    final_url, content, mode = fetched
+    assert mode == "text"
+    assert "Rs. 414" in content
+    assert final_url.endswith("fuel-prices-slashed-3/")
+
+
+def test_sanitize_drops_petrol_95_equal_to_super_diesel():
+    """Mirror June wire typo: P95 listed as Rs. 478 (= Super Diesel)."""
+    text = (
+        "Auto Diesel – Rs. 382 (reduced by Rs. 25) "
+        "Super Diesel – Rs. 478 (unchanged) "
+        "Petrol 92 Octane – Rs. 414 (reduced by Rs. 20) "
+        "Petrol 95 Octane – Rs. 478 (unchanged) "
+        "Kerosene – Rs. 285 (unchanged)"
+    )
+    points = _extract_prices(
+        text,
+        fallback_date=date(2026, 6, 29),
+        outlet="srilankamirror",
+    )
+    by_fuel = {p.fuel_type: p.price_lkr for p in points}
+    assert by_fuel[fuel_mod.PETROL_92] == 414.0
+    assert by_fuel[fuel_mod.AUTO_DIESEL] == 382.0
+    assert by_fuel[fuel_mod.SUPER_DIESEL] == 478.0
+    assert by_fuel[fuel_mod.KEROSENE] == 285.0
+    assert fuel_mod.PETROL_95 not in by_fuel
+
+
+def test_scrape_article_uses_jina_text_mode():
+    from datetime import datetime, timezone
+    from app.scrapers.news import _scrape_article
+
+    jina_md = (
+        "Title: Fuel prices slashed\n\n"
+        "The Ceylon Petroleum Corporation announced a revision.\n"
+        "Petrol 92 Octane – Rs. 414\n"
+        "Auto Diesel – Rs. 382\n"
+        "Super Diesel – Rs. 478\n"
+        "Petrol 95 Octane – Rs. 495\n"
+        "Kerosene – Rs. 285\n"
+    )
+    with patch(
+        "app.scrapers.news._fetch_article_content",
+        return_value=(
+            "https://srilankamirror.com/biz/fuel-prices-slashed-3/",
+            jina_md,
+            "text",
+        ),
+    ):
+        points = _scrape_article(
+            "https://srilankamirror.com/biz/fuel-prices-slashed-3/",
+            datetime(2026, 6, 29, tzinfo=timezone.utc),
+            title="Fuel prices slashed",
+            source_url="https://srilankamirror.com/",
+        )
+    by_fuel = {p.fuel_type: p.price_lkr for p in points}
+    assert by_fuel[fuel_mod.PETROL_92] == 414.0
+    assert by_fuel[fuel_mod.PETROL_95] == 495.0
+    assert by_fuel[fuel_mod.AUTO_DIESEL] == 382.0
+    assert points[0].outlet == "srilankamirror"
+
+
 def test_extract_prices_lnw_fixed_at_and_octane_petrol_wording():
     """LNW wording: 'Octane 92 petrol' + 'fixed at Rs. 382' after a long clause."""
     text = (
