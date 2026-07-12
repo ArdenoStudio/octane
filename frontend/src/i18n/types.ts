@@ -42,6 +42,10 @@ export interface Messages {
     mediaReports: string;
     official: string;
     unconfirmed: string;
+    media: string;
+    filterLabel: string;
+    filterAll: string;
+    filterOfficialOnly: string;
     awaitingData: string;
     lkrPer: string;
     loadError: string;

@@ -63,6 +63,10 @@ export const SI: Messages = {
     mediaReports: "මාධ්‍ය වාර්තා",
     official: "නිල",
     unconfirmed: "තහවුරු නොවී",
+    media: "මාධ්‍ය",
+    filterLabel: "මිල පෙරහන",
+    filterAll: "සියල්ල",
+    filterOfficialOnly: "නිල පමණි",
     awaitingData: "දත්ත එනකම් බලන්නේ",
     lkrPer: "රු. ·",
     loadError:
