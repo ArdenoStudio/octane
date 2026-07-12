@@ -113,6 +113,13 @@ def test_outlet_from_host():
     assert outlet_from_host("https://island.lk/fuel-prices-increased/") == "island"
     assert outlet_from_host("https://www.onlanka.com/news/sri-lanka-revises-fuel-prices-from-june-30-2026.html") == "onlanka"
     assert outlet_from_host("https://lankanewsweb.net/archives/226278/fuel-prices-reduced/") == "lankanewsweb"
+    assert outlet_from_host("https://english.newsfirst.lk/2026/06/30/fuel-prices-reduced/") == "newsfirst"
+    assert outlet_from_host("https://www.themorning.lk/articles/BaLVZbOkscOFkRbNhy4P") == "themorning"
+    assert outlet_from_host("https://www.ft.lk/business/Govt-revises-fuel-prices/34") == "dailyft"
+    assert outlet_from_host(
+        "https://www.sundaytimes.lk/260630/news/fuel-prices-reduced-from-tonight-648000.html"
+    ) == "sundaytimes"
+    assert outlet_from_host("https://srilankamirror.com/news/fuel-prices-reduced") == "srilankamirror"
     assert outlet_from_host("https://example.com") == "unknown"
 
 

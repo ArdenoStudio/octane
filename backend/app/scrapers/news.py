@@ -46,9 +46,16 @@ FEEDS = [
     "https://news.google.com/rss/search?q=site:island.lk+(fuel+OR+petrol)+(price+OR+prices+OR+ceypetco)&hl=en-US&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=site:onlanka.com+(fuel+OR+petrol)+(price+OR+prices+OR+ceypetco)&hl=en-US&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=site:lankanewsweb.net+(fuel+OR+petrol+OR+ceypetco)+(price+OR+prices)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:newsfirst.lk+(fuel+OR+petrol+OR+ceypetco)+(price+OR+prices+OR+reduced+OR+revised)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:english.newsfirst.lk+(fuel+OR+petrol+OR+CPC)+(price+OR+prices+OR+reduced+OR+revised)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:themorning.lk+(fuel+OR+petrol)+(price+OR+prices+OR+ceypetco+OR+revised)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:ft.lk+(fuel+OR+petrol)+(price+OR+prices+OR+ceypetco+OR+revised)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:sundaytimes.lk+(fuel+OR+petrol)+(price+OR+prices+OR+reduced+OR+revised)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:srilankamirror.com+(fuel+OR+petrol)+(price+OR+prices+OR+reduced+OR+revised)&hl=en-US&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=site:economynext.com+(fuel+OR+petrol+OR+ceypetco)+(price+OR+prices)&hl=en-US&gl=US&ceid=US:en",
     "https://economynext.com/feed/",
     "https://www.newswire.lk/feed/",
-    "https://adaderana.lk/rss.xml",
+    # Ada Derana /rss.xml returns 500 from many IPs — rely on Google News + Brave.
     "https://island.lk/feed/",
     "https://www.onlanka.com/feed",
     "https://lankanewsweb.net/feed",
@@ -121,10 +128,13 @@ FUEL_NAME_RE: dict[str, re.Pattern[str]] = {
         re.IGNORECASE,
     ),
     "auto_diesel": re.compile(
-        r"\b(?:auto\s*diesel|lanka\s*auto\s*diesel|white\s*diesel)\b",
+        r"\b(?:auto\s*diesel|lanka\s*auto\s*diesel|white\s*diesel|LAD)\b",
         re.IGNORECASE,
     ),
-    "super_diesel": re.compile(r"\b(?:super\s*diesel|lanka\s*super\s*diesel)\b", re.IGNORECASE),
+    "super_diesel": re.compile(
+        r"\b(?:super\s*diesel|lanka\s*super\s*diesel|LSD)\b",
+        re.IGNORECASE,
+    ),
     "kerosene": re.compile(r"\b(?:kerosene|lanka\s*kerosene)\b", re.IGNORECASE),
 }
 
@@ -142,6 +152,10 @@ OUTLET_HOSTS: list[tuple[str, str]] = [
     ("economynext.com", "economynext"),
     ("onlanka.com", "onlanka"),
     ("lankanewsweb.net", "lankanewsweb"),
+    ("newsfirst.lk", "newsfirst"),
+    ("themorning.lk", "themorning"),
+    ("ft.lk", "dailyft"),
+    ("sundaytimes.lk", "sundaytimes"),
     ("island.lk", "island"),
     ("srilankamirror.com", "srilankamirror"),
 ]
@@ -793,6 +807,58 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
                 re.IGNORECASE,
             ),
         )
+    elif "newsfirst.lk" in host:
+        # NewsFirst English uses /YYYY/MM/DD/slug; on-site search is weak so
+        # go straight to Brave/DDG site-search.
+        return _resolve_via_web_search(
+            title,
+            "newsfirst.lk",
+            re.compile(
+                r"https?://(?:english\.|www\.)?newsfirst\.lk/"
+                r"\d{4}/\d{2}/\d{2}/[A-Za-z0-9\-]+/?",
+                re.IGNORECASE,
+            ),
+        )
+    elif "themorning.lk" in host:
+        # The Morning uses opaque /articles/<cuid> paths; on-site ?s= is a no-op.
+        return _resolve_via_web_search(
+            title,
+            "themorning.lk",
+            re.compile(
+                r"https?://(?:www\.)?themorning\.lk/articles/[A-Za-z0-9]+/?",
+                re.IGNORECASE,
+            ),
+        )
+    elif "ft.lk" in host:
+        return _resolve_via_web_search(
+            title,
+            "ft.lk",
+            re.compile(
+                r"https?://(?:www\.)?ft\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
+                re.IGNORECASE,
+            ),
+        )
+    elif "sundaytimes.lk" in host:
+        return _resolve_via_web_search(
+            title,
+            "sundaytimes.lk",
+            re.compile(
+                r"https?://(?:www\.)?sundaytimes\.lk/\d+/"
+                r"[a-z0-9\-]+/[a-z0-9\-]+\.html",
+                re.IGNORECASE,
+            ),
+        )
+    elif "srilankamirror.com" in host:
+        # Cloudflare often blocks direct fetch; Brave still indexes article URLs.
+        return _resolve_via_web_search(
+            title,
+            "srilankamirror.com",
+            re.compile(
+                r"https?://(?:www\.)?srilankamirror\.com/"
+                r"(?:news|biz|business|news-features)/[A-Za-z0-9\-]+/?",
+                re.IGNORECASE,
+            ),
+        )
     else:
         return None
 
@@ -986,10 +1052,86 @@ BRAVE_DISCOVERY: list[tuple[str, str, re.Pattern[str]]] = [
         ),
     ),
     (
+        "newsfirst.lk",
+        'site:newsfirst.lk (fuel OR petrol OR CPC OR ceypetco) '
+        "(prices OR price) (reduced OR increased OR revised OR revision)",
+        re.compile(
+            r"https?://(?:english\.|www\.)?newsfirst\.lk/"
+            r"\d{4}/\d{2}/\d{2}/[A-Za-z0-9\-]+/?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "adaderana.lk",
+        'site:adaderana.lk (fuel OR petrol OR diesel) (prices OR price) '
+        "(reduced OR increased OR revised)",
+        re.compile(
+            r"https?://(?:www\.)?adaderana\.lk/"
+            r"(?:news\.php\?nid=\d+|news/[A-Za-z0-9]+(?:/[A-Za-z0-9\-]+)?)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
         "economynext.com",
         'site:economynext.com (fuel OR petrol OR ceypetco) (price OR prices) '
         "(reduced OR increased OR revised)",
         re.compile(r"https://economynext\.com/[a-z0-9\-]+-\d+/", re.IGNORECASE),
+    ),
+    (
+        "themorning.lk",
+        'site:themorning.lk (fuel OR petrol OR ceypetco) (prices OR price) '
+        "(reduced OR increased OR revised OR revision OR hike)",
+        re.compile(
+            r"https?://(?:www\.)?themorning\.lk/articles/[A-Za-z0-9]+/?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "ft.lk",
+        'site:ft.lk (fuel OR petrol OR ceypetco) (prices OR price) '
+        "(reduced OR increased OR revised OR revision)",
+        re.compile(
+            r"https?://(?:www\.)?ft\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "sundaytimes.lk",
+        'site:sundaytimes.lk (fuel OR petrol) (prices OR price) '
+        "(reduced OR increased OR revised OR revision)",
+        re.compile(
+            r"https?://(?:www\.)?sundaytimes\.lk/\d+/"
+            r"[a-z0-9\-]+/[a-z0-9\-]+\.html",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "srilankamirror.com",
+        'site:srilankamirror.com (fuel OR petrol) (prices OR price) '
+        "(reduced OR increased OR revised OR revision OR slashed)",
+        re.compile(
+            r"https?://(?:www\.)?srilankamirror\.com/"
+            r"(?:news|business|news-features)/[A-Za-z0-9\-]+",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "newswire.lk",
+        'site:newswire.lk (fuel OR petrol OR ceypetco) (prices OR price) '
+        "(reduced OR increased OR revised OR revision)",
+        re.compile(
+            r"https://www\.newswire\.lk/\d{4}/\d{2}/\d{2}/[a-z0-9\-]+/?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "island.lk",
+        'site:island.lk (fuel OR petrol OR ceypetco) (prices OR price) '
+        "(reduced OR increased OR revised)",
+        re.compile(
+            r"https://island\.lk/[a-z0-9\-]+/?",
+            re.IGNORECASE,
+        ),
     ),
 ]
 

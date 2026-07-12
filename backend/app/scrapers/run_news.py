@@ -38,10 +38,14 @@ TOLERANCE_LKR = 1.0
 OUTLET_TRUST: dict[str, float] = {
     "newswire": 1.0,
     "adaderana": 1.0,
+    "newsfirst": 0.95,  # same-night CPC wire copy
     "dailymirror": 0.95,
     "onlanka": 0.95,  # clean CPC revision tables every cycle
+    "dailyft": 0.92,  # business daily; structured revision tables
     "lankanewsweb": 0.9,
     "economynext": 0.9,
+    "themorning": 0.88,
+    "sundaytimes": 0.88,
     "island": 0.85,
     "srilankamirror": 0.8,
     "unknown": 0.35,
