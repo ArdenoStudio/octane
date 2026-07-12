@@ -21,8 +21,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Cal Sans UI", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["Cal Sans UI", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Cal Sans UI", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Cal Sans UI", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       letterSpacing: {

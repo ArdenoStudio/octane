@@ -4,63 +4,49 @@ import { api, EarlySignal, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow, resolve
 import { useLocale } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
+import { BadgeDelta } from "./ui/BadgeDelta";
 import { FadeContainer, FadeDiv } from "./ui/Fade";
 import { ShareButtons } from "./ui/ShareButtons";
 
-const ACCENT_BY_FUEL: Record<FuelId, string> = {
-  petrol_92: "#f59e0b",
-  petrol_95: "#ea580c",
-  auto_diesel: "#059669",
-  super_diesel: "#0891b2",
-  kerosene: "#7c3aed",
+const GRADIENT_BY_FUEL: Record<FuelId, string> = {
+  petrol_92:    "from-amber-500/20",
+  petrol_95:    "from-orange-500/20",
+  auto_diesel:  "from-emerald-500/15",
+  super_diesel: "from-cyan-500/15",
+  kerosene:     "from-violet-500/15",
+};
+
+const SPARK_COLOR: Record<FuelId, string> = {
+  petrol_92:    "#f59e0b",
+  petrol_95:    "#f97316",
+  auto_diesel:  "#10b981",
+  super_diesel: "#06b6d4",
+  kerosene:     "#8b5cf6",
 };
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
-  const w = 72;
-  const h = 24;
+  const w = 80;
+  const h = 28;
   const pts = data
     .map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 6) - 3}`)
     .join(" ");
   const lx = w;
   const ly = h - ((data[data.length - 1] - min) / range) * (h - 6) - 3;
   return (
-    <svg width={w} height={h} className="overflow-visible shrink-0" aria-hidden>
+    <svg width={w} height={h} className="overflow-visible shrink-0">
       <polyline
         points={pts}
         fill="none"
         stroke={color}
-        strokeWidth="1.75"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity={0.85}
       />
-      <circle cx={lx} cy={ly} r="2.5" fill={color} />
+      <circle cx={lx} cy={ly} r="3" fill={color} />
     </svg>
-  );
-}
-
-function DeltaText({
-  delta,
-  ariaLabel,
-}: {
-  delta: number;
-  ariaLabel: string;
-}) {
-  const flat = delta === 0;
-  const up = delta > 0;
-  return (
-    <span
-      aria-label={ariaLabel}
-      className={`inline-flex items-center gap-0.5 text-sm font-semibold tabular-nums ${
-        flat ? "text-ink-500" : up ? "text-red-500" : "text-emerald-600"
-      }`}
-    >
-      {!flat && (up ? <RiArrowUpSLine className="size-4" /> : <RiArrowDownSLine className="size-4" />)}
-      {flat ? "0" : up ? `+${Math.round(delta)}` : `${Math.round(delta)}`}
-    </span>
   );
 }
 
@@ -136,37 +122,54 @@ export function PriceStrip() {
   return (
     <section id="prices" className="container-x pt-10 sm:pt-14">
       <FadeContainer>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <FadeDiv>
             <Badge>{m.prices.badge}</Badge>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tightest text-ink-100 sm:text-4xl">
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
               {m.prices.title}
             </h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="rounded border border-ink-700 bg-ink-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
+                  {m.prices.official}
+                </span>
+                <span>CPC</span>
+              </span>
+              <span className="text-ink-700" aria-hidden>
+                ·
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+                  {m.prices.unconfirmed}
+                </span>
+                <span>{m.prices.mediaReports}</span>
+              </span>
+            </p>
           </FadeDiv>
           {(lastRevision || lastVerifiedAt) && (
-            <FadeDiv className="text-sm text-ink-400 sm:text-right">
+            <FadeDiv className="text-right text-sm text-ink-400">
               {lastRevision && (
                 <div>
                   {m.prices.lastRevision}{" "}
-                  <span className="font-medium text-ink-200">{shortDate(lastRevision)}</span>
-                  <span className="ml-1 text-ink-500">· {relativeFromNow(lastRevision)}</span>
+                  <span className="text-ink-200">{shortDate(lastRevision)}</span>
+                  <span className="ml-1 text-ink-400">· {relativeFromNow(lastRevision)}</span>
                 </div>
               )}
               {lastVerifiedAt && (
-                <div className={lastRevision ? "mt-0.5 text-xs text-ink-500" : undefined}>
+                <div className={lastRevision ? "mt-0.5" : undefined}>
                   {m.prices.lastChecked}{" "}
-                  <span className="text-ink-300">{relativeFromNow(lastVerifiedAt)}</span>
+                  <span className="text-ink-200">{relativeFromNow(lastVerifiedAt)}</span>
                 </div>
               )}
             </FadeDiv>
           )}
         </div>
 
-        {/* Today's revision notice */}
+        {/* Today's revision notice — list all five fuels; mark unchanged ones */}
         {todayRevisions.length > 0 && (
-          <FadeDiv className="mt-6">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-emerald-600/15 bg-emerald-50/40 px-1 py-3 sm:px-2">
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
+          <FadeDiv className="mt-5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
                 <RiFlashlightLine className="size-4" />
                 {m.prices.revisedToday}
               </span>
@@ -188,11 +191,11 @@ export function PriceStrip() {
                     <span key={fuel} className="flex items-center gap-1 text-sm text-ink-300">
                       <span className="text-ink-500">{fuelLabel(fuel)}</span>
                       {up ? (
-                        <RiArrowUpSLine className="size-4 text-red-500" />
+                        <RiArrowUpSLine className="size-4 text-red-400" />
                       ) : (
-                        <RiArrowDownSLine className="size-4 text-emerald-600" />
+                        <RiArrowDownSLine className="size-4 text-emerald-400" />
                       )}
-                      <span className={up ? "font-semibold text-red-500" : "font-semibold text-emerald-600"}>
+                      <span className={up ? "font-semibold text-red-400" : "font-semibold text-emerald-400"}>
                         {up ? "+" : ""}
                         {lkr(c.delta_lkr ?? 0, { showSymbol: false })}
                       </span>
@@ -205,18 +208,19 @@ export function PriceStrip() {
           </FadeDiv>
         )}
 
-        {/* Early signals — single notice, not repeated in every column */}
+        {/* Early signals — only when media/LIOC differs from official CPC */}
         {earlySignals.length > 0 && todayRevisions.length === 0 && (
-          <FadeDiv className="mt-6">
-            <div className="border-y border-ink-800 bg-ink-900/50 px-1 py-3 sm:px-2">
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
-                <span className="inline-flex items-center gap-1.5 font-semibold text-ink-200">
-                  <RiFlashlightLine className="size-4 text-accent" />
-                  {m.prices.earlySignalTitle}
+          <FadeDiv className="mt-5">
+            <div className="rounded-xl border border-ink-800 bg-ink-900/50 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-200">
+                <RiFlashlightLine className="size-4 text-accent" />
+                {m.prices.earlySignalTitle}
+                <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
+                  {m.prices.unconfirmed}
                 </span>
-                <span className="text-ink-500">{m.prices.earlySignalUnconfirmed}</span>
+                <span className="font-normal text-ink-500">· {m.prices.earlySignalUnconfirmed}</span>
               </div>
-              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5">
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 {earlySignals.map((s) => {
                   const up = s.delta_lkr > 0;
                   const sourceLabel =
@@ -224,14 +228,14 @@ export function PriceStrip() {
                   return (
                     <span
                       key={`${s.source}-${s.fuel_type}`}
-                      className="flex items-center gap-1.5 text-sm text-ink-300"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-ink-800 bg-white px-2.5 py-1.5 text-sm text-ink-300"
                     >
                       <span className="text-ink-500">{sourceLabel}</span>
-                      <span>{fuelLabel(s.fuel_type)}</span>
+                      <span className="text-ink-200">{fuelLabel(s.fuel_type)}</span>
                       <span className="font-semibold tabular-nums text-ink-100">
                         {lkr(s.price_lkr, { showSymbol: false })}
                       </span>
-                      <span className={up ? "tabular-nums text-red-500" : "tabular-nums text-emerald-600"}>
+                      <span className={up ? "tabular-nums text-red-400" : "tabular-nums text-emerald-400"}>
                         ({up ? "+" : ""}
                         {lkr(s.delta_lkr, { showSymbol: false })})
                       </span>
@@ -250,104 +254,102 @@ export function PriceStrip() {
           </FadeDiv>
         )}
 
-        {/* Unified price board — equal columns, no stacked card chrome */}
-        <div className="price-board mt-6 overflow-hidden rounded-2xl border border-ink-800 bg-white/80 shadow-[0_1px_2px_rgba(24,24,27,0.04)] backdrop-blur-[2px]">
-          <div className="grid grid-cols-1 divide-y divide-ink-800 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-5">
-            {FUEL_ORDER.map((fuel, index) => {
-              const row = cpcByFuel[fuel];
-              const history = historyByFuel[fuel];
-              const delta = deltaByFuel[fuel];
-              const hasDelta = delta !== undefined && delta !== null;
-              const up = hasDelta && delta! > 0;
-              const flat = hasDelta && delta === 0;
-              const signal = signalByFuel[fuel];
-              const signalUp = signal ? signal.delta_lkr > 0 : false;
-              const accent = ACCENT_BY_FUEL[fuel];
-
-              return (
-                <FadeDiv
-                  key={fuel}
-                  className={`price-board-col relative flex min-h-[11.5rem] flex-col p-5 sm:p-6 ${
-                    index > 0 ? "lg:border-l lg:border-ink-800" : ""
-                  } ${index % 2 === 1 ? "sm:border-l sm:border-ink-800 lg:border-l" : ""} ${
-                    index >= 2 ? "sm:border-t sm:border-ink-800 lg:border-t-0" : ""
-                  }`}
-                >
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {FUEL_ORDER.map((fuel) => {
+            const row = cpcByFuel[fuel];
+            const history = historyByFuel[fuel];
+            const delta = deltaByFuel[fuel];
+            const hasDelta = delta !== undefined && delta !== null;
+            const up = hasDelta && delta! > 0;
+            const flat = hasDelta && delta === 0;
+            const signal = signalByFuel[fuel];
+            const signalUp = signal ? signal.delta_lkr > 0 : false;
+            return (
+              <FadeDiv key={fuel}>
+                <div className="card relative overflow-hidden p-6 h-full flex flex-col gap-3 hover:shadow-md transition-shadow">
+                  {/* Soft per-fuel gradient bleed */}
                   <div
                     aria-hidden
-                    className="price-board-accent absolute inset-x-0 top-0 h-[2px]"
-                    style={{ backgroundColor: accent }}
+                    className={`pointer-events-none absolute -inset-x-4 -top-10 h-24 bg-gradient-to-b ${GRADIENT_BY_FUEL[fuel]} to-transparent blur-3xl opacity-50`}
                   />
 
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-400">
-                      {fuelLabel(fuel)}
+                  <div className="relative flex flex-1 flex-col gap-3">
+                    {/* Label + delta badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="label">{fuelLabel(fuel)}</div>
+                      {hasDelta && (
+                        <BadgeDelta
+                          aria-label={flat ? "no change" : up ? `price up ${Math.round(delta!)} rupees` : `price down ${Math.abs(Math.round(delta!))} rupees`}
+                          variant="solid"
+                          deltaType={flat ? "neutral" : up ? "increase" : "decrease"}
+                          invertColors
+                          value={flat ? "0" : up ? `+${Math.round(delta!)}` : `${Math.round(delta!)}`}
+                          className="shrink-0 tabular-nums"
+                        />
+                      )}
                     </div>
-                    {hasDelta && (
-                      <DeltaText
-                        delta={delta!}
-                        ariaLabel={
-                          flat
-                            ? "no change"
-                            : up
-                              ? `price up ${Math.round(delta!)} rupees`
-                              : `price down ${Math.abs(Math.round(delta!))} rupees`
-                        }
-                      />
-                    )}
-                  </div>
 
-                  <div className="mt-3 flex items-baseline gap-1.5">
-                    <div className="font-display text-[2.35rem] font-bold leading-none tracking-tightest text-ink-100 tabular-nums">
-                      {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 text-xs text-ink-500">
-                    {row ? `${m.prices.lkrPer} ${shortDate(row.recorded_at)}` : m.prices.awaitingData}
-                  </div>
-
-                  {/* Reserved signal slot keeps columns aligned */}
-                  <div className="mt-4 min-h-[2.75rem]">
-                    {signal ? (
-                      <div className="text-xs leading-relaxed text-ink-500">
-                        <span className="font-medium text-ink-400">
-                          {m.prices.unconfirmed}
-                          <span className="font-normal text-ink-500">
-                            {" "}
-                            · {signal.source === "news" ? m.prices.earlySignalNews : m.prices.earlySignalLioc}
-                          </span>
+                    {/* Official CPC price */}
+                    <div>
+                      <div className="mb-1.5 inline-flex items-center gap-1 rounded border border-ink-700 bg-ink-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
+                        {m.prices.official}
+                        <span className="font-normal normal-case tracking-normal text-ink-500">
+                          · CPC
                         </span>
-                        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
-                          <span className="font-display text-base font-semibold tabular-nums text-ink-200">
-                            {lkr(signal.price_lkr, { showSymbol: false })}
-                          </span>
-                          <span
-                            className={`tabular-nums ${
-                              signalUp ? "text-red-500" : "text-emerald-600"
-                            }`}
-                          >
-                            {signalUp ? "+" : ""}
-                            {lkr(signal.delta_lkr, { showSymbol: false })}
-                          </span>
-                        </div>
                       </div>
-                    ) : (
-                      <div className="text-xs text-ink-600/70">{m.prices.official} · CPC</div>
-                    )}
-                  </div>
+                      <div className="font-mono text-4xl font-black tracking-tight text-ink-100 tabular-nums leading-none">
+                        {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
+                      </div>
+                    </div>
 
-                  <div className="mt-auto flex items-end justify-end pt-3">
-                    {history && row ? (
-                      <Sparkline data={history} color={accent} />
-                    ) : (
-                      <div className="h-6" />
-                    )}
+                    {/* Reserved slot keeps card heights aligned when only some fuels have signals */}
+                    <div className="min-h-[3.75rem]">
+                      {signal && (
+                        <div className="rounded-md border border-dashed border-ink-700 bg-ink-900/70 px-2.5 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
+                              {m.prices.unconfirmed}
+                            </span>
+                            <span className="text-[10px] text-ink-500">
+                              {signal.source === "news" ? m.prices.earlySignalNews : m.prices.earlySignalLioc}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className="font-mono text-lg font-bold tabular-nums text-ink-100">
+                              {lkr(signal.price_lkr, { showSymbol: false })}
+                            </span>
+                            <span
+                              className={`inline-flex items-center text-xs font-semibold tabular-nums ${
+                                signalUp ? "text-red-400" : "text-emerald-400"
+                              }`}
+                            >
+                              {signalUp ? (
+                                <RiArrowUpSLine className="size-3.5" />
+                              ) : (
+                                <RiArrowDownSLine className="size-3.5" />
+                              )}
+                              {signalUp ? "+" : ""}
+                              {lkr(signal.delta_lkr, { showSymbol: false })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Date + sparkline */}
+                    <div className="mt-auto flex items-end justify-between pt-1">
+                      <div className="text-xs text-ink-400">
+                        {row ? `${m.prices.lkrPer} ${shortDate(row.recorded_at)}` : m.prices.awaitingData}
+                      </div>
+                      {history && row && (
+                        <Sparkline data={history} color={SPARK_COLOR[fuel]} />
+                      )}
+                    </div>
                   </div>
-                </FadeDiv>
-              );
-            })}
-          </div>
+                </div>
+              </FadeDiv>
+            );
+          })}
         </div>
 
         {rows && (

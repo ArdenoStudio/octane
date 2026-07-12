@@ -43,16 +43,6 @@
   100% { transform: translateX(560%); }
 }
 
-@keyframes price-board-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes price-accent-draw {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
 /* Slim, on-brand scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
@@ -97,26 +87,6 @@
   }
   .label {
     @apply text-xs font-medium uppercase tracking-[0.12em] text-ink-400;
-  }
-  .price-board {
-    animation: price-board-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .price-board-accent {
-    transform-origin: left;
-    animation: price-accent-draw 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .price-board-col:nth-child(1) .price-board-accent { animation-delay: 0.05s; }
-  .price-board-col:nth-child(2) .price-board-accent { animation-delay: 0.12s; }
-  .price-board-col:nth-child(3) .price-board-accent { animation-delay: 0.19s; }
-  .price-board-col:nth-child(4) .price-board-accent { animation-delay: 0.26s; }
-  .price-board-col:nth-child(5) .price-board-accent { animation-delay: 0.33s; }
-  .price-board-col {
-    transition: background-color 0.2s ease;
-  }
-  @media (hover: hover) {
-    .price-board-col:hover {
-      background-color: rgba(244, 244, 245, 0.7);
-    }
   }
   .btn-shine {
     position: relative;
