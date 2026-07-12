@@ -51,15 +51,15 @@ export const SI: Messages = {
     kerosene: "කිරොසීන්",
   },
   prices: {
-    badge: "සජීව මිල · CPC",
+    badge: "සජීව මිල · CPC සහ Lanka IOC",
     title: "අද ශ්‍රී ලංකා ඉන්ධන මිල ගණන්.",
-    lastRevision: "අවසන් CPC සංශෝධනය",
+    lastRevision: "අවසන් සංශෝධනය",
     lastChecked: "අවසන් පරීක්ෂාව",
     revisedToday: "අද මිල ගණන් වෙනස්කම් ඇති විය",
-    earlySignalTitle: "CPC ට පෙර වාර්තා විය",
+    earlySignalTitle: "නිල මිලට පෙර වාර්තා විය",
     earlySignalNews: "පුවත්",
     earlySignalLioc: "Lanka IOC",
-    earlySignalUnconfirmed: "තහවුරු නොවී — CPC බලාපොරොත්තුව",
+    earlySignalUnconfirmed: "තහවුරු නොවී — නිල සංශෝධනය බලාපොරොත්තුව",
     mediaReports: "මාධ්‍ය වාර්තා",
     official: "නිල",
     unconfirmed: "තහවුරු නොවී",
@@ -67,12 +67,12 @@ export const SI: Messages = {
     lkrPer: "රු. ·",
     loadError:
       "මිල පූරණය නොහැක. API අබල හෝ බද්දට සම්බන්ධතා ගැටලුවක් විය හැක.",
-    footerSource: "මූලාශ්‍රය:",
+    footerSource: "මූලාශ්‍ර:",
     footerLegal:
-      " · දිනකට 5 වතාවක් පරීක්ෂා · සංශෝධන දින CPC අනුව · අනුබද්ධ නොවන ස්වාධීන ව්‍යාපෘතියකි.",
+      " · CPC සහ Lanka IOC · නවතම සංශෝධනය ජයග්‍රහණය කරයි · දිනකට 5 වතාවක් පරීක්ෂා · අනුබද්ධ නොවන ස්වාධීන ව්‍යාපෘතියකි.",
   },
   mobile: {
-    label92: "පෙට්රල් 92 · CPC",
+    label92: "පෙට්රල් 92 · නිල",
     shareWhatsApp: "බෙදාගන්න",
     alertsShort: "විදියන්න",
     waLine:
