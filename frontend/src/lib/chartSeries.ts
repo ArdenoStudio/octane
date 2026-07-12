@@ -67,6 +67,53 @@ export function buildForwardFilledSeries(
 }
 
 /**
+ * Shared date axis with each fuel set only on its own revision days (no
+ * forward-fill). Optional endDate anchors the last known price so lines reach
+ * "today" without inventing mid-hold stairs.
+ */
+export function buildSparseSeries(
+  series: Partial<Record<FuelId, { recorded_at: string; price_lkr: number }[]>>,
+  active: Iterable<FuelId>,
+  opts: { endDate?: string } = {}
+): ChartRow[] {
+  const activeFuels = FUEL_ORDER.filter((f) => {
+    for (const a of active) if (a === f) return true;
+    return false;
+  });
+
+  const dateSet = new Set<string>();
+  const indices: Partial<Record<FuelId, Map<string, number>>> = {};
+  const last: Partial<Record<FuelId, number>> = {};
+  for (const f of activeFuels) {
+    const pts = [...(series[f] ?? [])].sort((a, b) =>
+      a.recorded_at.localeCompare(b.recorded_at)
+    );
+    indices[f] = new Map(pts.map((p) => [p.recorded_at, p.price_lkr]));
+    for (const p of pts) {
+      dateSet.add(p.recorded_at);
+      last[f] = p.price_lkr;
+    }
+  }
+
+  if (opts.endDate) dateSet.add(opts.endDate);
+
+  const dates = Array.from(dateSet).sort();
+  return dates.map((d) => {
+    const row: ChartRow = { date: d };
+    for (const f of activeFuels) {
+      const v = indices[f]?.get(d);
+      if (v != null) {
+        row[f] = v;
+      } else if (opts.endDate && d === opts.endDate && last[f] != null) {
+        // Terminal hold only — keeps media tips / "today" aligned.
+        row[f] = last[f]!;
+      }
+    }
+    return row;
+  });
+}
+
+/**
  * Ensure a sparse forward-filled series reaches `endDate` so media tips and
  * "today" line up with the last official price (no connectNulls spike).
  */

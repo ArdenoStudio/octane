@@ -23,7 +23,7 @@ import {
 } from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
 import { lkr } from "../lib/format";
-import { buildForwardFilledSeries, expandToDailyCalendar } from "../lib/chartSeries";
+import { buildForwardFilledSeries, buildSparseSeries } from "../lib/chartSeries";
 import { applyNewsExtensions, extKey } from "../lib/newsExtension";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
@@ -229,12 +229,10 @@ export function HistoryChart() {
       return buildForwardFilledSeries(byFuel, active);
     }
 
-    // Timeline: forward-fill revisions, then expand to one point per calendar
-    // day so plateaus and drops are visually obvious (day-proportional X).
-    const filled = buildForwardFilledSeries(series, active);
-    return expandToDailyCalendar(filled, {
+    // Timeline: sparse revision points only (no daily plateaus). Monotone
+    // then curves between real changes; time-scaled X keeps spacing honest.
+    return buildSparseSeries(series, active, {
       endDate: new Date().toISOString().slice(0, 10),
-      fuels: Array.from(active),
     });
   }, [mode, series, allRevisions, active, days]);
 
@@ -319,16 +317,42 @@ export function HistoryChart() {
   }, [days]);
 
   // Single graph: solid CPC + dashed media extension that clears when CPC revises.
-  const displayData = useMemo(
-    () =>
-      applyNewsExtensions(mergedData, pendingSignals, active, {
-        rangeStart,
-        today: new Date().toISOString().slice(0, 10),
-      }),
-    [mergedData, pendingSignals, active, rangeStart]
-  );
+  const displayData = useMemo(() => {
+    const rows = applyNewsExtensions(mergedData, pendingSignals, active, {
+      rangeStart,
+      today: new Date().toISOString().slice(0, 10),
+    });
+    // Numeric timestamps so Timeline can use a time-scaled X axis.
+    return rows.map((row) => ({
+      ...row,
+      ts: Date.parse(`${String(row.date)}T12:00:00Z`),
+    })) as Array<Record<string, string | number | boolean>>;
+  }, [mergedData, pendingSignals, active, rangeStart]);
 
   const chartRemountKey = `${mode}-${days}-${Array.from(active).join(",")}-${displayData.length}-${String(displayData.at(-1)?.date ?? "")}`;
+
+  // Last-known official price on/before a date — keeps Timeline tooltips useful
+  // when only one fuel revised that day.
+  const lastPriceOnOrBefore = useMemo(() => {
+    const byFuel: Partial<Record<FuelId, { date: string; price: number }[]>> = {};
+    for (const f of active) byFuel[f] = [];
+    for (const row of displayData) {
+      const d = String(row.date);
+      for (const f of active) {
+        if (typeof row[f] === "number") {
+          byFuel[f]!.push({ date: d, price: row[f] as number });
+        }
+      }
+    }
+    return (fuel: FuelId, date: string): number | null => {
+      const pts = byFuel[fuel];
+      if (!pts?.length) return null;
+      for (let i = pts.length - 1; i >= 0; i--) {
+        if (pts[i].date <= date) return pts[i].price;
+      }
+      return null;
+    };
+  }, [displayData, active]);
 
   const yDomain = useMemo((): [number | "auto", number | "auto"] | [number, number] => {
     let min = Infinity;
@@ -574,13 +598,28 @@ export function HistoryChart() {
                 margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
               >
                 <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(d) => String(d).slice(0, 7)}
-                  stroke="#a1a1aa"
-                  fontSize={11}
-                  minTickGap={70}
-                />
+                {mode === "daily" ? (
+                  <XAxis
+                    dataKey="ts"
+                    type="number"
+                    scale="time"
+                    domain={["dataMin", "dataMax"]}
+                    tickFormatter={(t) =>
+                      Number.isFinite(t) ? new Date(t as number).toISOString().slice(0, 7) : ""
+                    }
+                    stroke="#a1a1aa"
+                    fontSize={11}
+                    minTickGap={70}
+                  />
+                ) : (
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(d) => String(d).slice(0, 7)}
+                    stroke="#a1a1aa"
+                    fontSize={11}
+                    minTickGap={70}
+                  />
+                )}
                 <YAxis
                   stroke="#a1a1aa"
                   fontSize={11}
@@ -590,56 +629,121 @@ export function HistoryChart() {
                 />
                 <Tooltip
                   cursor={{ stroke: "#a1a1aa", strokeDasharray: "3 3" }}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null;
-                    const items = payload.filter((p) => {
-                      const key = p.dataKey as string;
-                      return (
-                        FUEL_ORDER.includes(key as FuelId) ||
-                        key.endsWith("_ext") ||
-                        key.endsWith("_ai_fwd")
-                      );
-                    });
+                  content={({ active: tipActive, payload, label }) => {
+                    if (!tipActive || !payload?.length) return null;
+                    const rowDate =
+                      (payload[0]?.payload?.date as string | undefined) ??
+                      (typeof label === "number" && Number.isFinite(label)
+                        ? new Date(label).toISOString().slice(0, 10)
+                        : String(label ?? ""));
+                    const items =
+                      mode === "daily"
+                        ? Array.from(active).flatMap((f) => {
+                            const price = lastPriceOnOrBefore(f, rowDate);
+                            if (price == null) return [];
+                            const ext = payload.find((p) => p.dataKey === extKey(f));
+                            const ai = payload.find((p) => p.dataKey === `${f}_ai_fwd`);
+                            const out: {
+                              key: string;
+                              color: string;
+                              fuel: FuelId;
+                              value: number;
+                              kind: "official" | "media" | "ai";
+                            }[] = [
+                              {
+                                key: f,
+                                color: COLORS[f],
+                                fuel: f,
+                                value: price,
+                                kind: "official",
+                              },
+                            ];
+                            if (
+                              ext &&
+                              typeof ext.value === "number" &&
+                              Math.abs(ext.value - price) >= 0.01
+                            ) {
+                              out.push({
+                                key: extKey(f),
+                                color: COLORS[f],
+                                fuel: f,
+                                value: ext.value,
+                                kind: "media",
+                              });
+                            }
+                            if (ai && typeof ai.value === "number") {
+                              out.push({
+                                key: `${f}_ai_fwd`,
+                                color: COLORS[f],
+                                fuel: f,
+                                value: ai.value,
+                                kind: "ai",
+                              });
+                            }
+                            return out;
+                          })
+                        : payload
+                            .filter((p) => {
+                              const key = p.dataKey as string;
+                              return (
+                                FUEL_ORDER.includes(key as FuelId) ||
+                                key.endsWith("_ext") ||
+                                key.endsWith("_ai_fwd")
+                              );
+                            })
+                            .map((p) => {
+                              const key = p.dataKey as string;
+                              const isAI = key.endsWith("_ai_fwd");
+                              const isExt = key.endsWith("_ext");
+                              const fuel = (
+                                isAI
+                                  ? key.replace("_ai_fwd", "")
+                                  : isExt
+                                    ? key.replace("_ext", "")
+                                    : key
+                              ) as FuelId;
+                              return {
+                                key,
+                                color: String(p.color ?? COLORS[fuel]),
+                                fuel,
+                                value: p.value as number,
+                                kind: (isExt ? "media" : isAI ? "ai" : "official") as
+                                  | "official"
+                                  | "media"
+                                  | "ai",
+                              };
+                            })
+                            .filter((item) => {
+                              if (item.kind !== "media") return true;
+                              const official = payload.find((x) => x.dataKey === item.fuel);
+                              return !(
+                                official &&
+                                typeof official.value === "number" &&
+                                Math.abs(official.value - item.value) < 0.01
+                              );
+                            });
                     if (!items.length) return null;
                     return (
                       <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, fontSize: 12, padding: "8px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-                        <div style={{ color: "#71717a", marginBottom: 6 }}>{label}</div>
-                        {items.map((p) => {
-                          const key = p.dataKey as string;
-                          const isAI = key.endsWith("_ai_fwd");
-                          const isExt = key.endsWith("_ext");
-                          const fuel = (
-                            isAI ? key.replace("_ai_fwd", "") : isExt ? key.replace("_ext", "") : key
-                          ) as FuelId;
-                          // Hide media tooltip rows that still equal the official price.
-                          if (isExt) {
-                            const official = items.find((x) => x.dataKey === fuel);
-                            if (
-                              official &&
-                              typeof official.value === "number" &&
-                              typeof p.value === "number" &&
-                              Math.abs(official.value - p.value) < 0.01
-                            ) {
-                              return null;
-                            }
-                          }
-                          return (
-                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                              <span style={{ color: p.color, fontSize: 8 }}>{isExt ? "◌" : "●"}</span>
-                              <span style={{ color: "#3f3f46" }}>
-                                {fuelLabel(fuel)}
-                                {isExt ? (
-                                  <span style={{ color: "#d97706" }}> · media</span>
-                                ) : isAI ? (
-                                  <span style={{ color: "#a1a1aa" }}> · AI</span>
-                                ) : null}
-                              </span>
-                              <span style={{ marginLeft: "auto", paddingLeft: 12, fontWeight: 500 }}>
-                                LKR {(p.value as number).toFixed(2)}
-                              </span>
-                            </div>
-                          );
-                        })}
+                        <div style={{ color: "#71717a", marginBottom: 6 }}>{rowDate}</div>
+                        {items.map((item) => (
+                          <div key={item.key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                            <span style={{ color: item.color, fontSize: 8 }}>
+                              {item.kind === "media" ? "◌" : "●"}
+                            </span>
+                            <span style={{ color: "#3f3f46" }}>
+                              {fuelLabel(item.fuel)}
+                              {item.kind === "media" ? (
+                                <span style={{ color: "#d97706" }}> · media</span>
+                              ) : item.kind === "ai" ? (
+                                <span style={{ color: "#a1a1aa" }}> · AI</span>
+                              ) : null}
+                            </span>
+                            <span style={{ marginLeft: "auto", paddingLeft: 12, fontWeight: 500 }}>
+                              LKR {item.value.toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     );
                   }}
