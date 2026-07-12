@@ -19,6 +19,7 @@
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/ci.yml/badge.svg" alt="CI" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/deploy-backend.yml/badge.svg" alt="Deploy backend" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/scrape.yml/badge.svg" alt="Scrape fuel prices" />
+  <img src="https://github.com/ArdenoStudio/octane/actions/workflows/scrape-news.yml/badge.svg" alt="Scrape news signals" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/digest.yml/badge.svg" alt="Digest" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/dispatch-alerts.yml/badge.svg" alt="Dispatch alerts" />
   <img src="https://github.com/ArdenoStudio/octane/actions/workflows/sentiment.yml/badge.svg" alt="Sentiment" />
@@ -26,11 +27,13 @@
 
 ---
 
-Octane tracks CPC fuel prices daily the moment they're revised, and presents them with historical charts, a world comparison, a trip cost calculator, email price alerts, an embeddable widget, and a free public API.
+Octane checks CPC fuel prices several times a day and surfaces revisions the moment they're published — with historical charts, a world comparison, a trip cost calculator, email price alerts, an embeddable widget, and a free public API.
 
 ## Features
 
-- **Live prices** — scraped daily at 8am from CPC and LIOC
+- **Live prices** — checked 5× daily from CPC and LIOC (revision dates follow CPC)
+- **Early signals** — news / LIOC figures surfaced as unconfirmed when ahead of CPC
+- **Daily market context** — AI revision outlook, USD/LKR, and SL vs world
 - **Price history** — up to 10 years of revision events with delta indicators
 - **World comparison** — Sri Lanka vs global average and regional neighbours
 - **Trip calculator** — distance + efficiency → exact cost at today's prices
@@ -43,10 +46,10 @@ Octane tracks CPC fuel prices daily the moment they're revised, and presents the
 | Layer | Tech |
 |---|---|
 | Backend | FastAPI · PostgreSQL · Fly.io |
-| Scrapers | `httpx` + `BeautifulSoup` · daily 8am cron |
+| Scrapers | `httpx` + `BeautifulSoup` · full scrape 5× daily · news hourly (multi-outlet consensus) |
 | Frontend | React 18 · Vite · Tailwind CSS · Recharts |
 | Hosting | Vercel (frontend) · Fly.io (backend + DB) |
-| Sources | `ceypetco.gov.lk` · `lankaiocoil.lk` · `globalpetrolprices.com` |
+| Sources | `ceypetco.gov.lk` · LIOC via news (lankaioc.com) · `globalpetrolprices.com` |
 
 ## Project layout
 
@@ -67,7 +70,8 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env          # set DATABASE_URL
 python -m app.db.init         # create tables
-python -m app.scrapers.run    # seed prices
+python -m app.scrapers.run         # seed prices (CPC + LIOC + news + world + FX)
+python -m app.scrapers.run_news --dry-run   # news-only dry run (no DB write)
 uvicorn app.main:app --reload --port 8000
 
 # Frontend
@@ -82,7 +86,8 @@ All endpoints are free to use with no API key.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/v1/prices/latest` | Current prices for all fuel types |
+| `GET` | `/v1/prices/latest` | Current prices + early signals + last verified |
+| `GET` | `/v1/market-context` | Daily outlook: sentiment, FX, SL vs world |
 | `GET` | `/v1/prices/history?fuel=92&days=730` | Historical revisions for charting |
 | `GET` | `/v1/prices/changes` | All revision events with price deltas |
 | `GET` | `/v1/comparison/world?fuel=95` | Sri Lanka vs world average + neighbours |

@@ -13,6 +13,7 @@ from app import fuel as fuel_mod
 from app.services import prices
 from app.services import forecast as forecast_svc
 from app.services import sentiment as sentiment_svc
+from app.services import signals as signals_svc
 
 router = APIRouter(prefix="/v1/prices", tags=["prices"])
 
@@ -20,7 +21,20 @@ router = APIRouter(prefix="/v1/prices", tags=["prices"])
 @router.get("/latest")
 def latest():
     rows = prices.latest_all()
-    return {"prices": rows}
+    official = prices.official_latest(rows)
+    return {
+        "prices": rows,
+        # Per-fuel official pick: more recent of CPC vs Lanka IOC.
+        "official": official,
+        # Fresher of CPC / Lanka IOC scrape checks — independent of revision age.
+        "last_verified_at": prices.last_verified_at("official"),
+        "last_verified_by_source": {
+            "cpc": prices.last_verified_at("cpc"),
+            "lanka_ioc": prices.last_verified_at("lanka_ioc"),
+        },
+        # News figures ahead of the winning official source.
+        "early_signals": signals_svc.early_signals(rows),
+    }
 
 
 @router.get("/history")

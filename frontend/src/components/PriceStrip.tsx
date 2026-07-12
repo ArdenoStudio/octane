@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { RiArrowDownSLine, RiArrowUpSLine, RiFlashlightLine } from "@remixicon/react";
-import { api, FUEL_ORDER, FuelId, PriceChangeRow, PriceRow } from "../lib/api";
+import {
+  api,
+  EarlySignal,
+  FUEL_ORDER,
+  FuelId,
+  OFFICIAL_SOURCE_LABEL,
+  OfficialSource,
+  PriceChangeRow,
+  PriceRow,
+  resolveEarlySignals,
+  resolveOfficialPrices,
+} from "../lib/api";
 import { useLocale } from "../i18n/LocaleProvider";
 import { lkr, relativeFromNow, shortDate } from "../lib/format";
 import { Badge } from "./ui/Badge";
 import { BadgeDelta } from "./ui/BadgeDelta";
 import { FadeContainer, FadeDiv } from "./ui/Fade";
 import { ShareButtons } from "./ui/ShareButtons";
+
+type PriceFilter = "all" | "official";
 
 const GRADIENT_BY_FUEL: Record<FuelId, string> = {
   petrol_92:    "from-amber-500/20",
@@ -50,24 +63,42 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
+function officialLabel(source: string): string {
+  if (source === "lanka_ioc") return OFFICIAL_SOURCE_LABEL.lanka_ioc;
+  return OFFICIAL_SOURCE_LABEL.cpc;
+}
+
 export function PriceStrip() {
   const { m, fuelLabel } = useLocale();
   const [rows, setRows] = useState<PriceRow[] | null>(null);
+  const [officialRows, setOfficialRows] = useState<PriceRow[]>([]);
   const [changes, setChanges] = useState<PriceChangeRow[] | null>(null);
+  const [lastVerifiedAt, setLastVerifiedAt] = useState<string | null>(null);
+  const [earlySignals, setEarlySignals] = useState<EarlySignal[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<PriceFilter>("all");
 
   useEffect(() => {
     Promise.all([api.latest(), api.changes(40)])
       .then(([latest, changesResp]) => {
         setRows(latest.prices);
+        setOfficialRows(resolveOfficialPrices(latest));
         setChanges(changesResp.changes);
+        setLastVerifiedAt(latest.last_verified_at ?? null);
+        setEarlySignals(resolveEarlySignals(latest));
       })
       .catch((e) => setError(String(e)));
   }, []);
 
+  const officialByFuel: Partial<Record<FuelId, PriceRow>> = {};
   const cpcByFuel: Partial<Record<FuelId, PriceRow>> = {};
+  const iocByFuel: Partial<Record<FuelId, PriceRow>> = {};
+  officialRows.forEach((r) => {
+    officialByFuel[r.fuel_type] = r;
+  });
   rows?.forEach((r) => {
     if (r.source === "cpc") cpcByFuel[r.fuel_type] = r;
+    if (r.source === "lanka_ioc") iocByFuel[r.fuel_type] = r;
   });
 
   const historyByFuel: Partial<Record<FuelId, number[]>> = {};
@@ -84,24 +115,29 @@ export function PriceStrip() {
     });
   }
 
+  const signalByFuel: Partial<Record<FuelId, EarlySignal>> = {};
+  for (const s of earlySignals) {
+    if (s.source === "news") signalByFuel[s.fuel_type] = s;
+  }
+
+  const showMedia = filter === "all";
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  const lastRevision = rows
-    ? rows
-        .filter((r) => r.source === "cpc")
-        .map((r) => r.recorded_at)
-        .sort()
-        .pop()
-    : null;
+  const lastRevision = officialRows
+    .map((r) => r.recorded_at)
+    .sort()
+    .pop() ?? null;
 
-  // Fuel types with an actual price change recorded today
+  // Fuel types with an actual CPC price change recorded today
   const todayRevisions =
     changes?.filter((c) => c.recorded_at === todayStr && c.delta_lkr !== null && c.delta_lkr !== 0) ?? [];
 
   function buildShareMessage(): string {
     const lines = FUEL_ORDER.map((f) => {
-      const row = cpcByFuel[f];
-      return row ? `${fuelLabel(f)}: LKR ${row.price_lkr}` : null;
+      const row = officialByFuel[f];
+      return row
+        ? `${fuelLabel(f)}: LKR ${row.price_lkr} (${officialLabel(row.source)})`
+        : null;
     }).filter(Boolean);
     return `Sri Lanka fuel prices today:\n${lines.join(" · ")}\n\nTrack prices, set alerts, and calculate trip costs at`;
   }
@@ -115,17 +151,44 @@ export function PriceStrip() {
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
               {m.prices.title}
             </h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="rounded border border-ink-700 bg-ink-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
+                  {m.prices.official}
+                </span>
+                <span>CPC · Lanka IOC</span>
+              </span>
+              <span className="text-ink-700" aria-hidden>
+                ·
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+                  {m.prices.media}
+                </span>
+                <span>{m.prices.mediaReports}</span>
+              </span>
+            </p>
           </FadeDiv>
-          {lastRevision && (
+          {(lastRevision || lastVerifiedAt) && (
             <FadeDiv className="text-right text-sm text-ink-400">
-              {m.prices.lastRevision}{" "}
-              <span className="text-ink-200">{shortDate(lastRevision)}</span>
-              <span className="ml-1 text-ink-400">· {relativeFromNow(lastRevision)}</span>
+              {lastRevision && (
+                <div>
+                  {m.prices.lastRevision}{" "}
+                  <span className="text-ink-200">{shortDate(lastRevision)}</span>
+                  <span className="ml-1 text-ink-400">· {relativeFromNow(lastRevision)}</span>
+                </div>
+              )}
+              {lastVerifiedAt && (
+                <div className={lastRevision ? "mt-0.5" : undefined}>
+                  {m.prices.lastChecked}{" "}
+                  <span className="text-ink-200">{relativeFromNow(lastVerifiedAt)}</span>
+                </div>
+              )}
             </FadeDiv>
           )}
         </div>
 
-        {/* Today's revision notice — only shown when prices were actually revised today */}
+        {/* Today's revision notice — list all five fuels; mark unchanged ones */}
         {todayRevisions.length > 0 && (
           <FadeDiv className="mt-5">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
@@ -134,11 +197,22 @@ export function PriceStrip() {
                 {m.prices.revisedToday}
               </span>
               <span className="flex flex-wrap gap-x-4 gap-y-1">
-                {todayRevisions.map((c) => {
+                {FUEL_ORDER.map((fuel) => {
+                  const c = todayRevisions.find((r) => r.fuel_type === fuel);
+                  const row = officialByFuel[fuel];
+                  if (!c && !row) return null;
+                  if (!c) {
+                    return (
+                      <span key={fuel} className="flex items-center gap-1 text-sm text-ink-500">
+                        <span>{fuelLabel(fuel)}</span>
+                        <span>unchanged · {lkr(row!.price_lkr, { showSymbol: false })}</span>
+                      </span>
+                    );
+                  }
                   const up = (c.delta_lkr ?? 0) > 0;
                   return (
-                    <span key={c.fuel_type} className="flex items-center gap-1 text-sm text-ink-300">
-                      <span className="text-ink-500">{fuelLabel(c.fuel_type as FuelId)}</span>
+                    <span key={fuel} className="flex items-center gap-1 text-sm text-ink-300">
+                      <span className="text-ink-500">{fuelLabel(fuel)}</span>
                       {up ? (
                         <RiArrowUpSLine className="size-4 text-red-400" />
                       ) : (
@@ -157,6 +231,43 @@ export function PriceStrip() {
           </FadeDiv>
         )}
 
+        {/* Early signals — news ahead of the winning official (CPC or LIOC) */}
+        {showMedia && earlySignals.length > 0 && todayRevisions.length === 0 && (
+          <FadeDiv className="mt-5">
+            <div className="rounded-xl border border-ink-800 bg-ink-900/50 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-200">
+                <RiFlashlightLine className="size-4 text-accent" />
+                {m.prices.earlySignalTitle}
+                <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
+                  {m.prices.media}
+                </span>
+                <span className="font-normal text-ink-500">· {m.prices.earlySignalUnconfirmed}</span>
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {earlySignals.map((s) => {
+                  const up = s.delta_lkr > 0;
+                  return (
+                    <span
+                      key={`${s.source}-${s.fuel_type}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-ink-800 bg-white px-2.5 py-1.5 text-sm text-ink-300"
+                    >
+                      <span className="text-ink-500">{m.prices.earlySignalNews}</span>
+                      <span className="text-ink-200">{fuelLabel(s.fuel_type)}</span>
+                      <span className="font-semibold tabular-nums text-ink-100">
+                        {lkr(s.price_lkr, { showSymbol: false })}
+                      </span>
+                      <span className={up ? "tabular-nums text-red-400" : "tabular-nums text-emerald-400"}>
+                        ({up ? "+" : ""}
+                        {lkr(s.delta_lkr, { showSymbol: false })})
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </FadeDiv>
+        )}
+
         {error && (
           <FadeDiv className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
             {m.prices.loadError}{" "}
@@ -164,14 +275,67 @@ export function PriceStrip() {
           </FadeDiv>
         )}
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <FadeDiv className="mt-6 flex flex-wrap items-center gap-2">
+          <div
+            role="group"
+            aria-label={m.prices.filterLabel}
+            className="inline-flex rounded-lg border border-ink-800 bg-ink-900/60 p-0.5"
+          >
+            <button
+              type="button"
+              onClick={() => setFilter("all")}
+              aria-pressed={filter === "all"}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                filter === "all"
+                  ? "bg-ink-100 text-ink-950"
+                  : "text-ink-400 hover:text-ink-200"
+              }`}
+            >
+              {m.prices.filterAll}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter("official")}
+              aria-pressed={filter === "official"}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                filter === "official"
+                  ? "bg-ink-100 text-ink-950"
+                  : "text-ink-400 hover:text-ink-200"
+              }`}
+            >
+              {m.prices.filterOfficialOnly}
+            </button>
+          </div>
+        </FadeDiv>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {FUEL_ORDER.map((fuel) => {
-            const row = cpcByFuel[fuel];
+            const row = officialByFuel[fuel];
             const history = historyByFuel[fuel];
-            const delta = deltaByFuel[fuel];
+            const cpc = cpcByFuel[fuel];
+            const ioc = iocByFuel[fuel];
+            const alternate =
+              row?.source === "lanka_ioc"
+                ? cpc
+                : row?.source === "cpc"
+                  ? ioc
+                  : undefined;
+            // CPC revision delta when CPC is official; otherwise vs the other official.
+            const vsAlternate =
+              alternate && row && Math.abs(alternate.price_lkr - row.price_lkr) >= 0.01
+                ? Math.round((row.price_lkr - alternate.price_lkr) * 100) / 100
+                : null;
+            const delta =
+              row?.source === "cpc"
+                ? deltaByFuel[fuel]
+                : vsAlternate;
             const hasDelta = delta !== undefined && delta !== null;
             const up = hasDelta && delta! > 0;
             const flat = hasDelta && delta === 0;
+            const signal = showMedia ? signalByFuel[fuel] : undefined;
+            const sourceName = row
+              ? officialLabel(row.source as OfficialSource)
+              : "CPC";
             return (
               <FadeDiv key={fuel}>
                 <div className="card relative overflow-hidden p-6 h-full flex flex-col gap-3 hover:shadow-md transition-shadow">
@@ -181,7 +345,7 @@ export function PriceStrip() {
                     className={`pointer-events-none absolute -inset-x-4 -top-10 h-24 bg-gradient-to-b ${GRADIENT_BY_FUEL[fuel]} to-transparent blur-3xl opacity-50`}
                   />
 
-                  <div className="relative flex flex-col gap-3">
+                  <div className="relative flex flex-1 flex-col gap-3">
                     {/* Label + delta badge */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="label">{fuelLabel(fuel)}</div>
@@ -197,13 +361,30 @@ export function PriceStrip() {
                       )}
                     </div>
 
-                    {/* Price */}
-                    <div className="font-mono text-4xl font-black tracking-tight text-ink-100 tabular-nums leading-none">
-                      {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
+                    {/* Official price — media flag is badge-only; number stays official */}
+                    <div>
+                      {signal ? (
+                        <div className="mb-1.5 inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
+                          {m.prices.media}
+                          <span className="font-normal normal-case tracking-normal text-amber-500/80">
+                            · {m.prices.earlySignalNews}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mb-1.5 inline-flex items-center gap-1 rounded border border-ink-700 bg-ink-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
+                          {m.prices.official}
+                          <span className="font-normal normal-case tracking-normal text-ink-500">
+                            · {sourceName}
+                          </span>
+                        </div>
+                      )}
+                      <div className="font-mono text-4xl font-black tracking-tight text-ink-100 tabular-nums leading-none">
+                        {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
+                      </div>
                     </div>
 
                     {/* Date + sparkline */}
-                    <div className="flex items-end justify-between">
+                    <div className="mt-auto flex items-end justify-between pt-1">
                       <div className="text-xs text-ink-400">
                         {row ? `${m.prices.lkrPer} ${shortDate(row.recorded_at)}` : m.prices.awaitingData}
                       </div>
@@ -228,7 +409,16 @@ export function PriceStrip() {
                 rel="noopener noreferrer"
                 className="text-ink-300 underline-offset-2 hover:underline"
               >
-                Ceylon Petroleum Corporation
+                CPC
+              </a>
+              {" · "}
+              <a
+                href="https://www.lankaioc.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink-300 underline-offset-2 hover:underline"
+              >
+                Lanka IOC
               </a>
               {m.prices.footerLegal}
             </p>

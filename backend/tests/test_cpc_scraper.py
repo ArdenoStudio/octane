@@ -1,12 +1,19 @@
 """Tests for the CPC price scraper's HTML parsing logic."""
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
-from app.scrapers.cpc import _parse_table, _parse_date, _parse_price
+from app.scrapers.cpc import (
+    _parse_table,
+    _parse_date,
+    _parse_price,
+    parse_latest_html,
+)
 from app import fuel as fuel_mod
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cpc_prices.html"
+HOMEPAGE_FIXTURE = Path(__file__).parent / "fixtures" / "cpc_homepage.html"
 
 
 def test_parse_table_returns_correct_row_count():
@@ -83,3 +90,30 @@ def test_parse_price_basic():
 def test_parse_price_invalid():
     assert _parse_price("N/A") is None
     assert _parse_price("") is None
+
+
+def test_parse_latest_html_from_homepage_widget():
+    html = HOMEPAGE_FIXTURE.read_text()
+    as_of = date(2026, 7, 9)
+    points = parse_latest_html(html, as_of=as_of)
+    by_fuel = {p.fuel_type: p.price_lkr for p in points}
+    assert by_fuel[fuel_mod.PETROL_92] == 311.0
+    assert by_fuel[fuel_mod.PETROL_95] == 345.0
+    assert by_fuel[fuel_mod.AUTO_DIESEL] == 291.0
+    assert by_fuel[fuel_mod.SUPER_DIESEL] == 311.0
+    assert by_fuel[fuel_mod.KEROSENE] == 185.0
+    assert all(p.recorded_at == as_of for p in points)
+
+
+def test_parse_latest_html_text_fallback():
+    html = """
+    <html><body>
+      Petrol 92 Octane 317.00 Petrol 95 Octane 355.00
+      Auto Diesel 293.00 Super Diesel 313.00 Kerosene 190.00
+    </body></html>
+    """
+    points = parse_latest_html(html, as_of=date(2026, 7, 9))
+    fuels = {p.fuel_type for p in points}
+    assert fuel_mod.PETROL_92 in fuels
+    assert fuel_mod.AUTO_DIESEL in fuels
+    assert len(points) >= 3

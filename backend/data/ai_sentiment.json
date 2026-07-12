@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-11T05:45:48.986561+00:00",
+  "generated_at": "2026-07-12T05:00:28.193866+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
-    "India among select few countries with zero petrol, diesel price changes amid US-Iran war volatility",
-    "Fuel rations and free buses: How countries have responded to rising oil prices",
-    "From Pakistan to Egypt, Iran war drives up prices in Global South",
-    "Petrol, diesel prices likely to be hiked within a week: Sources"
+    "Fuel prices increased, petrol by over Rs. 24",
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Sri Lanka reduces fuel retail prices after easing supply restrictions",
+    "Sri Lanka cuts fuel prices, inflation hits three-year high"
   ],
-  "direction": "up",
-  "confidence": 0.9,
-  "magnitude_lkr": 25.0,
-  "summary": "Fuel prices likely to increase due to ongoing US-Iran war tensions.",
+  "direction": "down",
+  "confidence": 0.8,
+  "magnitude_lkr": -30.0,
+  "summary": "Recent price cuts and easing global oil prices suggest a downward trend.",
   "signals": [
-    "US-Iran war volatility",
-    "Middle East crisis",
-    "IMF programme conditions"
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Falling oil market and Sri Lanka\u2019s fuel prices"
   ]
 }

@@ -42,7 +42,7 @@ _TEMPLATE = """<!doctype html>
 <div class="wrap">
   <div class="head">
     <div class="label">{display}</div>
-    <div class="meta">CPC</div>
+    <div class="meta">{source}</div>
   </div>
   <div class="price">LKR {price}</div>
   <div class="meta">As of {recorded_at}</div>
@@ -82,10 +82,12 @@ def widget(
     latest = prices.latest_for(fuel)
     if not latest:
         raise HTTPException(status_code=404, detail="no data")
+    source_label = "Lanka IOC" if latest["source"] == "lanka_ioc" else "CPC"
     html = _TEMPLATE.format(
         display=fuel_mod.DISPLAY[fuel],
         price=f"{latest['price_lkr']:.2f}",
         recorded_at=latest["recorded_at"],
+        source=source_label,
         **_theme(theme),
     )
     return HTMLResponse(html, headers={"Content-Security-Policy": "frame-ancestors *"})

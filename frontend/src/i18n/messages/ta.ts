@@ -15,7 +15,7 @@ export const TA: Messages = {
   },
   hero: {
     live: "நேரலை",
-    cpcPricesDaily: "CPC விலைகள் தினமும் புதுப்பிக்கப்படுகின்றன",
+    cpcPricesDaily: "CPC இலிருந்து நாளைக்கு 5 முறை சரிபார்ப்பு",
     h1a: "உண்மையான",
     h1b: "விலைகள்.",
     h1c: "இப்போதே",
@@ -27,7 +27,7 @@ export const TA: Messages = {
     features: [
       {
         title: "நேரடி விலைகள்",
-        description: "CPC எரிபொருள் விலைகள் திருத்தங்கள் வெளியானவுடன் தினமும் புதுப்பிக்கப்படும்.",
+        description: "நாளில் பல முறை CPC-ஐ சரிபார்த்து, திருத்தங்கள் வெளியானவுடன் காட்டுகிறோம்.",
       },
       {
         title: "விலை எச்சரிக்கைகள்",
@@ -51,19 +51,31 @@ export const TA: Messages = {
     kerosene: "மண்ணெண்ணெய்",
   },
   prices: {
-    badge: "நேரடி விலை · CPC",
+    badge: "நேரடி விலை · CPC & Lanka IOC",
     title: "இன்றைய இலங்கை எரிபொருள் விலைகள்.",
-    lastRevision: "கடைசித் திருத்தம்",
+    lastRevision: "கடைசி திருத்தம்",
+    lastChecked: "கடைசி சரிபார்ப்பு",
     revisedToday: "இன்று விலை மாற்றம்",
+    earlySignalTitle: "அதிகாரப்பூர்வத்திற்கு முன் அறிவிப்பு",
+    earlySignalNews: "செய்தி",
+    earlySignalLioc: "Lanka IOC",
+    earlySignalUnconfirmed: "உறுதிப்படுத்தப்படவில்லை — அதிகாரப்பூர்வ காத்திருப்பு",
+    mediaReports: "ஊடக அறிக்கை",
+    official: "அதிகாரப்பூர்வ",
+    unconfirmed: "உறுதிப்படுத்தப்படவில்லை",
+    media: "ஊடகம்",
+    filterLabel: "விலை வடிகட்டி",
+    filterAll: "அனைத்தும்",
+    filterOfficialOnly: "அதிகாரப்பூர்வ மட்டும்",
     awaitingData: "தரவுக்காகக் காத்திருக்கிறது",
     lkrPer: "ரூ. ·",
     loadError: "விலைகளை ஏற்ற முடியவில்லை. API இணைப்பு இல்லாமல் இருக்கலாம்.",
-    footerSource: "மூலம்:",
+    footerSource: "மூலங்கள்:",
     footerLegal:
-      " · தினமும் காலை 8 மணிக்கு பதிவிறக்கம் · CPC உடன் தொடர்பில்லாத சுயாதீன திட்டம்.",
+      " · CPC & Lanka IOC · புதிய திருத்தம் முன்னிலை · நாளைக்கு 5 முறை சரிபார்ப்பு · தொடர்பில்லாத சுயாதீன திட்டம்.",
   },
   mobile: {
-    label92: "பெட்ரோல் 92 · CPC",
+    label92: "பெட்ரோல் 92 · அதிகாரப்பூர்வ",
     shareWhatsApp: "பகிர்",
     alertsShort: "எச்சரிக்கை",
     waLine:

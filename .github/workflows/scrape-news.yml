@@ -1,21 +1,23 @@
-name: Scrape fuel prices
+name: Scrape news price signals
+
+# Faster cadence than the full scrape pipeline. News often reports CPC
+# revisions hours before ceypetco.gov.lk updates. Results are stored as
+# source=news and shown as unconfirmed early signals in the app.
+# When those signals change, refresh the AI revision outlook too.
 
 on:
   schedule:
-    - cron: '30 2 * * *'   # 08:00 SL — morning baseline
-    - cron: '30 6 * * *'   # 12:00 SL — midday
-    - cron: '30 10 * * *'  # 16:00 SL — afternoon
-    - cron: '30 14 * * *'  # 20:00 SL — evening
-    - cron: '30 18 * * *'  # 00:00 SL — midnight (CPC revises at midnight)
-  workflow_dispatch:        # allow manual trigger
+    # Every hour — catch revision-day wire stories quickly.
+    - cron: '15 * * * *'
+  workflow_dispatch:        # allow manual trigger on revision day
 
 permissions:
   id-token: write
   contents: read
-  actions: write   # dispatch AI sentiment when prices move
+  actions: write   # dispatch AI sentiment when early signals move
 
 jobs:
-  scrape:
+  scrape-news:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,9 +27,9 @@ jobs:
           role-to-assume: arn:aws:iam::308324916290:role/octane-gh-actions-role
           aws-region: ap-southeast-1
 
-      - name: Run scrapers as a one-off ECS Fargate task
+      - name: Run news scraper as a one-off ECS Fargate task
         # RDS lives in a private VPC — GitHub-hosted runners have no network
-        # path to it, so the scraper runs inside the VPC via ECS instead of
+        # path to it, so this runs inside the VPC via ECS instead of
         # connecting directly from here.
         id: scrape
         run: |
@@ -36,7 +38,7 @@ jobs:
             --task-definition octane-api \
             --launch-type FARGATE \
             --network-configuration '{"awsvpcConfiguration":{"subnets":["subnet-038a694302e48edb7","subnet-046fd76aaa9724283","subnet-0aee759a78dd27197"],"securityGroups":["sg-06a044139a36830e4"],"assignPublicIp":"ENABLED"}}' \
-            --overrides '{"containerOverrides":[{"name":"octane-api","command":["python","-m","app.scrapers.run"]}]}' \
+            --overrides '{"containerOverrides":[{"name":"octane-api","command":["python","-m","app.scrapers.run_news"]}]}' \
             --query 'tasks[0].taskArn' --output text)
           echo "Task: $TASK_ARN"
           aws ecs wait tasks-stopped --cluster octane-cluster --tasks "$TASK_ARN"
@@ -44,9 +46,6 @@ jobs:
             --query 'tasks[0].containers[0].exitCode' --output text)
           echo "Exit code: $EXIT_CODE"
 
-          # run.py always logs "GITHUB_OUTPUT price_changed=<bool>" regardless
-          # of whether the GITHUB_OUTPUT env var is set (it isn't, inside the
-          # container) — pull the flag back out of CloudWatch instead.
           TASK_ID="${TASK_ARN##*/}"
           LOG_STREAM="ecs/octane-api/${TASK_ID}"
           PRICE_CHANGED=$(aws logs get-log-events \
@@ -57,6 +56,10 @@ jobs:
           echo "price_changed=${PRICE_CHANGED:-false}" >> "$GITHUB_OUTPUT"
 
           [ "$EXIT_CODE" = "0" ]
+
+      - name: Summarize
+        if: always()
+        run: echo "News scrape finished — check the ECS task's CloudWatch logs (/ecs/octane-api) for raw/selected/consensus counts."
 
       - name: Refresh AI revision outlook
         if: steps.scrape.outputs.price_changed == 'true'

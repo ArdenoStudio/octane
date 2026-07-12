@@ -1,0 +1,39 @@
+pull_request_rules:
+  - name: queue when CI passes
+    conditions:
+      - check-success=backend
+      - check-success=frontend
+      - "label=auto-merge"
+    actions:
+      queue:
+
+  - name: label stale PRs
+    conditions:
+      - updated-at<14 days ago
+      - -closed
+      - -merged
+      - "-label=stale"
+    actions:
+      label:
+        add: [stale]
+
+  - name: close stale PRs
+    conditions:
+      - updated-at<30 days ago
+      - -closed
+      - -merged
+      - "label=stale"
+    actions:
+      close:
+        message: Closing due to 30 days of inactivity. Reopen if still needed.
+
+queue_rules:
+  - name: default
+    merge_conditions:
+      - check-success=backend
+      - check-success=frontend
+    merge_method: squash
+    commit_message_template: |
+      {{ title }} (#{{ number }})
+
+      {{ body }}

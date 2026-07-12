@@ -10,8 +10,21 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, FUEL_ORDER, FuelId, ForecastResp, HistoryPoint, PriceChangeRow, SentimentData } from "../lib/api";
+import {
+  api,
+  EarlySignal,
+  FUEL_ORDER,
+  FuelId,
+  ForecastResp,
+  HistoryPoint,
+  PriceChangeRow,
+  resolveEarlySignals,
+  SentimentData,
+} from "../lib/api";
 import { useFuelLabel } from "../i18n/LocaleProvider";
+import { lkr } from "../lib/format";
+import { buildForwardFilledSeries, buildSparseSeries } from "../lib/chartSeries";
+import { applyNewsExtensions, extKey } from "../lib/newsExtension";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const COLORS: Record<FuelId, string> = {
@@ -56,18 +69,20 @@ function SentimentBadge({ sentiment }: { sentiment: SentimentData }) {
 
 export function HistoryChart() {
   const fuelLabel = useFuelLabel();
-  const [active, setActive] = useState<Set<FuelId>>(
-    () => new Set(["petrol_92", "auto_diesel"])
-  );
+  // Default: all five fuels so Petrol 95 / Super Diesel / Kerosene are visible
+  // without an extra click (users can still deselect).
+  const [active, setActive] = useState<Set<FuelId>>(() => new Set(FUEL_ORDER));
   const [days, setDays] = useState<number>(365);
   const [mode, setMode] = useState<ChartMode>("daily");
+  // Pending media reports (only when they differ from CPC) — not a chart mode.
+  const [earlySignals, setEarlySignals] = useState<EarlySignal[]>([]);
 
   function switchMode(m: ChartMode) {
     setMode(m);
     if (m === "revisions") setShowForecast(false);
   }
 
-  // Daily mode: per-fuel time-series from /v1/prices/history
+  // Daily mode: per-fuel time-series from /v1/prices/history (official CPC only)
   const [series, setSeries] = useState<Record<FuelId, HistoryPoint[]>>({} as Record<FuelId, HistoryPoint[]>);
 
   // Revisions mode: all actual price change events from /v1/prices/changes
@@ -79,18 +94,38 @@ export function HistoryChart() {
   const [showForecast, setShowForecast] = useState(false);
   const [forecasts, setForecasts] = useState<Record<FuelId, ForecastResp>>({} as Record<FuelId, ForecastResp>);
 
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .latest()
+      .then((resp) => {
+        if (!cancelled) setEarlySignals(resolveEarlySignals(resp));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Fetch daily series whenever active fuels, range, or mode changes
   useEffect(() => {
     if (mode !== "daily") return;
+    let cancelled = false;
     Promise.all(
-      Array.from(active).map((f) => api.history(f, days).then((r) => [f, r.points] as const))
+      Array.from(active).map((f) =>
+        api.history(f, days, "cpc").then((r) => [f, r.points] as const)
+      )
     )
       .then((entries) => {
-        const next: Record<FuelId, HistoryPoint[]> = { ...series };
+        if (cancelled) return;
+        const next = {} as Record<FuelId, HistoryPoint[]>;
         for (const [f, pts] of entries) next[f] = pts;
         setSeries(next);
       })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days, mode, Array.from(active).join(",")]);
 
@@ -111,13 +146,13 @@ export function HistoryChart() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForecast, Array.from(active).join(",")]);
 
-  // Fetch all revision events once when first switching to revisions mode
+  // Fetch revision events when switching to revisions mode
   useEffect(() => {
     if (mode !== "revisions" || allRevisions !== null) return;
     setRevisionsLoading(true);
     setRevisionsError(null);
     api
-      .changes(5000)
+      .changes(5000, "cpc")
       .then((r) => setAllRevisions(r.changes))
       .catch((e: unknown) => {
         setRevisionsError(String(e));
@@ -174,49 +209,30 @@ export function HistoryChart() {
 
   const chartData = useMemo(() => {
     if (mode === "revisions" && allRevisions) {
-      // Show only dates when prices actually changed — no interpolation
+      // Revision events only — still forward-fill so multi-fuel rows don't
+      // leave gaps that Recharts would slope across.
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - days);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
 
-      const priceMap: Partial<Record<FuelId, Map<string, number>>> = {};
-      const dateSet = new Set<string>();
-      for (const f of active) priceMap[f] = new Map();
+      const byFuel: Partial<Record<FuelId, { recorded_at: string; price_lkr: number }[]>> = {};
+      for (const f of active) byFuel[f] = [];
 
       for (const c of allRevisions) {
         if (!active.has(c.fuel_type as FuelId)) continue;
         if (c.recorded_at < cutoffStr) continue;
-        dateSet.add(c.recorded_at);
-        priceMap[c.fuel_type as FuelId]!.set(c.recorded_at, c.price_lkr);
-      }
-
-      return Array.from(dateSet)
-        .sort()
-        .map((d) => {
-          const row: Record<string, string | number> = { date: d };
-          for (const f of active) {
-            const v = priceMap[f]!.get(d);
-            if (v != null) row[f] = v;
-          }
-          return row;
+        byFuel[c.fuel_type as FuelId]!.push({
+          recorded_at: c.recorded_at,
+          price_lkr: c.price_lkr,
         });
+      }
+      return buildForwardFilledSeries(byFuel, active);
     }
 
-    // Daily mode — merge per-fuel series by date
-    const dateSet = new Set<string>();
-    Object.values(series).forEach((arr) => arr?.forEach((p) => dateSet.add(p.recorded_at)));
-    const dates = Array.from(dateSet).sort();
-    const indices: Partial<Record<FuelId, Map<string, number>>> = {};
-    (Object.keys(series) as FuelId[]).forEach((f) => {
-      indices[f] = new Map(series[f]!.map((p) => [p.recorded_at, p.price_lkr]));
-    });
-    return dates.map((d) => {
-      const row: Record<string, string | number> = { date: d };
-      (Object.keys(indices) as FuelId[]).forEach((f) => {
-        const v = indices[f]!.get(d);
-        if (v != null) row[f] = v;
-      });
-      return row;
+    // Timeline: sparse revision points only (no daily plateaus). Monotone
+    // then curves between real changes; time-scaled X keeps spacing honest.
+    return buildSparseSeries(series, active, {
+      endDate: new Date().toISOString().slice(0, 10),
     });
   }, [mode, series, allRevisions, active, days]);
 
@@ -231,14 +247,14 @@ export function HistoryChart() {
   // Merge actual + forecast points by date for the combined chart
   const mergedData = useMemo(() => {
     if (!chartDataWithForecast) return chartData;
-    const map = new Map<string, Record<string, string | number>>();
-    for (const row of chartData) map.set(row.date as string, { ...row });
+    const map = new Map<string, Record<string, string | number | boolean>>();
+    for (const row of chartData) map.set(String(row.date), { ...row });
     for (const row of chartDataWithForecast) {
-      const existing = map.get(row.date as string) ?? { date: row.date };
-      map.set(row.date as string, { ...existing, ...row });
+      const existing = map.get(String(row.date)) ?? { date: row.date };
+      map.set(String(row.date), { ...existing, ...row });
     }
     const merged = Array.from(map.values()).sort((a, b) =>
-      (a.date as string).localeCompare(b.date as string)
+      String(a.date).localeCompare(String(b.date))
     );
 
     // Anchor each fuel's trend lines to its last actual price and hide any
@@ -289,12 +305,90 @@ export function HistoryChart() {
     });
   }, [chartData, chartDataWithForecast, active]);
 
+  const pendingSignals = useMemo(
+    () => earlySignals.filter((s) => Math.abs(s.delta_lkr) >= 0.01),
+    [earlySignals]
+  );
+
+  const rangeStart = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return cutoff.toISOString().slice(0, 10);
+  }, [days]);
+
+  // Single graph: solid CPC + dashed media extension that clears when CPC revises.
+  const displayData = useMemo(() => {
+    const rows = applyNewsExtensions(mergedData, pendingSignals, active, {
+      rangeStart,
+      today: new Date().toISOString().slice(0, 10),
+    });
+    // Numeric timestamps so Timeline can use a time-scaled X axis.
+    return rows.map((row) => ({
+      ...row,
+      ts: Date.parse(`${String(row.date)}T12:00:00Z`),
+    })) as Array<Record<string, string | number | boolean>>;
+  }, [mergedData, pendingSignals, active, rangeStart]);
+
+  const chartRemountKey = `${mode}-${days}-${Array.from(active).join(",")}-${displayData.length}-${String(displayData.at(-1)?.date ?? "")}`;
+
+  // Last-known official price on/before a date — keeps Timeline tooltips useful
+  // when only one fuel revised that day.
+  const lastPriceOnOrBefore = useMemo(() => {
+    const byFuel: Partial<Record<FuelId, { date: string; price: number }[]>> = {};
+    for (const f of active) byFuel[f] = [];
+    for (const row of displayData) {
+      const d = String(row.date);
+      for (const f of active) {
+        if (typeof row[f] === "number") {
+          byFuel[f]!.push({ date: d, price: row[f] as number });
+        }
+      }
+    }
+    return (fuel: FuelId, date: string): number | null => {
+      const pts = byFuel[fuel];
+      if (!pts?.length) return null;
+      for (let i = pts.length - 1; i >= 0; i--) {
+        if (pts[i].date <= date) return pts[i].price;
+      }
+      return null;
+    };
+  }, [displayData, active]);
+
+  const yDomain = useMemo((): [number | "auto", number | "auto"] | [number, number] => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (const row of displayData) {
+      for (const f of active) {
+        const v = row[f];
+        if (typeof v === "number") {
+          min = Math.min(min, v);
+          max = Math.max(max, v);
+        }
+        const ext = row[extKey(f)];
+        if (typeof ext === "number") {
+          min = Math.min(min, ext);
+          max = Math.max(max, ext);
+        }
+      }
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return ["auto", "auto"];
+    const pad = Math.max(5, (max - min) * 0.08);
+    // Prices are never negative — padding used to push the axis below 0.
+    return [Math.max(0, Math.floor(min - pad)), Math.ceil(max + pad)];
+  }, [displayData, active]);
+
+  // Timeline = smooth monotone, no markers. Revisions = stepped holds with dots
+  // (hide dots on multi-decade ranges — they read as noise).
+  const lineType = mode === "daily" ? "monotone" : "stepAfter";
+  const showRevisionDots = mode === "revisions" && days <= 365 * 2;
+
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
   const hasSentiment = sentiment !== null;
   const hasAiForecast = showForecast && Object.values(forecasts).some(
     (f) => (f.ai_forecast_points ?? []).length > 0
   );
+  const hasChartPoints = displayData.length > 0;
 
   return (
     <section id="history" className="container-x pt-16">
@@ -307,7 +401,7 @@ export function HistoryChart() {
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Mode: Daily interpolated vs Revisions only */}
+            {/* Mode: forward-filled timeline vs revision events only */}
             <div className="inline-flex h-8 rounded-lg bg-ink-900 p-0.5">
               <RadioGroup
                 value={mode}
@@ -323,15 +417,20 @@ export function HistoryChart() {
                       "0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)",
                   }}
                 />
-                {(["daily", "revisions"] as const).map((m) => (
+                {(
+                  [
+                    { id: "daily" as const, label: "Timeline" },
+                    { id: "revisions" as const, label: "Revisions" },
+                  ] as const
+                ).map((m) => (
                   <label
-                    key={m}
-                    className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center px-3 capitalize transition-colors ${
-                      mode === m ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
+                    key={m.id}
+                    className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center px-3 transition-colors ${
+                      mode === m.id ? "text-ink-950" : "text-ink-400 hover:text-ink-200"
                     }`}
                   >
-                    {m}
-                    <RadioGroupItem value={m} className="sr-only" />
+                    {m.label}
+                    <RadioGroupItem value={m.id} className="sr-only" />
                   </label>
                 ))}
               </RadioGroup>
@@ -384,7 +483,7 @@ export function HistoryChart() {
             )}
 
             <a
-              href={api.historyCsvUrl(Array.from(active), days)}
+              href={api.historyCsvUrl(Array.from(active), days, "cpc")}
               download
               title="Download CSV"
               className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
@@ -393,7 +492,7 @@ export function HistoryChart() {
               CSV
             </a>
             <a
-              href={api.historyJsonUrl(Array.from(active), days)}
+              href={api.historyJsonUrl(Array.from(active), days, "cpc")}
               download
               title="Download JSON"
               className="flex items-center gap-1 rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-ink-400 transition hover:border-ink-600 hover:text-ink-200"
@@ -404,6 +503,32 @@ export function HistoryChart() {
           </div>
         </div>
 
+        {pendingSignals.length > 0 && (
+          <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90">
+            <span className="font-semibold text-amber-300">Dashed = media report</span>
+            <span className="text-ink-500">
+              {" "}
+              · tip from the last CPC price to the unconfirmed figure · clears when CPC revises ·{" "}
+            </span>
+            {pendingSignals.map((s, i) => {
+              const up = s.delta_lkr > 0;
+              return (
+                <span key={`${s.source}-${s.fuel_type}`} className="text-ink-300">
+                  {i > 0 ? " · " : ""}
+                  {fuelLabel(s.fuel_type)}{" "}
+                  <span className="font-semibold tabular-nums text-ink-100">
+                    {lkr(s.price_lkr, { showSymbol: false })}
+                  </span>
+                  <span className={up ? "text-red-400" : "text-emerald-400"}>
+                    {" "}
+                    ({up ? "+" : ""}
+                    {lkr(s.delta_lkr, { showSymbol: false })})
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        )}
         {mode === "revisions" && (
           <p className="mt-2 text-xs text-ink-500">
             Only dates when prices actually changed — no daily interpolation.
@@ -461,50 +586,164 @@ export function HistoryChart() {
             <div className="flex h-full items-center justify-center text-sm text-red-400">
               Couldn't load revision data. Try refreshing.
             </div>
+          ) : !hasChartPoints ? (
+            <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center text-sm text-ink-500">
+              <span>No price points in this range.</span>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mergedData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <LineChart
+                key={chartRemountKey}
+                data={displayData}
+                margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+              >
                 <CartesianGrid stroke="#e4e4e7" strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(d) => String(d).slice(0, 7)}
-                  stroke="#a1a1aa"
-                  fontSize={11}
-                  minTickGap={70}
-                />
+                {mode === "daily" ? (
+                  <XAxis
+                    dataKey="ts"
+                    type="number"
+                    scale="time"
+                    domain={["dataMin", "dataMax"]}
+                    tickFormatter={(t) =>
+                      Number.isFinite(t) ? new Date(t as number).toISOString().slice(0, 7) : ""
+                    }
+                    stroke="#a1a1aa"
+                    fontSize={11}
+                    minTickGap={70}
+                  />
+                ) : (
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(d) => String(d).slice(0, 7)}
+                    stroke="#a1a1aa"
+                    fontSize={11}
+                    minTickGap={70}
+                  />
+                )}
                 <YAxis
                   stroke="#a1a1aa"
                   fontSize={11}
                   tickFormatter={(v) => String(v)}
-                  domain={["auto", "auto"]}
+                  domain={yDomain}
+                  allowDataOverflow={false}
                 />
                 <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null;
-                    const items = payload.filter((p) => {
-                      const key = p.dataKey as string;
-                      return FUEL_ORDER.includes(key as FuelId) || key.endsWith("_ai_fwd");
-                    });
+                  cursor={{ stroke: "#a1a1aa", strokeDasharray: "3 3" }}
+                  content={({ active: tipActive, payload, label }) => {
+                    if (!tipActive || !payload?.length) return null;
+                    const rowDate =
+                      (payload[0]?.payload?.date as string | undefined) ??
+                      (typeof label === "number" && Number.isFinite(label)
+                        ? new Date(label).toISOString().slice(0, 10)
+                        : String(label ?? ""));
+                    const items =
+                      mode === "daily"
+                        ? Array.from(active).flatMap((f) => {
+                            const price = lastPriceOnOrBefore(f, rowDate);
+                            if (price == null) return [];
+                            const ext = payload.find((p) => p.dataKey === extKey(f));
+                            const ai = payload.find((p) => p.dataKey === `${f}_ai_fwd`);
+                            const out: {
+                              key: string;
+                              color: string;
+                              fuel: FuelId;
+                              value: number;
+                              kind: "official" | "media" | "ai";
+                            }[] = [
+                              {
+                                key: f,
+                                color: COLORS[f],
+                                fuel: f,
+                                value: price,
+                                kind: "official",
+                              },
+                            ];
+                            if (
+                              ext &&
+                              typeof ext.value === "number" &&
+                              Math.abs(ext.value - price) >= 0.01
+                            ) {
+                              out.push({
+                                key: extKey(f),
+                                color: COLORS[f],
+                                fuel: f,
+                                value: ext.value,
+                                kind: "media",
+                              });
+                            }
+                            if (ai && typeof ai.value === "number") {
+                              out.push({
+                                key: `${f}_ai_fwd`,
+                                color: COLORS[f],
+                                fuel: f,
+                                value: ai.value,
+                                kind: "ai",
+                              });
+                            }
+                            return out;
+                          })
+                        : payload
+                            .filter((p) => {
+                              const key = p.dataKey as string;
+                              return (
+                                FUEL_ORDER.includes(key as FuelId) ||
+                                key.endsWith("_ext") ||
+                                key.endsWith("_ai_fwd")
+                              );
+                            })
+                            .map((p) => {
+                              const key = p.dataKey as string;
+                              const isAI = key.endsWith("_ai_fwd");
+                              const isExt = key.endsWith("_ext");
+                              const fuel = (
+                                isAI
+                                  ? key.replace("_ai_fwd", "")
+                                  : isExt
+                                    ? key.replace("_ext", "")
+                                    : key
+                              ) as FuelId;
+                              return {
+                                key,
+                                color: String(p.color ?? COLORS[fuel]),
+                                fuel,
+                                value: p.value as number,
+                                kind: (isExt ? "media" : isAI ? "ai" : "official") as
+                                  | "official"
+                                  | "media"
+                                  | "ai",
+                              };
+                            })
+                            .filter((item) => {
+                              if (item.kind !== "media") return true;
+                              const official = payload.find((x) => x.dataKey === item.fuel);
+                              return !(
+                                official &&
+                                typeof official.value === "number" &&
+                                Math.abs(official.value - item.value) < 0.01
+                              );
+                            });
                     if (!items.length) return null;
                     return (
                       <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, fontSize: 12, padding: "8px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-                        <div style={{ color: "#71717a", marginBottom: 6 }}>{label}</div>
-                        {items.map((p) => {
-                          const key = p.dataKey as string;
-                          const isAI = key.endsWith("_ai_fwd");
-                          const fuel = (isAI ? key.replace("_ai_fwd", "") : key) as FuelId;
-                          return (
-                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                              <span style={{ color: p.color, fontSize: 8 }}>●</span>
-                              <span style={{ color: "#3f3f46" }}>
-                                {fuelLabel(fuel)}{isAI ? <span style={{ color: "#a1a1aa" }}> · AI</span> : null}
-                              </span>
-                              <span style={{ marginLeft: "auto", paddingLeft: 12, fontWeight: 500 }}>
-                                LKR {(p.value as number).toFixed(2)}
-                              </span>
-                            </div>
-                          );
-                        })}
+                        <div style={{ color: "#71717a", marginBottom: 6 }}>{rowDate}</div>
+                        {items.map((item) => (
+                          <div key={item.key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                            <span style={{ color: item.color, fontSize: 8 }}>
+                              {item.kind === "media" ? "◌" : "●"}
+                            </span>
+                            <span style={{ color: "#3f3f46" }}>
+                              {fuelLabel(item.fuel)}
+                              {item.kind === "media" ? (
+                                <span style={{ color: "#d97706" }}> · media</span>
+                              ) : item.kind === "ai" ? (
+                                <span style={{ color: "#a1a1aa" }}> · AI</span>
+                              ) : null}
+                            </span>
+                            <span style={{ marginLeft: "auto", paddingLeft: 12, fontWeight: 500 }}>
+                              LKR {item.value.toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     );
                   }}
@@ -521,15 +760,66 @@ export function HistoryChart() {
                 {Array.from(active).map((f) => (
                   <Line
                     key={f}
-                    type={mode === "revisions" ? "stepAfter" : "monotone"}
+                    type={lineType}
                     dataKey={f}
                     stroke={COLORS[f]}
-                    strokeWidth={2}
-                    dot={mode === "revisions" ? { r: 3, fill: COLORS[f], strokeWidth: 0 } : false}
+                    strokeWidth={2.25}
+                    dot={
+                      showRevisionDots
+                        ? { r: 3.5, fill: COLORS[f], strokeWidth: 0 }
+                        : false
+                    }
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "#fff", fill: COLORS[f] }}
                     connectNulls
                     isAnimationActive={false}
                   />
                 ))}
+
+                {/* Media early-signal tip — dashed connector; only the tip is dotted */}
+                {pendingSignals.length > 0 &&
+                  Array.from(active).map((f) =>
+                    pendingSignals.some((s) => s.fuel_type === f) ? (
+                      <Line
+                        key={extKey(f)}
+                        type={lineType}
+                        dataKey={extKey(f)}
+                        stroke={COLORS[f]}
+                        strokeWidth={2.5}
+                        strokeDasharray="7 4"
+                        strokeOpacity={0.9}
+                        dot={(props: {
+                          cx?: number;
+                          cy?: number;
+                          payload?: Record<string, string | number | boolean>;
+                        }) => {
+                          const { cx, cy, payload } = props;
+                          if (cx == null || cy == null || !payload) return <g />;
+                          const ext = payload[extKey(f)];
+                          const official = payload[f];
+                          // Tip only: media price that differs from the solid CPC line.
+                          if (typeof ext !== "number") return <g />;
+                          if (typeof official === "number" && Math.abs(ext - official) < 0.01) {
+                            return <g />;
+                          }
+                          return (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={4}
+                              fill={COLORS[f]}
+                              stroke="#fff"
+                              strokeWidth={1.5}
+                              strokeDasharray="none"
+                            />
+                          );
+                        }}
+                        activeDot={{ r: 5, strokeWidth: 0, fill: COLORS[f] }}
+                        connectNulls
+                        isAnimationActive={false}
+                        legendType="none"
+                      />
+                    ) : null
+                  )}
 
                 {/* Linear regression forward projection — dim dashed */}
                 {showForecast && Array.from(active).map((f) =>

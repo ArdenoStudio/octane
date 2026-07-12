@@ -83,19 +83,27 @@ export function DataPage() {
           <div className="mt-10 space-y-8">
             <Section title="Data sources">
               <p>
-                Octane scrapes three primary sources. All prices are denominated
-                in Sri Lankan Rupees (LKR) per litre.
+                Octane scrapes several sources. Domestic retail prices are
+                denominated in Sri Lankan Rupees (LKR) per litre.{" "}
+                <strong className="text-ink-200">CPC and Lanka IOC</strong> are
+                both treated as official — whichever published the more recent
+                revision wins on the price cards.
               </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Source
                   name="Ceylon Petroleum Corporation (CPC)"
                   url="https://ceypetco.gov.lk"
-                  desc="The primary source for all domestic retail prices. CPC is the state-owned entity responsible for setting and publishing fuel prices in Sri Lanka."
+                  desc="State-owned retailer. One of two official sources for domestic pump prices."
                 />
                 <Source
                   name="Lanka IOC"
-                  url="https://www.lankaiocoil.lk"
-                  desc="Indian Oil Corporation's Sri Lanka subsidiary. Prices typically follow CPC but may differ slightly. Used for cross-verification."
+                  url="https://www.lankaioc.com"
+                  desc="Indian Oil Corporation's Sri Lanka subsidiary. Also official — wins the card when its revision date is newer than CPC."
+                />
+                <Source
+                  name="News outlets"
+                  url="https://news.google.com"
+                  desc="RSS feeds from Sri Lankan outlets. Early signal when media report a revision before official sites update. Shown as unconfirmed."
                 />
                 <Source
                   name="Global Petrol Prices"
@@ -107,17 +115,18 @@ export function DataPage() {
 
             <Section title="Collection methodology">
               <p>
-                A scheduled scraper runs daily at{" "}
-                <strong className="text-ink-200">08:00 Sri Lanka Time (UTC+5:30)</strong>
-                . It fetches the current published prices from each source and
-                stores them in a PostgreSQL database. Only revisions — records
-                where the price differs from the prior entry for the same fuel
-                and source — are stored as distinct events.
+                A scheduled scraper checks CPC and Lanka IOC{" "}
+                <strong className="text-ink-200">five times a day</strong>{" "}
+                (approximately 08:00, 12:00, 16:00, 20:00, and midnight Sri Lanka
+                Time). Each run fetches the currently published prices and
+                upserts them into PostgreSQL, recording a verification timestamp
+                even when neither source has published a new revision.
               </p>
               <p>
-                Historical data going back to when records begin on each source
-                website has been backfilled. The exact backfill date varies by
-                fuel type and source.
+                Historical revision tables are backfilled from each source
+                website. The exact backfill date varies by fuel type and source.
+                Charts and change feeds highlight revision events — dates when
+                the published price actually changed.
               </p>
             </Section>
 
@@ -134,10 +143,24 @@ export function DataPage() {
 
             <Section title="Data freshness">
               <p>
-                Domestic CPC prices are refreshed daily. If the CPC website is
-                unavailable or returns an unexpected format, the scraper logs an
-                error and retains the last known price — no stale data is served
-                without an explicit "last updated" timestamp.
+                Octane distinguishes <strong className="text-ink-200">last revision</strong>{" "}
+                (when the winning official retail price changed) from{" "}
+                <strong className="text-ink-200">last checked</strong> (when our
+                scraper last successfully verified CPC or Lanka IOC). Official
+                prices often sit unchanged for weeks; that does not mean Octane
+                stopped updating. If a source website is unavailable or returns an
+                unexpected format, the scraper logs an error and retains the last
+                known price.
+              </p>
+              <p>
+                When news outlets report a different figure ahead of the winning
+                official source, Octane extends the history line with a{" "}
+                <strong className="text-ink-200">dashed media segment</strong> and
+                shows the figure on the price cards as unconfirmed — never as a
+                second graph. When an official site publishes the real revision,
+                that extension drops off. A daily market-context strip (AI outlook,
+                USD/LKR, Sri Lanka vs world) updates even when retail prices are
+                flat.
               </p>
               <p>
                 World prices from Global Petrol Prices are updated weekly
@@ -186,8 +209,9 @@ export function DataPage() {
             <Section title="Known limitations">
               <ul className="list-inside list-disc space-y-1 text-ink-400">
                 <li>
-                  CPC publishes prices on an ad-hoc basis. Between revisions,
-                  the displayed price may be several weeks or months old.
+                  CPC publishes prices on an ad-hoc basis. Between revisions the
+                  retail price itself may be weeks old, even while Octane keeps
+                  verifying the source several times a day.
                 </li>
                 <li>
                   Scraping accuracy depends on source website structure not

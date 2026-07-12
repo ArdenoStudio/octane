@@ -15,7 +15,7 @@ export const SI: Messages = {
   },
   hero: {
     live: "සජීවී",
-    cpcPricesDaily: "දිනපතා CPC මිල ගණන් යාවත්කාලීනයි",
+    cpcPricesDaily: "දිනකට 5 වතාවක් CPC පරීක්ෂා කෙරේ",
     h1a: "තහවුරු",
     h1b: "මිල ගණන්.",
     h1c: "මේ",
@@ -27,7 +27,7 @@ export const SI: Messages = {
     features: [
       {
         title: "සජීව මිල",
-        description: "සංශෝධන ප්‍රකාශය වූ විගස CPC ඉන්ධන මිල යාවත්කාලීනයි.",
+        description: "දිනකට කිහිප වතාවක් CPC පරීක්ෂා කර සංශෝධන ප්‍රකාශ වූ විගස පෙන්වයි.",
       },
       {
         title: "මිල විදියන්න",
@@ -51,20 +51,32 @@ export const SI: Messages = {
     kerosene: "කිරොසීන්",
   },
   prices: {
-    badge: "සජීව මිල · CPC",
+    badge: "සජීව මිල · CPC සහ Lanka IOC",
     title: "අද ශ්‍රී ලංකා ඉන්ධන මිල ගණන්.",
-    lastRevision: "අන්තර්ගත සංශෝධනය",
+    lastRevision: "අවසන් සංශෝධනය",
+    lastChecked: "අවසන් පරීක්ෂාව",
     revisedToday: "අද මිල ගණන් වෙනස්කම් ඇති විය",
+    earlySignalTitle: "නිල මිලට පෙර වාර්තා විය",
+    earlySignalNews: "පුවත්",
+    earlySignalLioc: "Lanka IOC",
+    earlySignalUnconfirmed: "තහවුරු නොවී — නිල සංශෝධනය බලාපොරොත්තුව",
+    mediaReports: "මාධ්‍ය වාර්තා",
+    official: "නිල",
+    unconfirmed: "තහවුරු නොවී",
+    media: "මාධ්‍ය",
+    filterLabel: "මිල පෙරහන",
+    filterAll: "සියල්ල",
+    filterOfficialOnly: "නිල පමණි",
     awaitingData: "දත්ත එනකම් බලන්නේ",
     lkrPer: "රු. ·",
     loadError:
       "මිල පූරණය නොහැක. API අබල හෝ බද්දට සම්බන්ධතා ගැටලුවක් විය හැක.",
-    footerSource: "මූලාශ්‍රය:",
+    footerSource: "මූලාශ්‍ර:",
     footerLegal:
-      " · දිනපතා උදේ 8ට පමණ කාලසටහන · CPC සමඟ අනුබද්ධ නොවන ස්වාධීන ව්‍යාපෘතියකි.",
+      " · CPC සහ Lanka IOC · නවතම සංශෝධනය ජයග්‍රහණය කරයි · දිනකට 5 වතාවක් පරීක්ෂා · අනුබද්ධ නොවන ස්වාධීන ව්‍යාපෘතියකි.",
   },
   mobile: {
-    label92: "පෙට්රල් 92 · CPC",
+    label92: "පෙට්රල් 92 · නිල",
     shareWhatsApp: "බෙදාගන්න",
     alertsShort: "විදියන්න",
     waLine:
