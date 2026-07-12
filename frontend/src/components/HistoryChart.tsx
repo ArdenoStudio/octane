@@ -478,7 +478,7 @@ export function HistoryChart() {
             <span className="font-semibold text-amber-300">Dashed = media report</span>
             <span className="text-ink-500">
               {" "}
-              · extends the official line until CPC revises, then it drops off ·{" "}
+              · tip from the last CPC price to the unconfirmed figure · clears when CPC revises ·{" "}
             </span>
             {pendingSignals.map((s, i) => {
               const up = s.delta_lkr > 0;
@@ -638,7 +638,7 @@ export function HistoryChart() {
                 {Array.from(active).map((f) => (
                   <Line
                     key={f}
-                    type="stepAfter"
+                    type="monotone"
                     dataKey={f}
                     stroke={COLORS[f]}
                     strokeWidth={2.25}
@@ -672,19 +672,44 @@ export function HistoryChart() {
                   />
                 ))}
 
-                {/* Media early-signal extension — same colour, dashed; clears when CPC revises */}
+                {/* Media early-signal tip — dashed connector; only the tip is dotted */}
                 {pendingSignals.length > 0 &&
                   Array.from(active).map((f) =>
                     pendingSignals.some((s) => s.fuel_type === f) ? (
                       <Line
                         key={extKey(f)}
-                        type="stepAfter"
+                        type="monotone"
                         dataKey={extKey(f)}
                         stroke={COLORS[f]}
                         strokeWidth={2.5}
                         strokeDasharray="7 4"
                         strokeOpacity={0.9}
-                        dot={{ r: 3.5, fill: COLORS[f], strokeWidth: 0 }}
+                        dot={(props: {
+                          cx?: number;
+                          cy?: number;
+                          payload?: Record<string, string | number | boolean>;
+                        }) => {
+                          const { cx, cy, payload } = props;
+                          if (cx == null || cy == null || !payload) return <g />;
+                          const ext = payload[extKey(f)];
+                          const official = payload[f];
+                          // Tip only: media price that differs from the solid CPC line.
+                          if (typeof ext !== "number") return <g />;
+                          if (typeof official === "number" && Math.abs(ext - official) < 0.01) {
+                            return <g />;
+                          }
+                          return (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={4}
+                              fill={COLORS[f]}
+                              stroke="#fff"
+                              strokeWidth={1.5}
+                              strokeDasharray="none"
+                            />
+                          );
+                        }}
                         activeDot={{ r: 5, strokeWidth: 0, fill: COLORS[f] }}
                         connectNulls
                         isAnimationActive={false}

@@ -27,7 +27,8 @@ describe("applyNewsExtensions", () => {
     const mid = out.find((r) => r.date === "2026-06-15");
     const end = out.find((r) => r.date === "2026-07-09");
     expect(start?.[extKey("petrol_92")]).toBe(400);
-    expect(mid?.[extKey("petrol_92")]).toBe(400);
+    // Mid dates stay clear — only anchor + tip, so the chart does not stack dots.
+    expect(mid?.[extKey("petrol_92")]).toBeUndefined();
     expect(end?.[extKey("petrol_92")]).toBe(420);
   });
 

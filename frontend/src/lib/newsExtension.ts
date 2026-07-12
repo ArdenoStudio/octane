@@ -22,7 +22,9 @@ export interface NewsExtensionOptions {
 
 /**
  * Overlay a dashed "extension" of the official CPC line toward a media-reported
- * price. When CPC revises (early signal clears), callers pass no signals and the
+ * price. Only the last CPC anchor and the media tip are set — no dense mid-fill
+ * along the official price (that was stacking duplicate dots on the chart).
+ * When CPC revises (early signal clears), callers pass no signals and the
  * extension disappears — one graph, not two modes.
  */
 export function applyNewsExtensions(
@@ -71,15 +73,8 @@ export function applyNewsExtensions(
     if (startRow[f] == null) startRow[f] = s.cpc_price_lkr;
     byDate.set(startDate, startRow);
 
-    // Dense fill so the dashed segment is continuous across intermediate dates.
-    const dates = Array.from(byDate.keys()).sort();
-    for (const d of dates) {
-      if (d > startDate && d < endDate) {
-        const mid = byDate.get(d)!;
-        mid[extKey(f)] = s.cpc_price_lkr;
-      }
-    }
-
+    // Tip only — Recharts connectNulls draws the dashed connector.
+    // Do not stamp CPC onto every mid date (that caused the dot pile-up).
     const endRow = byDate.get(endDate) ?? { date: endDate };
     endRow[extKey(f)] = s.price_lkr;
     byDate.set(endDate, endRow);
