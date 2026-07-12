@@ -353,8 +353,10 @@ export function HistoryChart() {
     return [Math.max(0, Math.floor(min - pad)), Math.ceil(max + pad)];
   }, [displayData, active]);
 
-  // Dense revision dots on multi-decade "All" views just look like noise.
-  const showRevisionDots = mode === "revisions" || days <= 365 * 2;
+  // Timeline = smooth monotone, no markers. Revisions = stepped holds with dots
+  // (hide dots on multi-decade ranges — they read as noise).
+  const lineType = mode === "daily" ? "monotone" : "stepAfter";
+  const showRevisionDots = mode === "revisions" && days <= 365 * 2;
 
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
@@ -654,35 +656,14 @@ export function HistoryChart() {
                 {Array.from(active).map((f) => (
                   <Line
                     key={f}
-                    type="monotone"
+                    type={lineType}
                     dataKey={f}
                     stroke={COLORS[f]}
                     strokeWidth={2.25}
                     dot={
-                      !showRevisionDots
-                        ? false
-                        : mode === "revisions"
+                      showRevisionDots
                         ? { r: 3.5, fill: COLORS[f], strokeWidth: 0 }
-                        : (props: {
-                            cx?: number;
-                            cy?: number;
-                            payload?: { _revision?: boolean; date?: string };
-                          }) => {
-                            const { cx, cy, payload } = props;
-                            if (cx == null || cy == null || !payload?._revision) {
-                              return <g />;
-                            }
-                            return (
-                              <circle
-                                cx={cx}
-                                cy={cy}
-                                r={4}
-                                fill={COLORS[f]}
-                                stroke="#fff"
-                                strokeWidth={1.5}
-                              />
-                            );
-                          }
+                        : false
                     }
                     activeDot={{ r: 6, strokeWidth: 2, stroke: "#fff", fill: COLORS[f] }}
                     connectNulls
@@ -696,7 +677,7 @@ export function HistoryChart() {
                     pendingSignals.some((s) => s.fuel_type === f) ? (
                       <Line
                         key={extKey(f)}
-                        type="monotone"
+                        type={lineType}
                         dataKey={extKey(f)}
                         stroke={COLORS[f]}
                         strokeWidth={2.5}
