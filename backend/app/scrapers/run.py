@@ -7,6 +7,7 @@ Invoked by:
 from __future__ import annotations
 
 import logging
+import os
 
 from app.config import get_settings
 from app.db import migrate
@@ -16,6 +17,63 @@ from app.services import alerts as alert_service
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+# Sources whose latest pump / early-signal prices should refresh AI outlook.
+_SENTIMENT_SOURCES = ("cpc", "news", "lanka_ioc")
+
+
+def latest_prices_by_source(source: str) -> dict[str, float]:
+    """Most recent price_lkr per fuel for a source."""
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT DISTINCT ON (fuel_type)
+                   fuel_type, price_lkr
+            FROM fuel_prices
+            WHERE source = %s
+            ORDER BY fuel_type, recorded_at DESC
+            """,
+            (source,),
+        )
+        return {r["fuel_type"]: float(r["price_lkr"]) for r in cur.fetchall()}
+
+
+def snapshot_sentiment_prices() -> dict[str, dict[str, float]]:
+    """Latest CPC / news / LIOC prices used to decide if outlook should refresh."""
+    return {src: latest_prices_by_source(src) for src in _SENTIMENT_SOURCES}
+
+
+def prices_changed(
+    before: dict[str, dict[str, float]],
+    after: dict[str, dict[str, float]],
+    *,
+    tolerance_lkr: float = 0.01,
+) -> bool:
+    """True when any tracked source/fuel latest price moved."""
+    for source in _SENTIMENT_SOURCES:
+        prev = before.get(source) or {}
+        nxt = after.get(source) or {}
+        fuels = set(prev) | set(nxt)
+        for fuel in fuels:
+            a = prev.get(fuel)
+            b = nxt.get(fuel)
+            if a is None and b is None:
+                continue
+            if a is None or b is None:
+                return True
+            if abs(a - b) >= tolerance_lkr:
+                return True
+    return False
+
+
+def write_github_output(*, price_changed: bool) -> None:
+    """Emit price_changed for GitHub Actions when GITHUB_OUTPUT is set."""
+    out = os.environ.get("GITHUB_OUTPUT")
+    if not out:
+        return
+    with open(out, "a", encoding="utf-8") as fh:
+        fh.write(f"price_changed={'true' if price_changed else 'false'}\n")
+    log.info("GITHUB_OUTPUT price_changed=%s", price_changed)
 
 
 def _persist_fuel(points: list[cpc.PricePoint]) -> int:
@@ -101,6 +159,7 @@ def _notify_admin(subject: str, body: str) -> None:
 def run_all() -> dict[str, int]:
     migrate.run()
     summary: dict[str, int] = {}
+    before = snapshot_sentiment_prices()
 
     try:
         cpc_points = list(cpc.run())
@@ -190,6 +249,13 @@ def run_all() -> dict[str, int]:
     except Exception as e:  # noqa: BLE001
         log.exception("alert dispatch failed: %s", e)
         summary["alerts_fired"] = 0
+
+    after = snapshot_sentiment_prices()
+    changed = prices_changed(before, after)
+    summary["price_changed"] = 1 if changed else 0
+    write_github_output(price_changed=changed)
+    if changed:
+        log.info("price change detected — AI revision outlook should refresh")
 
     log.info("scraper run complete: %s", summary)
     return summary

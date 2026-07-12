@@ -3,6 +3,7 @@ name: Scrape news price signals
 # Faster cadence than the full scrape pipeline. News often reports CPC
 # revisions hours before ceypetco.gov.lk updates. Results are stored as
 # source=news and shown as unconfirmed early signals in the app.
+# When those signals change, refresh the AI revision outlook too.
 
 on:
   schedule:
@@ -13,9 +14,14 @@ on:
 jobs:
   scrape-news:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write   # dispatch AI sentiment when early signals move
     defaults:
       run:
         working-directory: backend
+    outputs:
+      price_changed: ${{ steps.scrape.outputs.price_changed }}
 
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +36,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run news scraper
+        id: scrape
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m app.scrapers.run_news
@@ -37,3 +44,14 @@ jobs:
       - name: Summarize
         if: always()
         run: echo "News scrape finished — check job logs for raw/selected/consensus counts."
+
+      - name: Refresh AI revision outlook
+        if: steps.scrape.outputs.price_changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: .
+        run: |
+          gh workflow run "AI Sentiment Analysis" \
+            --ref "${{ github.ref_name }}" \
+            -f reason=price_change
+          echo "Dispatched AI Sentiment Analysis (price_change)"

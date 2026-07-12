@@ -4,7 +4,13 @@ on:
   schedule:
     # 02:00 UTC = 07:30 SL time — runs after major overnight news cycles
     - cron: '0 2 * * *'
-  workflow_dispatch:  # allow manual trigger for testing
+  workflow_dispatch:  # allow manual trigger for testing / scrape-driven refresh
+    inputs:
+      reason:
+        description: "Why this run was triggered (scheduled | manual | price_change)"
+        required: false
+        default: manual
+        type: string
 
 jobs:
   analyze:
@@ -25,7 +31,16 @@ jobs:
       - name: Run sentiment analysis
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python scripts/sentiment_analysis.py
+          SENTIMENT_REASON: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.reason || 'scheduled' }}
+        run: |
+          REASON="${SENTIMENT_REASON:-scheduled}"
+          if [ "$REASON" = "price_change" ]; then
+            export SENTIMENT_SKIP_IF_FRESH_MINUTES=60
+          else
+            export SENTIMENT_SKIP_IF_FRESH_MINUTES=0
+          fi
+          echo "SENTIMENT_REASON=$REASON SKIP=$SENTIMENT_SKIP_IF_FRESH_MINUTES"
+          python scripts/sentiment_analysis.py
 
       - name: Commit updated sentiment data
         run: |
