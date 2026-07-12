@@ -101,7 +101,10 @@ def _parse_table(html: str) -> list[PricePoint]:
 
 
 def fetch_historical() -> list[PricePoint]:
-    with client() as c:
+    # ceypetco.gov.lk's own TLS certificate expired 2026-07-12 — verification
+    # disabled for this one government domain until they renew it. Remove
+    # verify=False once https://ceypetco.gov.lk serves a valid cert again.
+    with client(verify=False) as c:
         r = c.get(HISTORICAL_URL)
         r.raise_for_status()
         return _parse_table(r.text)
@@ -115,7 +118,8 @@ def fetch_latest() -> list[PricePoint]:
     to detect changes between revisions.
     """
     today = date.today()
-    with client() as c:
+    # See fetch_historical() — same expired-cert workaround, same domain.
+    with client(verify=False) as c:
         r = c.get(LATEST_URL)
         r.raise_for_status()
     soup = BeautifulSoup(r.text, "lxml")
