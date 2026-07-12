@@ -211,13 +211,16 @@ export function PriceStrip() {
         {/* Early signals — only when media/LIOC differs from official CPC */}
         {earlySignals.length > 0 && todayRevisions.length === 0 && (
           <FadeDiv className="mt-5">
-            <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-amber-300">
-                <RiFlashlightLine className="size-4" />
+            <div className="rounded-xl border border-ink-800 bg-ink-900/50 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-200">
+                <RiFlashlightLine className="size-4 text-accent" />
                 {m.prices.earlySignalTitle}
-                <span className="font-normal text-ink-400">· {m.prices.earlySignalUnconfirmed}</span>
+                <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
+                  {m.prices.unconfirmed}
+                </span>
+                <span className="font-normal text-ink-500">· {m.prices.earlySignalUnconfirmed}</span>
               </div>
-              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 {earlySignals.map((s) => {
                   const up = s.delta_lkr > 0;
                   const sourceLabel =
@@ -225,7 +228,7 @@ export function PriceStrip() {
                   return (
                     <span
                       key={`${s.source}-${s.fuel_type}`}
-                      className="flex items-center gap-1.5 text-sm text-ink-300"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-ink-800 bg-white px-2.5 py-1.5 text-sm text-ink-300"
                     >
                       <span className="text-ink-500">{sourceLabel}</span>
                       <span className="text-ink-200">{fuelLabel(s.fuel_type)}</span>
@@ -263,18 +266,14 @@ export function PriceStrip() {
             const signalUp = signal ? signal.delta_lkr > 0 : false;
             return (
               <FadeDiv key={fuel}>
-                <div
-                  className={`card relative overflow-hidden p-6 h-full flex flex-col gap-3 hover:shadow-md transition-shadow ${
-                    signal ? "ring-1 ring-amber-500/30" : ""
-                  }`}
-                >
+                <div className="card relative overflow-hidden p-6 h-full flex flex-col gap-3 hover:shadow-md transition-shadow">
                   {/* Soft per-fuel gradient bleed */}
                   <div
                     aria-hidden
                     className={`pointer-events-none absolute -inset-x-4 -top-10 h-24 bg-gradient-to-b ${GRADIENT_BY_FUEL[fuel]} to-transparent blur-3xl opacity-50`}
                   />
 
-                  <div className="relative flex flex-col gap-3">
+                  <div className="relative flex flex-1 flex-col gap-3">
                     {/* Label + delta badge */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="label">{fuelLabel(fuel)}</div>
@@ -303,36 +302,42 @@ export function PriceStrip() {
                       </div>
                     </div>
 
-                    {/* Media / LIOC report when it differs — not a second history mode */}
-                    {signal && (
-                      <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5">
-                        <div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
-                          {m.prices.unconfirmed}
-                          <span className="font-normal normal-case tracking-normal text-amber-500/80">
-                            · {signal.source === "news" ? m.prices.earlySignalNews : m.prices.earlySignalLioc}
-                          </span>
+                    {/* Reserved slot keeps card heights aligned when only some fuels have signals */}
+                    <div className="min-h-[3.75rem]">
+                      {signal && (
+                        <div className="rounded-md border border-dashed border-ink-700 bg-ink-900/70 px-2.5 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
+                              {m.prices.unconfirmed}
+                            </span>
+                            <span className="text-[10px] text-ink-500">
+                              {signal.source === "news" ? m.prices.earlySignalNews : m.prices.earlySignalLioc}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className="font-mono text-lg font-bold tabular-nums text-ink-100">
+                              {lkr(signal.price_lkr, { showSymbol: false })}
+                            </span>
+                            <span
+                              className={`inline-flex items-center text-xs font-semibold tabular-nums ${
+                                signalUp ? "text-red-400" : "text-emerald-400"
+                              }`}
+                            >
+                              {signalUp ? (
+                                <RiArrowUpSLine className="size-3.5" />
+                              ) : (
+                                <RiArrowDownSLine className="size-3.5" />
+                              )}
+                              {signalUp ? "+" : ""}
+                              {lkr(signal.delta_lkr, { showSymbol: false })}
+                            </span>
+                          </div>
                         </div>
-                        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                          <span className="font-mono text-lg font-bold tabular-nums text-amber-100">
-                            {lkr(signal.price_lkr, { showSymbol: false })}
-                          </span>
-                          <span
-                            className={`text-xs font-semibold tabular-nums ${
-                              signalUp ? "text-red-400" : "text-emerald-400"
-                            }`}
-                          >
-                            {signalUp ? "+" : ""}
-                            {lkr(signal.delta_lkr, { showSymbol: false })}
-                          </span>
-                        </div>
-                        <div className="mt-0.5 text-[10px] text-ink-500">
-                          {m.prices.earlySignalUnconfirmed}
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {/* Date + sparkline */}
-                    <div className="flex items-end justify-between">
+                    <div className="mt-auto flex items-end justify-between pt-1">
                       <div className="text-xs text-ink-400">
                         {row ? `${m.prices.lkrPer} ${shortDate(row.recorded_at)}` : m.prices.awaitingData}
                       </div>
