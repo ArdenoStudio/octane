@@ -3,7 +3,7 @@ const rawApiBase =
   typeof import.meta.env.VITE_API_BASE === "string" && import.meta.env.VITE_API_BASE.trim()
     ? import.meta.env.VITE_API_BASE.trim().replace(/\/$/, "")
     : import.meta.env.PROD
-      ? "https://octane-api.fly.dev"
+      ? "https://d2w9pgvodb18rj.cloudfront.net"
       : "http://localhost:8000";
 
 const API_BASE = rawApiBase;

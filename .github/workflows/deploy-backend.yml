@@ -1,4 +1,4 @@
-name: Deploy backend to Fly.io
+name: Deploy backend to AWS ECS
 
 on:
   push:
@@ -6,10 +6,23 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
 
 concurrency:
   group: deploy-backend
   cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: octane-api
+  ECS_CLUSTER: octane-cluster
+  ECS_SERVICE: octane-api-svc
+  ECS_TASK_FAMILY: octane-api
+  CONTAINER_NAME: octane-api
 
 jobs:
   deploy:
@@ -18,19 +31,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@v1
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::308324916290:role/octane-gh-actions-role
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Release stale VM leases
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        id: build-image
         working-directory: backend
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          flyctl machines list --json | \
-            jq -r '.[].id' | \
-            xargs -r -I{} sh -c 'flyctl machine leases clear {} 2>/dev/null || true'
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy
-        working-directory: backend
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --remote-only --wait-timeout=15m
+      - name: Fetch current task definition
+        run: |
+          aws ecs describe-task-definition --task-definition $ECS_TASK_FAMILY \
+            --query 'taskDefinition' > task-definition.json
+
+      - name: Render new task definition with fresh image and secrets
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            DISPATCH_SECRET=${{ secrets.DISPATCH_SECRET }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=587
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

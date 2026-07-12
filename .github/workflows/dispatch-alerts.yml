@@ -12,7 +12,7 @@ jobs:
       - name: Trigger alert dispatch
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" \
-            -X POST https://octane-api.fly.dev/v1/alerts/dispatch \
+            -X POST https://d2w9pgvodb18rj.cloudfront.net/v1/alerts/dispatch \
             -H "x-dispatch-secret: ${{ secrets.DISPATCH_SECRET }}")
           echo "$RESPONSE"
           STATUS=$(echo "$RESPONSE" | tail -1)
