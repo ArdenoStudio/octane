@@ -19,6 +19,8 @@ import { BadgeDelta } from "./ui/BadgeDelta";
 import { FadeContainer, FadeDiv } from "./ui/Fade";
 import { ShareButtons } from "./ui/ShareButtons";
 
+type PriceFilter = "all" | "official";
+
 const GRADIENT_BY_FUEL: Record<FuelId, string> = {
   petrol_92:    "from-amber-500/20",
   petrol_95:    "from-orange-500/20",
@@ -74,6 +76,7 @@ export function PriceStrip() {
   const [lastVerifiedAt, setLastVerifiedAt] = useState<string | null>(null);
   const [earlySignals, setEarlySignals] = useState<EarlySignal[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<PriceFilter>("all");
 
   useEffect(() => {
     Promise.all([api.latest(), api.changes(40)])
@@ -117,6 +120,7 @@ export function PriceStrip() {
     if (s.source === "news") signalByFuel[s.fuel_type] = s;
   }
 
+  const showMedia = filter === "all";
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const lastRevision = officialRows
@@ -159,7 +163,7 @@ export function PriceStrip() {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
-                  {m.prices.unconfirmed}
+                  {m.prices.media}
                 </span>
                 <span>{m.prices.mediaReports}</span>
               </span>
@@ -228,14 +232,14 @@ export function PriceStrip() {
         )}
 
         {/* Early signals — news ahead of the winning official (CPC or LIOC) */}
-        {earlySignals.length > 0 && todayRevisions.length === 0 && (
+        {showMedia && earlySignals.length > 0 && todayRevisions.length === 0 && (
           <FadeDiv className="mt-5">
             <div className="rounded-xl border border-ink-800 bg-ink-900/50 px-4 py-3">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-200">
                 <RiFlashlightLine className="size-4 text-accent" />
                 {m.prices.earlySignalTitle}
                 <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
-                  {m.prices.unconfirmed}
+                  {m.prices.media}
                 </span>
                 <span className="font-normal text-ink-500">· {m.prices.earlySignalUnconfirmed}</span>
               </div>
@@ -271,7 +275,40 @@ export function PriceStrip() {
           </FadeDiv>
         )}
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <FadeDiv className="mt-6 flex flex-wrap items-center gap-2">
+          <div
+            role="group"
+            aria-label={m.prices.filterLabel}
+            className="inline-flex rounded-lg border border-ink-800 bg-ink-900/60 p-0.5"
+          >
+            <button
+              type="button"
+              onClick={() => setFilter("all")}
+              aria-pressed={filter === "all"}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                filter === "all"
+                  ? "bg-ink-100 text-ink-950"
+                  : "text-ink-400 hover:text-ink-200"
+              }`}
+            >
+              {m.prices.filterAll}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter("official")}
+              aria-pressed={filter === "official"}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                filter === "official"
+                  ? "bg-ink-100 text-ink-950"
+                  : "text-ink-400 hover:text-ink-200"
+              }`}
+            >
+              {m.prices.filterOfficialOnly}
+            </button>
+          </div>
+        </FadeDiv>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {FUEL_ORDER.map((fuel) => {
             const row = officialByFuel[fuel];
             const history = historyByFuel[fuel];
@@ -283,14 +320,10 @@ export function PriceStrip() {
                 : row?.source === "cpc"
                   ? ioc
                   : undefined;
-            const showAlternate =
-              !!alternate &&
-              !!row &&
-              Math.abs(alternate.price_lkr - row.price_lkr) >= 0.01;
             // CPC revision delta when CPC is official; otherwise vs the other official.
             const vsAlternate =
-              showAlternate && row
-                ? Math.round((row.price_lkr - alternate!.price_lkr) * 100) / 100
+              alternate && row && Math.abs(alternate.price_lkr - row.price_lkr) >= 0.01
+                ? Math.round((row.price_lkr - alternate.price_lkr) * 100) / 100
                 : null;
             const delta =
               row?.source === "cpc"
@@ -299,8 +332,7 @@ export function PriceStrip() {
             const hasDelta = delta !== undefined && delta !== null;
             const up = hasDelta && delta! > 0;
             const flat = hasDelta && delta === 0;
-            const signal = signalByFuel[fuel];
-            const signalUp = signal ? signal.delta_lkr > 0 : false;
+            const signal = showMedia ? signalByFuel[fuel] : undefined;
             const sourceName = row
               ? officialLabel(row.source as OfficialSource)
               : "CPC";
@@ -329,67 +361,26 @@ export function PriceStrip() {
                       )}
                     </div>
 
-                    {/* Winning official price */}
+                    {/* Official price — media flag is badge-only; number stays official */}
                     <div>
-                      <div className="mb-1.5 inline-flex items-center gap-1 rounded border border-ink-700 bg-ink-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
-                        {m.prices.official}
-                        <span className="font-normal normal-case tracking-normal text-ink-500">
-                          · {sourceName}
-                        </span>
-                      </div>
+                      {signal ? (
+                        <div className="mb-1.5 inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
+                          {m.prices.media}
+                          <span className="font-normal normal-case tracking-normal text-amber-500/80">
+                            · {m.prices.earlySignalNews}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mb-1.5 inline-flex items-center gap-1 rounded border border-ink-700 bg-ink-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
+                          {m.prices.official}
+                          <span className="font-normal normal-case tracking-normal text-ink-500">
+                            · {sourceName}
+                          </span>
+                        </div>
+                      )}
                       <div className="font-mono text-4xl font-black tracking-tight text-ink-100 tabular-nums leading-none">
                         {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
                       </div>
-                    </div>
-
-                    {/* Reserved slot: news tip, or quiet alternate official */}
-                    <div className="min-h-[3.75rem]">
-                      {signal ? (
-                        <div className="rounded-md border border-dashed border-ink-700 bg-ink-900/70 px-2.5 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">
-                              {m.prices.unconfirmed}
-                            </span>
-                            <span className="text-[10px] text-ink-500">
-                              {m.prices.earlySignalNews}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                            <span className="font-mono text-lg font-bold tabular-nums text-ink-100">
-                              {lkr(signal.price_lkr, { showSymbol: false })}
-                            </span>
-                            <span
-                              className={`inline-flex items-center text-xs font-semibold tabular-nums ${
-                                signalUp ? "text-red-400" : "text-emerald-400"
-                              }`}
-                            >
-                              {signalUp ? (
-                                <RiArrowUpSLine className="size-3.5" />
-                              ) : (
-                                <RiArrowDownSLine className="size-3.5" />
-                              )}
-                              {signalUp ? "+" : ""}
-                              {lkr(signal.delta_lkr, { showSymbol: false })}
-                            </span>
-                          </div>
-                        </div>
-                      ) : showAlternate ? (
-                        <div className="text-xs leading-relaxed text-ink-500">
-                          <span className="font-medium text-ink-400">
-                            {m.prices.official}
-                            <span className="font-normal text-ink-500">
-                              {" "}
-                              · {officialLabel(alternate!.source)}
-                            </span>
-                          </span>
-                          <div className="mt-0.5 font-mono text-sm tabular-nums text-ink-300">
-                            {lkr(alternate!.price_lkr, { showSymbol: false })}
-                            <span className="ml-1 text-[10px] font-sans text-ink-500">
-                              · {shortDate(alternate!.recorded_at)}
-                            </span>
-                          </div>
-                        </div>
-                      ) : null}
                     </div>
 
                     {/* Date + sparkline */}
