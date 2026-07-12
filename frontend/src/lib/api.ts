@@ -153,6 +153,35 @@ export interface MarketContextResp {
   } | null;
 }
 
+/** Build market-context payload from endpoints available on older API deploys. */
+export function composeMarketContext(
+  fuel: FuelId,
+  sentiment: SentimentData | null,
+  world: ComparisonResp | null,
+  asOf: string = new Date().toISOString().slice(0, 10),
+): MarketContextResp {
+  return {
+    as_of: asOf,
+    fuel_type: fuel,
+    sentiment,
+    fx: world
+      ? {
+          usd_lkr: world.fx_rate_used,
+          recorded_at: world.sri_lanka.recorded_at ?? asOf,
+        }
+      : null,
+    world: world
+      ? {
+          fuel_type: world.fuel_type,
+          sri_lanka_usd: world.sri_lanka.price_usd,
+          world_average_usd: world.world_average_usd,
+          delta_vs_world_pct: world.delta_vs_world_pct,
+          fx_rate_used: world.fx_rate_used,
+        }
+      : null,
+  };
+}
+
 export interface HistoryPoint {
   recorded_at: string;
   price_lkr: number;
@@ -274,8 +303,26 @@ async function del<T>(path: string): Promise<T> {
 
 export const api = {
   latest: () => get<LatestPricesResp>("/v1/prices/latest"),
-  marketContext: (fuel: FuelId = "petrol_95") =>
-    get<MarketContextResp>(`/v1/market-context?fuel=${fuel}`),
+  marketContext: async (fuel: FuelId = "petrol_95"): Promise<MarketContextResp> => {
+    const r = await fetch(`${API_BASE}/v1/market-context?fuel=${fuel}`);
+    if (r.ok) {
+      return r.json() as Promise<MarketContextResp>;
+    }
+    // Fly backend deploy has been stuck (billing) since before this route shipped.
+    // Compose from endpoints that older production builds already expose.
+    if (r.status === 404) {
+      const [sentWrap, world] = await Promise.all([
+        get<{ available: boolean; sentiment: SentimentData | null }>(
+          "/v1/prices/sentiment",
+        ).catch(() => ({ available: false, sentiment: null })),
+        get<ComparisonResp>(`/v1/comparison/world?fuel=${fuel}`).catch(
+          () => null,
+        ),
+      ]);
+      return composeMarketContext(fuel, sentWrap.sentiment, world);
+    }
+    throw new Error(`/v1/market-context: ${r.status}`);
+  },
   history: (fuel: FuelId, days = 730, source: PriceSource = "cpc") =>
     get<{ points: HistoryPoint[] }>(
       `/v1/prices/history?fuel=${fuel}&days=${days}&source=${source}`
