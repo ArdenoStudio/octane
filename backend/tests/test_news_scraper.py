@@ -113,7 +113,225 @@ def test_outlet_from_host():
     assert outlet_from_host("https://island.lk/fuel-prices-increased/") == "island"
     assert outlet_from_host("https://www.onlanka.com/news/sri-lanka-revises-fuel-prices-from-june-30-2026.html") == "onlanka"
     assert outlet_from_host("https://lankanewsweb.net/archives/226278/fuel-prices-reduced/") == "lankanewsweb"
+    assert outlet_from_host("https://english.newsfirst.lk/2026/06/30/fuel-prices-reduced/") == "newsfirst"
+    assert outlet_from_host("https://www.themorning.lk/articles/BaLVZbOkscOFkRbNhy4P") == "themorning"
+    assert outlet_from_host("https://www.ft.lk/business/Govt-revises-fuel-prices/34") == "dailyft"
+    assert outlet_from_host(
+        "https://www.sundaytimes.lk/260630/news/fuel-prices-reduced-from-tonight-648000.html"
+    ) == "sundaytimes"
+    assert outlet_from_host("https://srilankamirror.com/news/fuel-prices-reduced") == "srilankamirror"
     assert outlet_from_host("https://example.com") == "unknown"
+
+
+def test_date_hint_from_url_and_ft_byline():
+    from app.scrapers.news import _date_hint_from_url, _parse_article_published_date
+    from bs4 import BeautifulSoup
+
+    assert _date_hint_from_url(
+        "https://english.newsfirst.lk/2026/06/30/fuel-prices-reduced/"
+    ) == date(2026, 6, 30)
+    assert _date_hint_from_url(
+        "https://www.sundaytimes.lk/260503/news/fuel-prices-hiked-again-640961.html"
+    ) == date(2026, 5, 3)
+    assert _date_hint_from_url(
+        "https://www.sundaytimes.lk/210620/columns/old-hike-446923.html"
+    ) == date(2021, 6, 20)
+
+    soup = BeautifulSoup(
+        "<html><body>PAPER Tuesday, 6 January 2026 02:46 - - hits</body></html>",
+        "lxml",
+    )
+    assert _parse_article_published_date(
+        soup, "https://www.ft.lk/front-page/Ceypetco-revises/44-786572"
+    ) == date(2026, 1, 6)
+
+
+def test_looks_like_cloudflare():
+    from app.scrapers.news import _looks_like_cloudflare
+
+    assert _looks_like_cloudflare(403, "forbidden")
+    assert _looks_like_cloudflare(200, "<html><title>Just a moment...</title></html>")
+    assert not _looks_like_cloudflare(200, "<html><title>Fuel prices reduced</title></html>")
+
+
+def test_fetch_article_content_falls_back_to_jina_on_403():
+    from unittest.mock import MagicMock
+    from app.scrapers.news import _fetch_article_content, JINA_READER_PREFIX
+
+    blocked = MagicMock()
+    blocked.is_success = False
+    blocked.status_code = 403
+    blocked.text = "<html><title>Just a moment...</title></html>"
+    blocked.url = "https://srilankamirror.com/biz/fuel-prices-slashed-3/"
+
+    jina = MagicMock()
+    jina.is_success = True
+    jina.status_code = 200
+    jina.text = (
+        "Title: Fuel prices slashed\n\n"
+        "URL Source: https://srilankamirror.com/biz/fuel-prices-slashed-3/\n\n"
+        "Markdown Content:\n"
+        "The Ceylon Petroleum Corporation (Ceypetco) has announced a revision "
+        "of fuel prices, effective from midnight today (June 29).\n"
+        "Auto Diesel – Rs. 382 (reduced by Rs. 25)\n"
+        "Super Diesel – Rs. 478 (unchanged)\n"
+        "Petrol 92 Octane – Rs. 414 (reduced by Rs. 20)\n"
+        "Petrol 95 Octane – Rs. 495 (unchanged)\n"
+        "Kerosene – Rs. 285 (unchanged)\n"
+    )
+    jina.raise_for_status = MagicMock()
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get(self, url, **kwargs):
+            if url.startswith(JINA_READER_PREFIX):
+                return jina
+            return blocked
+
+    with patch("app.scrapers.news.httpx.Client", FakeClient):
+        fetched = _fetch_article_content(
+            "https://srilankamirror.com/biz/fuel-prices-slashed-3/"
+        )
+    assert fetched is not None
+    final_url, content, mode = fetched
+    assert mode == "text"
+    assert "Rs. 414" in content
+    assert final_url.endswith("fuel-prices-slashed-3/")
+
+
+def test_fetch_article_content_falls_back_to_jina_on_429():
+    from unittest.mock import MagicMock
+    from app.scrapers.news import _fetch_article_content, JINA_READER_PREFIX
+
+    limited = MagicMock()
+    limited.is_success = False
+    limited.status_code = 429
+    limited.text = "Too Many Requests"
+    limited.url = "https://www.newsfirst.lk/2026/06/30/fuel-prices-reduced/"
+
+    jina = MagicMock()
+    jina.is_success = True
+    jina.status_code = 200
+    jina.text = (
+        "Title: Fuel Prices Reduced From Midnight Yesterday\n\n"
+        "URL Source: https://www.newsfirst.lk/2026/06/30/fuel-prices-reduced/\n\n"
+        "Markdown Content:\n"
+        "COLOMBO (News 1st): The Ceylon Petroleum Corporation (CPC) has announced "
+        "a reduction in fuel prices effective from midnight yesterday. "
+        "Accordingly, the price of Octane 92 petrol has been reduced by Rs. 20 "
+        "per litre, bringing the new price down to Rs. 414. "
+        "The price of Lanka Auto Diesel has also been reduced by Rs. 25 per litre, "
+        "with the new price set at Rs. 382 per litre.\n"
+    )
+    jina.raise_for_status = MagicMock()
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get(self, url, **kwargs):
+            if url.startswith(JINA_READER_PREFIX):
+                return jina
+            return limited
+
+    with patch("app.scrapers.news.httpx.Client", FakeClient):
+        fetched = _fetch_article_content(
+            "https://www.newsfirst.lk/2026/06/30/fuel-prices-reduced/"
+        )
+    assert fetched is not None
+    assert fetched[2] == "text"
+    assert "414" in fetched[1]
+
+
+def test_sanitize_drops_petrol_95_equal_to_super_diesel():
+    """Mirror June wire typo: P95 listed as Rs. 478 (= Super Diesel)."""
+    text = (
+        "Auto Diesel – Rs. 382 (reduced by Rs. 25) "
+        "Super Diesel – Rs. 478 (unchanged) "
+        "Petrol 92 Octane – Rs. 414 (reduced by Rs. 20) "
+        "Petrol 95 Octane – Rs. 478 (unchanged) "
+        "Kerosene – Rs. 285 (unchanged)"
+    )
+    points = _extract_prices(
+        text,
+        fallback_date=date(2026, 6, 29),
+        outlet="srilankamirror",
+    )
+    by_fuel = {p.fuel_type: p.price_lkr for p in points}
+    assert by_fuel[fuel_mod.PETROL_92] == 414.0
+    assert by_fuel[fuel_mod.AUTO_DIESEL] == 382.0
+    assert by_fuel[fuel_mod.SUPER_DIESEL] == 478.0
+    assert by_fuel[fuel_mod.KEROSENE] == 285.0
+    assert fuel_mod.PETROL_95 not in by_fuel
+
+
+def test_guess_slmirror_urls_and_resolve():
+    from app.scrapers.news import _guess_slmirror_urls, _resolve_via_publisher_search
+
+    guesses = _guess_slmirror_urls("Fuel prices slashed - Sri Lanka Mirror")
+    assert guesses[0].endswith("fuel-prices-slashed-5/")
+    assert "https://srilankamirror.com/biz/fuel-prices-slashed-3/" in guesses
+    assert guesses.index("https://srilankamirror.com/biz/fuel-prices-slashed-3/") < guesses.index(
+        "https://srilankamirror.com/biz/fuel-prices-slashed/"
+    )
+
+    # Live: slug guess should find the June 29 wire via Jina when search is mocked empty.
+    with patch("app.scrapers.news._resolve_via_web_search", return_value=None):
+        url = _resolve_via_publisher_search(
+            "Fuel prices slashed - Sri Lanka Mirror",
+            "https://srilankamirror.com/",
+        )
+    assert url is not None
+    assert "fuel-prices-slashed-3" in url
+    assert "srilankamirror.com" in url
+
+
+def test_scrape_article_uses_jina_text_mode():
+    from datetime import datetime, timezone
+    from app.scrapers.news import _scrape_article
+
+    jina_md = (
+        "Title: Fuel prices slashed\n\n"
+        "The Ceylon Petroleum Corporation announced a revision.\n"
+        "Petrol 92 Octane – Rs. 414\n"
+        "Auto Diesel – Rs. 382\n"
+        "Super Diesel – Rs. 478\n"
+        "Petrol 95 Octane – Rs. 495\n"
+        "Kerosene – Rs. 285\n"
+    )
+    with patch(
+        "app.scrapers.news._fetch_article_content",
+        return_value=(
+            "https://srilankamirror.com/biz/fuel-prices-slashed-3/",
+            jina_md,
+            "text",
+        ),
+    ):
+        points = _scrape_article(
+            "https://srilankamirror.com/biz/fuel-prices-slashed-3/",
+            datetime(2026, 6, 29, tzinfo=timezone.utc),
+            title="Fuel prices slashed",
+            source_url="https://srilankamirror.com/",
+        )
+    by_fuel = {p.fuel_type: p.price_lkr for p in points}
+    assert by_fuel[fuel_mod.PETROL_92] == 414.0
+    assert by_fuel[fuel_mod.PETROL_95] == 495.0
+    assert by_fuel[fuel_mod.AUTO_DIESEL] == 382.0
+    assert points[0].outlet == "srilankamirror"
 
 
 def test_extract_prices_lnw_fixed_at_and_octane_petrol_wording():
