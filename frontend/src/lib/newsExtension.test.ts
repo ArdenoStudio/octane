@@ -30,6 +30,8 @@ describe("applyNewsExtensions", () => {
     // Mid dates stay clear — only anchor + tip, so the chart does not stack dots.
     expect(mid?.[extKey("petrol_92")]).toBeUndefined();
     expect(end?.[extKey("petrol_92")]).toBe(420);
+    // Tip day carries the official price forward so the solid line reaches it.
+    expect(end?.petrol_92).toBe(400);
   });
 
   it("uses today when the media date is not after CPC", () => {
@@ -91,5 +93,32 @@ describe("applyNewsExtensions", () => {
     const rows = [{ date: "2026-06-01", petrol_92: 400 }];
     const out = applyNewsExtensions(rows, [flat], ["petrol_92"], { today: "2026-07-10" });
     expect(out.every((r) => r[extKey("petrol_92")] == null)).toBe(true);
+  });
+
+  it("snaps media tips onto the existing series instead of orphaning a 2026 spike", () => {
+    // Simulates the broken "All" chart: series truncated/ends in 2000, signal
+    // still references a 2026 CPC revision. Must not invent a lone 2026-06-30
+    // petrol_92=414 point that connectNulls would spike to.
+    const rows = [
+      { date: "1990-01-01", petrol_92: 20 },
+      { date: "2000-08-03", petrol_92: 40 },
+    ];
+    const futureSignal: EarlySignal = {
+      ...signal,
+      cpc_recorded_at: "2026-06-30",
+      recorded_at: "2026-07-09",
+      cpc_price_lkr: 414,
+      price_lkr: 434,
+      delta_lkr: 20,
+    };
+    const out = applyNewsExtensions(rows, [futureSignal], ["petrol_92"], {
+      today: "2026-07-12",
+      rangeStart: "1990-01-01",
+    });
+    expect(out.some((r) => r.date === "2026-06-30")).toBe(false);
+    expect(out.find((r) => r.date === "2000-08-03")?.[extKey("petrol_92")]).toBe(40);
+    expect(out.find((r) => r.date === "2026-07-09")?.[extKey("petrol_92")]).toBe(434);
+    // Official price on the tip day is the snapped series value, not 414.
+    expect(out.find((r) => r.date === "2026-07-09")?.petrol_92).toBe(40);
   });
 });

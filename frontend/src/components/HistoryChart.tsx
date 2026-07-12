@@ -330,7 +330,7 @@ export function HistoryChart() {
 
   const chartRemountKey = `${mode}-${days}-${Array.from(active).join(",")}-${displayData.length}-${String(displayData.at(-1)?.date ?? "")}`;
 
-  const yDomain = useMemo((): [number | "auto", number | "auto"] | [(n: number) => number, (n: number) => number] => {
+  const yDomain = useMemo((): [number | "auto", number | "auto"] | [number, number] => {
     let min = Infinity;
     let max = -Infinity;
     for (const row of displayData) {
@@ -349,8 +349,12 @@ export function HistoryChart() {
     }
     if (!Number.isFinite(min) || !Number.isFinite(max)) return ["auto", "auto"];
     const pad = Math.max(5, (max - min) * 0.08);
-    return [Math.floor(min - pad), Math.ceil(max + pad)];
+    // Prices are never negative — padding used to push the axis below 0.
+    return [Math.max(0, Math.floor(min - pad)), Math.ceil(max + pad)];
   }, [displayData, active]);
+
+  // Dense revision dots on multi-decade "All" views just look like noise.
+  const showRevisionDots = mode === "revisions" || days <= 365 * 2;
 
   const isLoading = mode === "revisions" && revisionsLoading;
   const hasRevisionsError = mode === "revisions" && !!revisionsError;
@@ -605,6 +609,18 @@ export function HistoryChart() {
                           const fuel = (
                             isAI ? key.replace("_ai_fwd", "") : isExt ? key.replace("_ext", "") : key
                           ) as FuelId;
+                          // Hide media tooltip rows that still equal the official price.
+                          if (isExt) {
+                            const official = items.find((x) => x.dataKey === fuel);
+                            if (
+                              official &&
+                              typeof official.value === "number" &&
+                              typeof p.value === "number" &&
+                              Math.abs(official.value - p.value) < 0.01
+                            ) {
+                              return null;
+                            }
+                          }
                           return (
                             <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                               <span style={{ color: p.color, fontSize: 8 }}>{isExt ? "◌" : "●"}</span>
@@ -643,7 +659,9 @@ export function HistoryChart() {
                     stroke={COLORS[f]}
                     strokeWidth={2.25}
                     dot={
-                      mode === "revisions"
+                      !showRevisionDots
+                        ? false
+                        : mode === "revisions"
                         ? { r: 3.5, fill: COLORS[f], strokeWidth: 0 }
                         : (props: {
                             cx?: number;

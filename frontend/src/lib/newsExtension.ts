@@ -24,8 +24,10 @@ export interface NewsExtensionOptions {
  * Overlay a dashed "extension" of the official CPC line toward a media-reported
  * price. Only the last CPC anchor and the media tip are set — no dense mid-fill
  * along the official price (that was stacking duplicate dots on the chart).
- * When CPC revises (early signal clears), callers pass no signals and the
- * extension disappears — one graph, not two modes.
+ *
+ * The start anchor is always snapped to an existing chart row that already has
+ * this fuel's price, so we never inject an orphan high-price point after a
+ * multi-year gap (which made connectNulls draw a vertical spike on "All").
  */
 export function applyNewsExtensions(
   rows: ChartRow[],
@@ -53,29 +55,46 @@ export function applyNewsExtensions(
     byDate.set(String(row.date), { ...row });
   }
 
-  // First visible date in the current series (fallback clamp).
-  const firstRowDate =
-    rows.length > 0 ? String([...rows].sort((a, b) => String(a.date).localeCompare(String(b.date)))[0].date) : null;
+  const sortedDates = Array.from(byDate.keys()).sort();
+  if (sortedDates.length === 0) return rows;
+  const firstRowDate = sortedDates[0];
+  const lastRowDate = sortedDates[sortedDates.length - 1];
   const clampStart = rangeStart ?? firstRowDate;
 
   for (const s of pending) {
     const f = s.fuel_type;
-    let startDate = s.cpc_recorded_at;
-    if (clampStart && startDate < clampStart) startDate = clampStart;
+    let preferredStart = s.cpc_recorded_at;
+    if (clampStart && preferredStart < clampStart) preferredStart = clampStart;
+
+    // Snap to the latest existing row on/before the CPC date that already has
+    // this fuel — never invent a lone point decades after the series ends.
+    const snapped =
+      [...sortedDates]
+        .reverse()
+        .find((d) => d <= preferredStart && typeof byDate.get(d)?.[f] === "number") ??
+      [...sortedDates]
+        .reverse()
+        .find((d) => typeof byDate.get(d)?.[f] === "number") ??
+      lastRowDate;
+
+    const startDate = snapped;
+    const startRow = byDate.get(startDate)!;
+    const cpcAnchor =
+      typeof startRow[f] === "number" ? (startRow[f] as number) : s.cpc_price_lkr;
 
     let endDate = s.recorded_at > startDate ? s.recorded_at : today;
     if (endDate <= startDate) endDate = today;
-    // Same-day CPC + news: still show a short stub so the dashed tip is visible.
     if (endDate <= startDate) endDate = addDays(startDate, 1);
+    // Keep the tip close to the visible series end (avoid a far orphan date).
+    if (endDate < startDate) endDate = addDays(startDate, 1);
 
-    const startRow = byDate.get(startDate) ?? { date: startDate };
-    startRow[extKey(f)] = s.cpc_price_lkr;
-    if (startRow[f] == null) startRow[f] = s.cpc_price_lkr;
+    startRow[extKey(f)] = cpcAnchor;
     byDate.set(startDate, startRow);
 
-    // Tip only — Recharts connectNulls draws the dashed connector.
-    // Do not stamp CPC onto every mid date (that caused the dot pile-up).
     const endRow = byDate.get(endDate) ?? { date: endDate };
+    // Carry forward official price onto the tip day so the solid line reaches
+    // the tip and the dashed segment only shows the media delta.
+    if (endRow[f] == null) endRow[f] = cpcAnchor;
     endRow[extKey(f)] = s.price_lkr;
     byDate.set(endDate, endRow);
   }

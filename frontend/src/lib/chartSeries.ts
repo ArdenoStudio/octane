@@ -3,18 +3,28 @@ import { FUEL_ORDER } from "./api";
 
 export type ChartRow = Record<string, string | number | boolean>;
 
+/** Daily expansion above this span is skipped — silent 4k truncation used to
+ *  drop recent years on "All" and then media tips re-injected a 2026 spike. */
+export const DAILY_EXPAND_MAX_DAYS = 800;
+
 function addDays(isoDate: string, days: number): string {
   const d = new Date(`${isoDate}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
-function eachDay(start: string, end: string): string[] {
+export function daySpan(start: string, end: string): number {
+  const a = Date.parse(`${start}T12:00:00Z`);
+  const b = Date.parse(`${end}T12:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return 0;
+  return Math.round((b - a) / 86_400_000) + 1;
+}
+
+function eachDay(start: string, end: string, maxDays: number): string[] {
   if (end < start) return [];
   const out: string[] = [];
   let cur = start;
-  // Hard cap avoids pathological ranges (e.g. "All" with bad data).
-  for (let i = 0; i < 4000 && cur <= end; i++) {
+  for (let i = 0; i < maxDays && cur <= end; i++) {
     out.push(cur);
     cur = addDays(cur, 1);
   }
@@ -57,13 +67,39 @@ export function buildForwardFilledSeries(
 }
 
 /**
- * Expand a forward-filled revision series to one row per calendar day.
- * That makes long flat stretches and sharp revision steps obvious on the
- * chart (categorical X spacing becomes day-proportional).
+ * Ensure a sparse forward-filled series reaches `endDate` so media tips and
+ * "today" line up with the last official price (no connectNulls spike).
+ */
+export function extendSparseToEnd(
+  rows: ChartRow[],
+  endDate: string,
+  fuels: FuelId[]
+): ChartRow[] {
+  if (rows.length === 0) return rows;
+  const sorted = [...rows].sort((a, b) =>
+    String(a.date).localeCompare(String(b.date))
+  );
+  const last = sorted[sorted.length - 1];
+  const lastDate = String(last.date);
+  // Mark every sparse revision row so short-range callers can still tip dots.
+  const marked = sorted.map((r) => ({ ...r, _revision: true }));
+  if (endDate <= lastDate) return marked;
+
+  const tail: ChartRow = { date: endDate };
+  for (const f of fuels) {
+    if (typeof last[f] === "number") tail[f] = last[f]!;
+  }
+  return [...marked, tail];
+}
+
+/**
+ * Expand a forward-filled revision series to one row per calendar day when
+ * the span is short enough. Longer spans stay sparse (revision dates only)
+ * and are extended to endDate — never silently truncated mid-history.
  */
 export function expandToDailyCalendar(
   rows: ChartRow[],
-  opts: { endDate?: string; fuels?: FuelId[] } = {}
+  opts: { endDate?: string; fuels?: FuelId[]; maxDays?: number } = {}
 ): ChartRow[] {
   if (rows.length === 0) return rows;
   const sorted = [...rows].sort((a, b) =>
@@ -72,15 +108,21 @@ export function expandToDailyCalendar(
   const start = String(sorted[0].date);
   const lastData = String(sorted[sorted.length - 1].date);
   const end = opts.endDate && opts.endDate > lastData ? opts.endDate : lastData;
-  const byDate = new Map(sorted.map((r) => [String(r.date), r]));
   const fuels =
     opts.fuels ??
     FUEL_ORDER.filter((f) => sorted.some((r) => typeof r[f] === "number"));
+  const maxDays = opts.maxDays ?? DAILY_EXPAND_MAX_DAYS;
+  const span = daySpan(start, end);
 
+  if (span > maxDays) {
+    return extendSparseToEnd(sorted, end, fuels);
+  }
+
+  const byDate = new Map(sorted.map((r) => [String(r.date), r]));
   const last: Partial<Record<FuelId, number>> = {};
   const out: ChartRow[] = [];
 
-  for (const d of eachDay(start, end)) {
+  for (const d of eachDay(start, end, maxDays + 1)) {
     const src = byDate.get(d);
     const row: ChartRow = { date: d };
     let anyRevision = false;
