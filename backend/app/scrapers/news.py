@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import logging
 import re
+import time
 from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Iterable
@@ -173,6 +174,31 @@ def outlet_from_host(url_or_host: str | None) -> str:
     return "unknown"
 
 
+def _date_hint_from_url(url: str | None) -> date | None:
+    """Pull a publish date from URL paths when outlets embed one.
+
+    NewsFirst / Newswire: /YYYY/MM/DD/slug
+    Sunday Times: /YYMMDD/section/slug.html
+    Prefer these over page chrome dates (FT/Ada often show "today").
+    """
+    if not url:
+        return None
+    m = re.search(r"/(20\d{2})/(\d{2})/(\d{2})/", url)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return None
+    m = re.search(r"sundaytimes\.lk/(\d{2})(\d{2})(\d{2})/", url, re.IGNORECASE)
+    if m:
+        yy, mm, dd = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        try:
+            return date(2000 + yy, mm, dd)
+        except ValueError:
+            return None
+    return None
+
+
 def _parse_rss_date(raw: str | None) -> datetime | None:
     if not raw:
         return None
@@ -285,7 +311,12 @@ def _parse_article_published_date(soup: BeautifulSoup, url: str) -> date | None:
         if parsed:
             return parsed
 
-    # Newswire / WP style path: /2026/06/29/slug/
+    # Path-embedded dates (NewsFirst / Newswire /YYYY/MM/DD/, Sunday Times /YYMMDD/)
+    url_hint = _date_hint_from_url(url)
+    if url_hint is not None:
+        return url_hint
+
+    # Newswire / WP style path: /2026/06/29/slug/ (also covered by url_hint)
     m = re.search(r"/((?:19|20)\d{2})/(\d{2})/(\d{2})/", url)
     if m:
         try:
@@ -335,6 +366,21 @@ def _parse_article_published_date(soup: BeautifulSoup, url: str) -> date | None:
     m = re.search(
         r"\b(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})"
         r"\s+\d{1,2}:\d{2}\s*(?:am|pm)\b",
+        text[:4000],
+        re.IGNORECASE,
+    )
+    if m:
+        parsed = _coerce_date(m.group(1))
+        if parsed:
+            return parsed
+
+    # Daily FT print desk: "Tuesday, 6 January 2026 02:46" (24h, no am/pm).
+    m = re.search(
+        r"(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+)?"
+        r"(\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+        r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|"
+        r"Nov(?:ember)?|Dec(?:ember)?)\s+\d{4})"
+        r"\s+\d{1,2}:\d{2}\b",
         text[:4000],
         re.IGNORECASE,
     )
@@ -834,7 +880,7 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
             title,
             "ft.lk",
             re.compile(
-                r"https?://(?:www\.)?ft\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
+                r"https?://(?:www\.)?ft\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+(?:-\d+)?",
                 re.IGNORECASE,
             ),
         )
@@ -972,6 +1018,10 @@ def _scrape_article(
     soup = BeautifulSoup(r.text, "lxml")
 
     published = _parse_article_published_date(soup, article_url)
+    url_hint = _date_hint_from_url(article_url)
+    if url_hint is not None:
+        # URL path dates beat site-chrome "today" stamps.
+        published = url_hint
     if published is not None:
         # Prefer the real article date over Google News pubDate (often wrong
         # for re-indexed older stories).
@@ -1088,17 +1138,18 @@ BRAVE_DISCOVERY: list[tuple[str, str, re.Pattern[str]]] = [
     ),
     (
         "ft.lk",
+        # Year token biases Brave away from evergreen 2022–2024 revision wires.
         'site:ft.lk (fuel OR petrol OR ceypetco) (prices OR price) '
-        "(reduced OR increased OR revised OR revision)",
+        "(reduced OR increased OR revised OR revision) 2026",
         re.compile(
-            r"https?://(?:www\.)?ft\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+",
+            r"https?://(?:www\.)?ft\.lk/[A-Za-z0-9\-]+/[A-Za-z0-9\-]+/\d+(?:-\d+)?",
             re.IGNORECASE,
         ),
     ),
     (
         "sundaytimes.lk",
         'site:sundaytimes.lk (fuel OR petrol) (prices OR price) '
-        "(reduced OR increased OR revised OR revision)",
+        "(reduced OR increased OR revised OR revision) 2026",
         re.compile(
             r"https?://(?:www\.)?sundaytimes\.lk/\d+/"
             r"[a-z0-9\-]+/[a-z0-9\-]+\.html",
@@ -1111,7 +1162,7 @@ BRAVE_DISCOVERY: list[tuple[str, str, re.Pattern[str]]] = [
         "(reduced OR increased OR revised OR revision OR slashed)",
         re.compile(
             r"https?://(?:www\.)?srilankamirror\.com/"
-            r"(?:news|business|news-features)/[A-Za-z0-9\-]+",
+            r"(?:news|biz|business|news-features)/[A-Za-z0-9\-]+/?",
             re.IGNORECASE,
         ),
     ),
@@ -1146,15 +1197,21 @@ def _discover_via_brave(
     """
     results: list[tuple[str, datetime | None, str, str, str | None]] = []
     seen: set[str] = set()
+    max_age_days = (max_age_hours // 24) + 1
     for host, query, link_re in BRAVE_DISCOVERY:
         urls = _brave_search_urls(query)
         matched = [u for u in urls if link_re.search(u)]
         log.info("brave discovery %s → %d candidate urls", host, len(matched))
+        # Pace Brave HTML search — bursty loops trip 429 from Actions / cloud IPs.
+        time.sleep(0.8)
         for url in matched[:8]:
             key = url.split("?")[0].rstrip("/")
             if key in seen:
                 continue
             seen.add(key)
+            url_hint = _date_hint_from_url(url)
+            if url_hint is not None and (date.today() - url_hint).days > max_age_days:
+                continue
             # Fetch title from the page so keyword / speculative filters work.
             try:
                 with httpx.Client(
@@ -1174,7 +1231,7 @@ def _discover_via_brave(
                 continue
             if _is_speculative_piece(title, url):
                 continue
-            published = _parse_article_published_date(soup, str(r.url))
+            published = url_hint or _parse_article_published_date(soup, str(r.url))
             if published is not None:
                 age_hours = (date.today() - published).days * 24
                 if age_hours > max_age_hours + 24:
@@ -1183,7 +1240,8 @@ def _discover_via_brave(
                     published.year, published.month, published.day, tzinfo=timezone.utc
                 )
             else:
-                pub_dt = None
+                # No reliable date — Brave ranks evergreen wires highly; skip.
+                continue
             source_url = f"https://{host}"
             results.append((str(r.url), pub_dt, title, title, source_url))
     return results

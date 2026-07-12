@@ -123,6 +123,29 @@ def test_outlet_from_host():
     assert outlet_from_host("https://example.com") == "unknown"
 
 
+def test_date_hint_from_url_and_ft_byline():
+    from app.scrapers.news import _date_hint_from_url, _parse_article_published_date
+    from bs4 import BeautifulSoup
+
+    assert _date_hint_from_url(
+        "https://english.newsfirst.lk/2026/06/30/fuel-prices-reduced/"
+    ) == date(2026, 6, 30)
+    assert _date_hint_from_url(
+        "https://www.sundaytimes.lk/260503/news/fuel-prices-hiked-again-640961.html"
+    ) == date(2026, 5, 3)
+    assert _date_hint_from_url(
+        "https://www.sundaytimes.lk/210620/columns/old-hike-446923.html"
+    ) == date(2021, 6, 20)
+
+    soup = BeautifulSoup(
+        "<html><body>PAPER Tuesday, 6 January 2026 02:46 - - hits</body></html>",
+        "lxml",
+    )
+    assert _parse_article_published_date(
+        soup, "https://www.ft.lk/front-page/Ceypetco-revises/44-786572"
+    ) == date(2026, 1, 6)
+
+
 def test_extract_prices_lnw_fixed_at_and_octane_petrol_wording():
     """LNW wording: 'Octane 92 petrol' + 'fixed at Rs. 382' after a long clause."""
     text = (
