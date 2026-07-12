@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildForwardFilledSeries, expandToDailyCalendar } from "./chartSeries";
+import {
+  buildForwardFilledSeries,
+  daySpan,
+  DAILY_EXPAND_MAX_DAYS,
+  expandToDailyCalendar,
+  extendSparseToEnd,
+} from "./chartSeries";
 
 describe("buildForwardFilledSeries", () => {
   it("forward-fills so a drop appears as a step, not a gap", () => {
@@ -76,5 +82,48 @@ describe("expandToDailyCalendar", () => {
       "2026-07-02",
     ]);
     expect(daily[2].petrol_92).toBe(414);
+  });
+
+  it("does not silently truncate multi-decade All ranges mid-history", () => {
+    // Old bug: 4000-day hard cap stopped around 2001, then a 2026 media tip
+    // made connectNulls draw a vertical spike to current prices.
+    const sparse = buildForwardFilledSeries(
+      {
+        petrol_92: [
+          { recorded_at: "1990-01-01", price_lkr: 20 },
+          { recorded_at: "2000-08-03", price_lkr: 40 },
+          { recorded_at: "2026-06-30", price_lkr: 414 },
+        ],
+      },
+      ["petrol_92"]
+    );
+    const span = daySpan("1990-01-01", "2026-07-12");
+    expect(span).toBeGreaterThan(DAILY_EXPAND_MAX_DAYS);
+
+    const out = expandToDailyCalendar(sparse, {
+      endDate: "2026-07-12",
+      fuels: ["petrol_92"],
+    });
+
+    expect(out.some((r) => r.date === "2026-06-30")).toBe(true);
+    expect(out.some((r) => r.date === "2026-07-12")).toBe(true);
+    expect(out.at(-1)).toMatchObject({ date: "2026-07-12", petrol_92: 414 });
+    // Must keep the early history too — not a 2026-only stub.
+    expect(out[0]).toMatchObject({ date: "1990-01-01", petrol_92: 20 });
+    // Sparse path — not ~13k daily rows.
+    expect(out.length).toBeLessThan(10);
+  });
+});
+
+describe("extendSparseToEnd", () => {
+  it("appends a forward-filled today row without marking it a revision", () => {
+    const out = extendSparseToEnd(
+      [{ date: "2026-06-30", petrol_92: 414 }],
+      "2026-07-12",
+      ["petrol_92"]
+    );
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ date: "2026-06-30", petrol_92: 414, _revision: true });
+    expect(out[1]).toEqual({ date: "2026-07-12", petrol_92: 414 });
   });
 });
