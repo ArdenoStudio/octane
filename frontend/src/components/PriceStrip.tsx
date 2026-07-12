@@ -128,6 +128,23 @@ export function PriceStrip() {
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tightest sm:text-4xl">
               {m.prices.title}
             </h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="rounded border border-ink-700 bg-ink-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
+                  {m.prices.official}
+                </span>
+                <span>CPC</span>
+              </span>
+              <span className="text-ink-700" aria-hidden>
+                ·
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+                  {m.prices.unconfirmed}
+                </span>
+                <span>{m.prices.mediaReports}</span>
+              </span>
+            </p>
           </FadeDiv>
           {(lastRevision || lastVerifiedAt) && (
             <FadeDiv className="text-right text-sm text-ink-400">
@@ -274,15 +291,26 @@ export function PriceStrip() {
                     </div>
 
                     {/* Official CPC price */}
-                    <div className="font-mono text-4xl font-black tracking-tight text-ink-100 tabular-nums leading-none">
-                      {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
+                    <div>
+                      <div className="mb-1.5 inline-flex items-center gap-1 rounded border border-ink-700 bg-ink-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
+                        {m.prices.official}
+                        <span className="font-normal normal-case tracking-normal text-ink-500">
+                          · CPC
+                        </span>
+                      </div>
+                      <div className="font-mono text-4xl font-black tracking-tight text-ink-100 tabular-nums leading-none">
+                        {row ? lkr(row.price_lkr, { showSymbol: false }) : "—"}
+                      </div>
                     </div>
 
                     {/* Media / LIOC report when it differs — not a second history mode */}
                     {signal && (
-                      <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-400/90">
-                          {m.prices.mediaReports}
+                      <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5">
+                        <div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+                          {m.prices.unconfirmed}
+                          <span className="font-normal normal-case tracking-normal text-amber-500/80">
+                            · {signal.source === "news" ? m.prices.earlySignalNews : m.prices.earlySignalLioc}
+                          </span>
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                           <span className="font-mono text-lg font-bold tabular-nums text-amber-100">
@@ -296,7 +324,9 @@ export function PriceStrip() {
                             {signalUp ? "+" : ""}
                             {lkr(signal.delta_lkr, { showSymbol: false })}
                           </span>
-                          <span className="text-[10px] text-ink-500">{m.prices.earlySignalUnconfirmed}</span>
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-ink-500">
+                          {m.prices.earlySignalUnconfirmed}
                         </div>
                       </div>
                     )}
