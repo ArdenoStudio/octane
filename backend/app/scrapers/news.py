@@ -699,7 +699,8 @@ def _guess_slmirror_urls(title: str) -> list[str]:
     """Guess Sri Lanka Mirror article paths from the headline slug.
 
     Mirror uses /biz/<slug>/ and /news/<slug>/ with optional -2/-3 suffixes
-    when titles repeat across revisions.
+    when titles repeat across revisions. Prefer higher suffixes first so we
+    don't lock onto an older same-title wire.
     """
     clean = _strip_outlet_suffix(title).lower()
     slug = re.sub(r"[^a-z0-9]+", "-", clean).strip("-")
@@ -707,9 +708,9 @@ def _guess_slmirror_urls(title: str) -> list[str]:
         return []
     urls: list[str] = []
     for section in ("biz", "news"):
-        urls.append(f"https://srilankamirror.com/{section}/{slug}/")
-        for n in range(2, 6):
+        for n in range(5, 1, -1):
             urls.append(f"https://srilankamirror.com/{section}/{slug}-{n}/")
+        urls.append(f"https://srilankamirror.com/{section}/{slug}/")
     return urls
 
 
@@ -1127,17 +1128,60 @@ def _resolve_via_publisher_search(title: str, source_url: str | None) -> str | N
         if found:
             return found
         # Brave/DDG often fail from Actions IPs — guess /biz|/news slugs and
-        # confirm via Jina (which clears Cloudflare).
+        # confirm via Jina (which clears Cloudflare). Same titles repeat across
+        # revisions, so collect matches and keep the newest dated page.
         want = _title_tokens(title)
+        scored: list[tuple[date, str]] = []
         for guess in _guess_slmirror_urls(title):
             text = _fetch_via_jina(guess)
             if not text:
                 continue
             page_title = _jina_title(text)
+            if re.search(r"page not found|404", page_title, re.IGNORECASE):
+                continue
+            # Soft-404 / archive chrome often still mentions old headlines —
+            # require an actual rupee price table before accepting the guess.
+            if not re.search(r"Rs\.?\s*\d{2,4}", text):
+                continue
+            if not re.search(r"ceypetco|cpc|petrol|diesel|kerosene", text, re.I):
+                continue
             have = _title_tokens(page_title) or _title_tokens(text[:300])
-            if len(want & have) >= max(2, min(4, len(want) // 2)):
-                log.info("slmirror slug guess matched %s", guess)
-                return guess
+            if len(want & have) < max(2, min(4, len(want) // 2)):
+                continue
+            published = _parse_article_published_date(
+                BeautifulSoup(f"<html><body>{text[:4000]}</body></html>", "lxml"),
+                guess,
+            )
+            # Also catch "midnight today (June 29)" / "June 29" without year
+            # by pairing month-day with a recent year from the RSS window.
+            if published is None:
+                m = re.search(
+                    r"\b(January|February|March|April|May|June|July|August|"
+                    r"September|October|November|December)\s+(\d{1,2})\b",
+                    text[:2000],
+                    re.IGNORECASE,
+                )
+                if m:
+                    for year in (date.today().year, date.today().year - 1):
+                        try:
+                            published = datetime.strptime(
+                                f"{m.group(1)} {m.group(2)} {year}", "%B %d %Y"
+                            ).date()
+                            if published <= date.today():
+                                break
+                        except ValueError:
+                            published = None
+            scored.append((published or date.min, guess))
+        if scored:
+            scored.sort(key=lambda item: item[0], reverse=True)
+            best_date, best_url = scored[0]
+            log.info(
+                "slmirror slug guess matched %s (date=%s, %d candidates)",
+                best_url,
+                best_date if best_date != date.min else "unknown",
+                len(scored),
+            )
+            return best_url
         return None
     else:
         return None

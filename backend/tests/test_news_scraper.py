@@ -283,8 +283,11 @@ def test_guess_slmirror_urls_and_resolve():
     from app.scrapers.news import _guess_slmirror_urls, _resolve_via_publisher_search
 
     guesses = _guess_slmirror_urls("Fuel prices slashed - Sri Lanka Mirror")
-    assert "https://srilankamirror.com/biz/fuel-prices-slashed/" in guesses
+    assert guesses[0].endswith("fuel-prices-slashed-5/")
     assert "https://srilankamirror.com/biz/fuel-prices-slashed-3/" in guesses
+    assert guesses.index("https://srilankamirror.com/biz/fuel-prices-slashed-3/") < guesses.index(
+        "https://srilankamirror.com/biz/fuel-prices-slashed/"
+    )
 
     # Live: slug guess should find the June 29 wire via Jina when search is mocked empty.
     with patch("app.scrapers.news._resolve_via_web_search", return_value=None):
@@ -293,7 +296,7 @@ def test_guess_slmirror_urls_and_resolve():
             "https://srilankamirror.com/",
         )
     assert url is not None
-    assert "fuel-prices-slashed" in url
+    assert "fuel-prices-slashed-3" in url
     assert "srilankamirror.com" in url
 
 
