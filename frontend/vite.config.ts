@@ -69,6 +69,15 @@ export default defineConfig({
             },
           },
           {
+            urlPattern: /^https:\/\/raw\.githubusercontent\.com\/ArdenoStudio\/octane\//,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "octane-sentiment-git",
+              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "google-fonts-stylesheets" },

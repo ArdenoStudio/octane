@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { composeMarketContext, ComparisonResp, SentimentData } from "./api";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  composeMarketContext,
+  ComparisonResp,
+  SentimentData,
+  isSentimentStale,
+  parseSentimentPayload,
+  preferFreshSentiment,
+  SENTIMENT_RAW_URL,
+} from "./api";
 
 const sentiment: SentimentData = {
   direction: "up",
@@ -36,5 +44,59 @@ describe("composeMarketContext", () => {
     expect(out.sentiment).toBeNull();
     expect(out.fx).toBeNull();
     expect(out.world).toBeNull();
+  });
+});
+
+describe("preferFreshSentiment", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps API sentiment when it is fresh", async () => {
+    const fresh: SentimentData = {
+      ...sentiment,
+      generated_at: new Date().toISOString(),
+      direction: "stable",
+    };
+    const out = await preferFreshSentiment(fresh);
+    expect(out?.direction).toBe("stable");
+  });
+
+  it("replaces stale Fly bake-in with the GitHub-committed snapshot", async () => {
+    const committed: SentimentData = {
+      ...sentiment,
+      direction: "down",
+      magnitude_lkr: -30,
+      generated_at: "2026-07-12T05:00:28.193866+00:00",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        expect(url).toBe(SENTIMENT_RAW_URL);
+        return {
+          ok: true,
+          json: async () => committed,
+        };
+      }),
+    );
+    const out = await preferFreshSentiment(sentiment);
+    expect(out?.direction).toBe("down");
+    expect(out?.magnitude_lkr).toBe(-30);
+    expect(isSentimentStale(sentiment, Date.parse("2026-07-12T06:00:00Z"))).toBe(true);
+  });
+
+  it("parseSentimentPayload rejects zero-confidence placeholders", () => {
+    expect(parseSentimentPayload({ confidence: 0, direction: "up" })).toBeNull();
+    expect(
+      parseSentimentPayload({
+        confidence: 0.8,
+        direction: "down",
+        magnitude_lkr: -10,
+        summary: "x",
+        generated_at: "2026-07-12T00:00:00Z",
+        headlines_analyzed: 1,
+        signals: ["a"],
+      })?.direction,
+    ).toBe("down");
   });
 });

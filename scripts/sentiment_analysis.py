@@ -2,8 +2,12 @@
 """Fetch Sri Lanka fuel news headlines and run Groq AI sentiment analysis.
 
 Called daily by .github/workflows/sentiment.yml.
-Outputs backend/data/ai_sentiment.json which is committed back to master,
-triggering a backend redeploy that includes the fresh sentiment data.
+Outputs backend/data/ai_sentiment.json which is committed back to master.
+
+Note: the Fly API serves whatever copy was baked into the last successful
+image deploy. When Fly deploys are blocked, /v1/prices/sentiment can lag for
+months even though this file updates daily — the frontend also reads this
+JSON from GitHub raw as a freshness fallback.
 
 Requirements (installed by the GHA step):
     pip install httpx groq
