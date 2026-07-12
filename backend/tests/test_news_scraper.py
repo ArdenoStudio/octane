@@ -207,6 +207,56 @@ def test_fetch_article_content_falls_back_to_jina_on_403():
     assert final_url.endswith("fuel-prices-slashed-3/")
 
 
+def test_fetch_article_content_falls_back_to_jina_on_429():
+    from unittest.mock import MagicMock
+    from app.scrapers.news import _fetch_article_content, JINA_READER_PREFIX
+
+    limited = MagicMock()
+    limited.is_success = False
+    limited.status_code = 429
+    limited.text = "Too Many Requests"
+    limited.url = "https://www.newsfirst.lk/2026/06/30/fuel-prices-reduced/"
+
+    jina = MagicMock()
+    jina.is_success = True
+    jina.status_code = 200
+    jina.text = (
+        "Title: Fuel Prices Reduced From Midnight Yesterday\n\n"
+        "URL Source: https://www.newsfirst.lk/2026/06/30/fuel-prices-reduced/\n\n"
+        "Markdown Content:\n"
+        "COLOMBO (News 1st): The Ceylon Petroleum Corporation (CPC) has announced "
+        "a reduction in fuel prices effective from midnight yesterday. "
+        "Accordingly, the price of Octane 92 petrol has been reduced by Rs. 20 "
+        "per litre, bringing the new price down to Rs. 414. "
+        "The price of Lanka Auto Diesel has also been reduced by Rs. 25 per litre, "
+        "with the new price set at Rs. 382 per litre.\n"
+    )
+    jina.raise_for_status = MagicMock()
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get(self, url, **kwargs):
+            if url.startswith(JINA_READER_PREFIX):
+                return jina
+            return limited
+
+    with patch("app.scrapers.news.httpx.Client", FakeClient):
+        fetched = _fetch_article_content(
+            "https://www.newsfirst.lk/2026/06/30/fuel-prices-reduced/"
+        )
+    assert fetched is not None
+    assert fetched[2] == "text"
+    assert "414" in fetched[1]
+
+
 def test_sanitize_drops_petrol_95_equal_to_super_diesel():
     """Mirror June wire typo: P95 listed as Rs. 478 (= Super Diesel)."""
     text = (

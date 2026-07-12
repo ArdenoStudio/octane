@@ -38,9 +38,11 @@ _BROWSER_UA = (
 # JS challenges that block datacenter httpx (Sri Lanka Mirror, etc.).
 JINA_READER_PREFIX = "https://r.jina.ai/"
 
-# Brave HTML search rate-limits bursty datacenter IPs (~1 req/s).
-_BRAVE_MIN_INTERVAL_S = 1.25
+# Brave HTML search rate-limits bursty datacenter IPs (~1 req/s effective).
+# Publisher URL resolution + discovery share one throttle; 429s set a cooldown.
+_BRAVE_MIN_INTERVAL_S = 2.0
 _brave_last_request_at = 0.0
+_brave_cooldown_until = 0.0
 
 # Google News RSS aggregates SL outlets (Ada Derana, Daily Mirror, etc.)
 # without triggering their Cloudflare WAF. Prefer en-US locale — en-LK
@@ -747,9 +749,13 @@ def _fetch_article_content(url: str) -> tuple[str, str, str] | None:
             body = r.text or ""
             if r.is_success and not _looks_like_cloudflare(r.status_code, body):
                 return (str(r.url), body, "html")
-            if _looks_like_cloudflare(r.status_code, body):
+            if _looks_like_cloudflare(r.status_code, body) or r.status_code in (
+                403,
+                429,
+                503,
+            ):
                 log.info(
-                    "cloudflare/block on %s (status=%s) — trying jina reader",
+                    "blocked/rate-limited on %s (status=%s) — trying jina reader",
                     url,
                     r.status_code,
                 )
@@ -758,7 +764,7 @@ def _fetch_article_content(url: str) -> tuple[str, str, str] | None:
                 return (str(r.url), body, "html")
     except httpx.HTTPStatusError as exc:
         status = exc.response.status_code if exc.response is not None else None
-        if status not in (403, 503):
+        if status not in (403, 429, 503):
             log.warning("article fetch failed %s: %s", url, exc)
             return None
         log.info("http %s on %s — trying jina reader", status, url)
@@ -774,13 +780,20 @@ def _fetch_article_content(url: str) -> tuple[str, str, str] | None:
 
 
 def _brave_throttle() -> None:
-    """Ensure ≥_BRAVE_MIN_INTERVAL_S between Brave HTML search calls."""
+    """Ensure spacing between Brave HTML search calls; honor 429 cooldown."""
     global _brave_last_request_at
     now = time.monotonic()
-    wait = _BRAVE_MIN_INTERVAL_S - (now - _brave_last_request_at)
+    wait = max(0.0, _brave_cooldown_until - now)
+    wait = max(wait, _BRAVE_MIN_INTERVAL_S - (now - _brave_last_request_at))
     if wait > 0:
         time.sleep(wait)
     _brave_last_request_at = time.monotonic()
+
+
+def _brave_note_rate_limit(delay: float) -> None:
+    """Extend global Brave cooldown after a 429."""
+    global _brave_cooldown_until
+    _brave_cooldown_until = max(_brave_cooldown_until, time.monotonic() + delay)
 
 
 def _brave_search_urls(query: str) -> list[str]:
@@ -800,8 +813,11 @@ def _brave_search_urls(query: str) -> list[str]:
                     delay = (
                         float(retry_after)
                         if retry_after and str(retry_after).replace(".", "", 1).isdigit()
-                        else (2.0 * (attempt + 1))
+                        else (3.0 * (attempt + 1))
                     )
+                    # Extra cushion — Brave HTML often needs > Retry-After.
+                    delay = max(delay, 5.0)
+                    _brave_note_rate_limit(delay)
                     log.warning(
                         "brave 429 on attempt %d — sleeping %.1fs (%s)",
                         attempt + 1,
@@ -1268,8 +1284,19 @@ def _scrape_article(
 
 
 # Outlets Google News often under-indexes for the latest CPC revision.
-# Brave site-search fills the gap (Daily Mirror especially).
+# Brave site-search fills the gap. CF-blocked publishers first so they get
+# search quota before the shared Brave budget is spent on easier outlets.
 BRAVE_DISCOVERY: list[tuple[str, str, re.Pattern[str]]] = [
+    (
+        "srilankamirror.com",
+        'site:srilankamirror.com (fuel OR petrol) (prices OR price) '
+        "(reduced OR increased OR revised OR revision OR slashed)",
+        re.compile(
+            r"https?://(?:www\.)?srilankamirror\.com/"
+            r"(?:news|biz|business|news-features)/[A-Za-z0-9\-]+/?",
+            re.IGNORECASE,
+        ),
+    ),
     (
         "dailymirror.lk",
         'site:dailymirror.lk (fuel OR petrol OR diesel) (prices OR price) '
@@ -1349,16 +1376,6 @@ BRAVE_DISCOVERY: list[tuple[str, str, re.Pattern[str]]] = [
         re.compile(
             r"https?://(?:www\.)?sundaytimes\.lk/\d+/"
             r"[a-z0-9\-]+/[a-z0-9\-]+\.html",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "srilankamirror.com",
-        'site:srilankamirror.com (fuel OR petrol) (prices OR price) '
-        "(reduced OR increased OR revised OR revision OR slashed)",
-        re.compile(
-            r"https?://(?:www\.)?srilankamirror\.com/"
-            r"(?:news|biz|business|news-features)/[A-Za-z0-9\-]+/?",
             re.IGNORECASE,
         ),
     ),
@@ -1457,12 +1474,16 @@ def run(max_age_hours: int = DEFAULT_MAX_AGE_HOURS) -> Iterable[PricePoint]:
     all_points: list[PricePoint] = []
     seen_urls: set[str] = set()
 
+    # Brave discovery first — shares a global rate budget with per-article
+    # publisher URL resolution during RSS polling. Running it first means
+    # Cloudflare-blocked outlets (Mirror, Mirror-like) get search quota.
     article_batches: list[tuple[str, list]] = [
-        (feed_url, _poll_feed(feed_url, max_age_hours=max_age_hours))
-        for feed_url in FEEDS
+        ("brave-discovery", _discover_via_brave(max_age_hours=max_age_hours)),
     ]
-    brave_articles = _discover_via_brave(max_age_hours=max_age_hours)
-    article_batches.append(("brave-discovery", brave_articles))
+    for feed_url in FEEDS:
+        article_batches.append(
+            (feed_url, _poll_feed(feed_url, max_age_hours=max_age_hours))
+        )
 
     for feed_label, articles in article_batches:
         log.info("news feed %s → %d fuel articles", feed_label, len(articles))
