@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Fetch Sri Lanka fuel news headlines and run Groq AI sentiment analysis.
 
-Called daily by .github/workflows/sentiment.yml.
+Called by .github/workflows/sentiment.yml:
+  - daily schedule (02:00 UTC)
+  - manual workflow_dispatch
+  - scrape / scrape-news when CPC, news, or LIOC latest prices change
+
 Outputs backend/data/ai_sentiment.json which is committed back to master.
 
 Note: the Fly API serves whatever copy was baked into the last successful
@@ -9,11 +13,11 @@ image deploy. When Fly deploys are blocked, /v1/prices/sentiment can lag for
 months even though this file updates daily — the frontend also reads this
 JSON from GitHub raw as a freshness fallback.
 
-Requirements (installed by the GHA step):
-    pip install httpx groq
-
 Env:
-    GROQ_API_KEY  — required
+    GROQ_API_KEY                     — required
+    SENTIMENT_REASON                 — scheduled | manual | price_change
+    SENTIMENT_SKIP_IF_FRESH_MINUTES  — if >0, exit early when existing
+                                       ai_sentiment.json is newer than this
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ import os
 import re
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from xml.etree import ElementTree
 
 import httpx
@@ -136,6 +141,28 @@ Respond with ONLY valid JSON. No markdown, no explanation outside the JSON."""
 def main() -> None:
     print("=== Octane AI Sentiment Analysis ===")
 
+    reason = os.environ.get("SENTIMENT_REASON", "scheduled")
+    skip_mins = int(os.environ.get("SENTIMENT_SKIP_IF_FRESH_MINUTES") or "0")
+    out_path = "backend/data/ai_sentiment.json"
+    print(f"  reason={reason}  skip_if_fresh_minutes={skip_mins}")
+
+    if skip_mins > 0 and os.path.exists(out_path):
+        try:
+            existing = json.loads(Path(out_path).read_text(encoding="utf-8"))
+            raw = str(existing.get("generated_at") or "").replace("Z", "+00:00")
+            generated = datetime.fromisoformat(raw)
+            if generated.tzinfo is None:
+                generated = generated.replace(tzinfo=timezone.utc)
+            age_min = (datetime.now(timezone.utc) - generated).total_seconds() / 60
+            if age_min < skip_mins:
+                print(
+                    f"  Skipping — existing sentiment is {age_min:.0f} min old "
+                    f"(<{skip_mins} min). Use scheduled/manual run to force."
+                )
+                return
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(f"  Warning: could not read existing sentiment for skip check: {exc}")
+
     print("Fetching headlines...")
     headlines = fetch_headlines()
     print(f"  {len(headlines)} unique headlines collected")
@@ -154,10 +181,10 @@ def main() -> None:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "headlines_analyzed": len(headlines),
         "headlines_sample": headlines[:5],
+        "trigger": reason,
         **result,
     }
 
-    out_path = "backend/data/ai_sentiment.json"
     os.makedirs("backend/data", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)

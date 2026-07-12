@@ -96,7 +96,8 @@ def load() -> Optional[SentimentData]:
     """Return the latest AI sentiment snapshot, or None if unavailable."""
     global _cache_time, _cache_value
     now = time.monotonic()
-    if now - _cache_time < _CACHE_TTL:
+    # Treat never-populated cache as a miss even when _cache_time was reset to 0.
+    if _cache_value is not None and now - _cache_time < _CACHE_TTL:
         return _cache_value
 
     local = _load_file()

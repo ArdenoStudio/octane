@@ -208,9 +208,16 @@ def run_news(
 
     # Import DB helpers only when persisting (keeps dry-run lightweight).
     from app.db import migrate
-    from app.scrapers.run import _persist_fuel, _record_scrape_run
+    from app.scrapers.run import (
+        _persist_fuel,
+        _record_scrape_run,
+        prices_changed,
+        snapshot_sentiment_prices,
+        write_github_output,
+    )
 
     migrate.run()
+    before = snapshot_sentiment_prices()
     persisted = _persist_fuel(selected)
     consensus_fuels = [f for f, s in summary.items() if s["consensus"]]
     outlet_bits = []
@@ -228,6 +235,12 @@ def run_news(
         detail=detail if selected else "0 rows (no matching headlines)",
     )
     result["persisted"] = persisted
+    after = snapshot_sentiment_prices()
+    changed = prices_changed(before, after)
+    result["price_changed"] = changed
+    write_github_output(price_changed=changed)
+    if changed:
+        log.info("news price change detected — AI revision outlook should refresh")
     log.info("news scrape persisted %d rows (%s)", persisted, detail)
     return result
 
