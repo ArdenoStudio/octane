@@ -152,24 +152,58 @@ def test_extract_price_fixed_at_rs():
 
 
 def test_resolve_via_publisher_search_onlanka():
-    from app.scrapers.news import _resolve_via_publisher_search
+    """Unit-test onlanka ranking without live HTTP (CI has no egress to publishers)."""
+    from app.scrapers import news as news_mod
 
-    url = _resolve_via_publisher_search(
-        "Sri Lanka revises fuel prices from June 30, 2026 - ONLANKA",
-        "https://www.onlanka.com",
-    )
+    html = """
+    <html><body>
+      <a href="https://www.onlanka.com/news/cricket-match.html">Cricket</a>
+      <a href="https://www.onlanka.com/news/sri-lanka-revises-fuel-prices-from-june-30-2026.html">
+        Sri Lanka revises fuel prices from June 30, 2026
+      </a>
+    </body></html>
+    """
+
+    class _Resp:
+        text = html
+        def raise_for_status(self):
+            return None
+
+    with patch("httpx.Client") as client_cls:
+        client_cls.return_value.__enter__.return_value.get.return_value = _Resp()
+        url = news_mod._resolve_via_publisher_search(
+            "Sri Lanka revises fuel prices from June 30, 2026 - ONLANKA",
+            "https://www.onlanka.com",
+        )
     assert url is not None
     assert "onlanka.com" in url
     assert "fuel-prices" in url.lower() or "june-30" in url.lower()
 
 
 def test_resolve_via_publisher_search_lankanewsweb():
-    from app.scrapers.news import _resolve_via_publisher_search
+    """Unit-test LNW ranking without live HTTP."""
+    from app.scrapers import news as news_mod
 
-    url = _resolve_via_publisher_search(
-        "Fuel Prices Reduced as CEYPETCO Announces Latest Revision - LNW",
-        "https://lankanewsweb.net",
-    )
+    html = """
+    <html><body>
+      <a href="https://lankanewsweb.net/archives/111/unrelated-politics/">Politics</a>
+      <a href="https://lankanewsweb.net/archives/226278/fuel-prices-reduced-ceypetco/">
+        Fuel Prices Reduced as CEYPETCO Announces Latest Revision
+      </a>
+    </body></html>
+    """
+
+    class _Resp:
+        text = html
+        def raise_for_status(self):
+            return None
+
+    with patch("httpx.Client") as client_cls:
+        client_cls.return_value.__enter__.return_value.get.return_value = _Resp()
+        url = news_mod._resolve_via_publisher_search(
+            "Fuel Prices Reduced as CEYPETCO Announces Latest Revision - LNW",
+            "https://lankanewsweb.net",
+        )
     assert url is not None
     assert "lankanewsweb.net" in url
     assert "fuel-prices" in url.lower() or "226278" in url
@@ -248,15 +282,33 @@ def test_consensus_summary_flags_agreement():
 
 
 def test_resolve_via_publisher_search_newswire():
-    from app.scrapers.news import _resolve_via_publisher_search
+    """Unit-test Newswire ranking without live HTTP (CI egress is unreliable)."""
+    from app.scrapers import news as news_mod
 
-    url = _resolve_via_publisher_search(
-        "Fuel prices reduced in Sri Lanka - Newswire",
-        "https://www.newswire.lk",
-    )
+    html = """
+    <html><body>
+      <a href="https://www.newswire.lk/2026/01/01/unrelated-sports-match/">Sports</a>
+      <a href="https://www.newswire.lk/2026/06/30/fuel-prices-reduced-in-sri-lanka/">
+        Fuel prices reduced in Sri Lanka
+      </a>
+    </body></html>
+    """
+
+    class _Resp:
+        text = html
+        def raise_for_status(self):
+            return None
+
+    with patch("httpx.Client") as client_cls:
+        client_cls.return_value.__enter__.return_value.get.return_value = _Resp()
+        url = news_mod._resolve_via_publisher_search(
+            "Fuel prices reduced in Sri Lanka - Newswire",
+            "https://www.newswire.lk",
+        )
     assert url is not None
     assert "newswire.lk" in url
     assert "/2026/" in url or "/fuel-prices-reduced" in url
+    assert "fuel-prices-reduced" in url
 
 
 def test_resolve_via_publisher_search_island():
