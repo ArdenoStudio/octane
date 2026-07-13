@@ -302,6 +302,8 @@ export interface ComparisonResp {
   delta_vs_world_pct: number | null;
   neighbors: { country: string; price_usd: number; recorded_at: string }[];
   fx_rate_used: number;
+  /** When Octane last successfully verified CPC/Lanka IOC (not the revision date). */
+  last_verified_at?: string | null;
 }
 
 export interface TripResp {

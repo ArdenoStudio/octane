@@ -63,7 +63,7 @@ const ENDPOINTS: Endpoint[] = [
     method: "GET",
     path: "/v1/comparison/world",
     description:
-      "Sri Lanka vs world average and regional neighbours. Prices in USD using live FX rate.",
+      "Sri Lanka vs world average and regional neighbours. Prices in USD using live FX rate. Includes last_verified_at (scrape check) separate from Sri Lanka's CPC revision date.",
     example: `curl "${BASE}/v1/comparison/world?fuel=petrol_92"`,
     tryUrl: `${BASE}/v1/comparison/world?fuel=petrol_92`,
   },

@@ -89,4 +89,7 @@ def world_comparison(fuel_type: str) -> dict:
         "delta_vs_world_pct": round(delta_pct, 1) if delta_pct is not None else None,
         "neighbors": [r for r in world_rows if r["country"] not in ("World", "Sri Lanka")],
         "fx_rate_used": fx_rate,
+        # Scrape verification time — distinct from sri_lanka.recorded_at
+        # (CPC/LIOC revision effective date), which can sit unchanged for weeks.
+        "last_verified_at": prices.last_verified_at("official"),
     }

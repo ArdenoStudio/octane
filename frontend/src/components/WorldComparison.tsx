@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { api, ComparisonResp, FUEL_ORDER, FuelId } from "../lib/api"
 import { useFuelLabel } from "../i18n/LocaleProvider"
-import { shortDate } from "../lib/format"
+import { relativeFromNow, shortDate } from "../lib/format"
 
 const CODES: Record<string, string> = {
   "Sri Lanka": "LK",
@@ -223,9 +223,20 @@ export function WorldComparison() {
           )}
 
           {data && (
-            <p className="mt-6 text-[11px] text-ink-600">
-              Prices in USD/litre · Source: CPC, Global Petrol Prices · As of {data.sri_lanka.recorded_at ? shortDate(data.sri_lanka.recorded_at) : "—"}
-            </p>
+            <div className="mt-6 space-y-0.5 text-[11px] text-ink-600">
+              <p>
+                Prices in USD/litre · Source: CPC, Global Petrol Prices
+                {data.sri_lanka.recorded_at && (
+                  <> · Last CPC revision {shortDate(data.sri_lanka.recorded_at)}</>
+                )}
+              </p>
+              {data.last_verified_at && (
+                <p>
+                  Last checked{" "}
+                  <span className="text-ink-400">{relativeFromNow(data.last_verified_at)}</span>
+                </p>
+              )}
+            </div>
           )}
         </div>
 
