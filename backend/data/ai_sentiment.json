@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-15T04:35:30.564987+00:00",
+  "generated_at": "2026-07-16T04:45:46.741456+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Fuel prices increased, petrol by over Rs. 24",
     "Sri Lanka reduces fuel prices after Middle East ceasefire",
     "Fuel price shock: what policy responses reveal about resilience",
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
     "Sri Lanka reduces fuel retail prices after easing supply restrictions",
-    "Sri Lanka Fuel Prices, 11 Jul 2026 \u2014 Diesel 382 LKR (\u20ac1.00/$1.14) \u00b7 Petrol 414 LKR (\u20ac1.08/$1.23)/L"
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices"
   ],
   "trigger": "scheduled",
   "direction": "down",
   "confidence": 0.8,
-  "magnitude_lkr": -30.0,
-  "summary": "Recent news suggests downward pressure on fuel prices due to global oil price easing.",
+  "magnitude_lkr": -15.0,
+  "summary": "Fuel prices reduced in Sri Lanka amid easing global oil prices and Middle East ceasefire",
   "signals": [
-    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "Fuel prices reduced in Sri Lanka",
-    "India lowers fuel taxes, says rumours of lockdown \u2018completely false\u2019"
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices"
   ]
 }
