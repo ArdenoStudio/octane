@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-19T04:56:10.995783+00:00",
+  "generated_at": "2026-07-20T05:26:43.516069+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Fuel price shock: what policy responses reveal about resilience",
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
     "Sri Lanka reduces fuel retail prices after easing supply restrictions",
     "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "Fuel rations and free buses: How countries have responded to rising oil prices"
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
+    "Sri Lanka Cut Fuel Prices After Middle East Ceasefire"
   ],
   "trigger": "scheduled",
   "direction": "down",
   "confidence": 0.8,
   "magnitude_lkr": -15.0,
-  "summary": "Recent price cuts and easing global oil prices suggest downward revision",
+  "summary": "Fuel prices reduced after easing global oil prices and supply restrictions.",
   "signals": [
     "Sri Lanka reduces fuel retail prices after easing supply restrictions",
     "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "India lowers fuel taxes, says rumours of lockdown \u2018completely false\u2019"
+    "Fuel price shock: what policy responses reveal about resilience"
   ]
 }
