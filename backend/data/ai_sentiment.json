@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-21T04:53:49.834433+00:00",
+  "generated_at": "2026-07-22T04:53:24.790166+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
@@ -12,10 +12,10 @@
   "direction": "down",
   "confidence": 0.8,
   "magnitude_lkr": -15.0,
-  "summary": "Fuel prices reduced in Sri Lanka amid easing global oil prices",
+  "summary": "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
   "signals": [
     "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "Sri Lanka reduces fuel retail prices after easing supply restrictions",
-    "Petrol & Diesel, Commercial LPG And Jet Fuel Become Cheaper After Price cuts. Here's The Full List"
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Fuel rations and free buses: How countries have responded to rising oil prices"
   ]
 }
