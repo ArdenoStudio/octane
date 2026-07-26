@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-25T04:51:24.860674+00:00",
+  "generated_at": "2026-07-26T05:16:16.508035+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
+    "Sri Lanka cuts fuel prices, inflation hits three-year high",
     "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Fuel price shock: what policy responses reveal about resilience",
     "Sri Lanka reduces fuel retail prices after easing supply restrictions",
-    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices"
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices"
   ],
   "trigger": "scheduled",
   "direction": "down",
   "confidence": 0.8,
   "magnitude_lkr": -15.0,
-  "summary": "Recent news suggests a decrease in fuel prices due to global oil price easing.",
+  "summary": "Recent news suggests downward pressure on fuel prices due to easing global oil prices.",
   "signals": [
-    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
     "Fuel price shock: what policy responses reveal about resilience",
-    "Fuel prices reduced in Sri Lanka"
+    "India lowers fuel taxes, says rumours of lockdown \u2018completely false\u2019"
   ]
 }
