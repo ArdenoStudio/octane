@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-27T05:33:53.629161+00:00",
+  "generated_at": "2026-07-28T04:49:28.421334+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
-    "Fuel price shock: what policy responses reveal about resilience",
     "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
+    "Fuel price shock: what policy responses reveal about resilience",
     "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Sri Lanka reduces fuel retail prices after easing supply restrictions"
+    "Sri Lanka reduces fuel retail prices after easing supply restrictions",
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices"
   ],
   "trigger": "scheduled",
   "direction": "down",
   "confidence": 0.8,
   "magnitude_lkr": -15.0,
-  "summary": "Fuel prices cut amid easing global oil prices and Middle East ceasefire",
+  "summary": "Recent price cuts and easing global oil prices suggest downward revision",
   "signals": [
     "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Sri Lanka reduces fuel retail prices after easing supply restrictions"
+    "Fuel price shock: what policy responses reveal about resilience",
+    "Brent/Dubai crude prices"
   ]
 }
