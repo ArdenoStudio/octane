@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-31T05:19:35.506611+00:00",
+  "generated_at": "2026-08-01T05:12:24.246524+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fuel price shock: what policy responses reveal about resilience",
-    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
     "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "China eases planned fuel price hikes as Asia reels from energy crisis",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire"
+    "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Sri Lanka reduces fuel retail prices after easing supply restrictions"
   ],
   "trigger": "scheduled",
-  "direction": "down",
-  "confidence": 0.8,
-  "magnitude_lkr": -15.0,
-  "summary": "Recent price cuts and easing global oil prices suggest a downward revision.",
+  "direction": "up",
+  "confidence": 0.7,
+  "magnitude_lkr": 10.0,
+  "summary": "Fuel prices may increase due to global oil supply disruptions and Middle East tensions.",
   "signals": [
-    "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "China eases planned fuel price hikes as Asia reels from energy crisis",
-    "India lowers fuel taxes, says rumours of lockdown 'completely false'"
+    "Sri Lanka revises retail fuel prices amid West Asia conflict",
+    "Sri Lanka forced to pay $286 per barrel for oil, HSBC confirms",
+    "Sri Lanka increases fuel prices around 25% as Middle East tensions disrupt global oil supplies"
   ]
 }
