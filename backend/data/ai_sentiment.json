@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-08-02T05:11:38.769367+00:00",
+  "generated_at": "2026-08-03T05:24:42.159031+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fuel price shock: what policy responses reveal about resilience",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
     "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "Fuel rations and free buses: How countries have responded to rising oil prices",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire"
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Fuel rations and free buses: How countries have responded to rising oil prices"
   ],
   "trigger": "scheduled",
-  "direction": "down",
+  "direction": "up",
   "confidence": 0.8,
-  "magnitude_lkr": -15.0,
-  "summary": "Fuel prices cut amid easing global oil prices and IMF loan instalment",
+  "magnitude_lkr": 15.0,
+  "summary": "Fuel prices likely to increase due to global oil price surge and Middle East tensions.",
   "signals": [
-    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
-    "Sri Lanka reduces fuel retail prices after easing supply restrictions",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire"
+    "Fuel prices surged globally while India held the line",
+    "Sri Lanka raises fuel prices after IMF loan installment",
+    "Sri Lanka increases fuel prices around 25% as Middle East tensions disrupt global oil supplies"
   ]
 }
