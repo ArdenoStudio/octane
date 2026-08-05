@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-08-04T04:50:03.058233+00:00",
+  "generated_at": "2026-08-05T04:50:14.417194+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fuel price shock: what policy responses reveal about resilience",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
     "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "China eases planned fuel price hikes as Asia reels from energy crisis",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire"
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Fuel rations and free buses: How countries have responded to rising oil prices"
   ],
   "trigger": "scheduled",
   "direction": "down",
   "confidence": 0.8,
   "magnitude_lkr": -15.0,
-  "summary": "Recent price cuts and easing global oil prices suggest a downward revision.",
+  "summary": "Fuel prices cut amid easing global oil prices and Middle East ceasefire",
   "signals": [
-    "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "China eases planned fuel price hikes as Asia reels from energy crisis",
-    "Brent/Dubai crude prices"
+    "Sri Lanka reduces fuel prices after Middle East ceasefire",
+    "Fuel prices cut amid easing global oil prices",
+    "IMF loan instalment"
   ]
 }
