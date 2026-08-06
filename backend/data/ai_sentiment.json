@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-05T04:50:14.417194+00:00",
+  "generated_at": "2026-08-06T04:50:31.960678+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fuel price shock: what policy responses reveal about resilience",
@@ -9,13 +9,13 @@
     "Fuel rations and free buses: How countries have responded to rising oil prices"
   ],
   "trigger": "scheduled",
-  "direction": "down",
+  "direction": "up",
   "confidence": 0.8,
-  "magnitude_lkr": -15.0,
-  "summary": "Fuel prices cut amid easing global oil prices and Middle East ceasefire",
+  "magnitude_lkr": 10.0,
+  "summary": "Fuel prices may increase due to rising global oil prices and Sri Lanka's high fuel import costs.",
   "signals": [
-    "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Fuel prices cut amid easing global oil prices",
-    "IMF loan instalment"
+    "Sri Lanka forced to pay $286 per barrel for oil, HSBC confirms",
+    "Fuel prices hiked: What are the fuel rates in Pakistan, Nepal & Bangladesh? Check latest price c",
+    "India's oil price increase lowest among countries post-Iran war: China to go for another round of retail pr..."
   ]
 }
