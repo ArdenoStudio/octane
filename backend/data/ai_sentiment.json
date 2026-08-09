@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-08-08T03:14:10.413672+00:00",
+  "generated_at": "2026-08-09T03:21:45.315110+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Fuel price shock: what policy responses reveal about resilience",
     "Fabricated Sri Lankan news graphic lists incorrect fuel prices",
     "Sri Lanka cuts fuel prices, inflation hits three-year high",
-    "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Sri Lanka reduces fuel retail prices after easing supply restrictions"
-  ],
-  "trigger": "scheduled",
-  "direction": "down",
-  "confidence": 0.8,
-  "magnitude_lkr": -15.0,
-  "summary": "Fuel prices cut amid easing global oil prices and Middle East ceasefire.",
-  "signals": [
-    "Sri Lanka cuts fuel prices from near 2022 crisis amid easing global oil prices",
     "Sri Lanka reduces fuel retail prices after easing supply restrictions",
     "Sri Lanka reduces fuel prices after Middle East ceasefire"
+  ],
+  "trigger": "scheduled",
+  "direction": "up",
+  "confidence": 0.8,
+  "magnitude_lkr": 10.0,
+  "summary": "Fuel prices may increase due to high imports and war-driven global oil price surge.",
+  "signals": [
+    "Sri Lanka forced to pay $286 per barrel for oil, HSBC confirms",
+    "Sri Lanka has \u201825 days of fuel left\u2019 as prices hit 2022 crisis levels",
+    "Sri Lanka raises fuel prices to near 2022 crisis level amid high imports"
   ]
 }
