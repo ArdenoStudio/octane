@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-14T03:52:02.638231+00:00",
+  "generated_at": "2026-08-15T02:41:06.622279+00:00",
   "headlines_analyzed": 30,
   "headlines_sample": [
     "Petrol, diesel prices to fall? Here's what government said | India News",
@@ -9,13 +9,13 @@
     "Sri Lanka reduces fuel retail prices after easing supply restrictions"
   ],
   "trigger": "scheduled",
-  "direction": "down",
+  "direction": "stable",
   "confidence": 0.8,
-  "magnitude_lkr": -15.0,
-  "summary": "Recent news suggests a possible decrease in fuel prices.",
+  "magnitude_lkr": 0.0,
+  "summary": "Recent headlines suggest no significant changes in fuel prices in Sri Lanka.",
   "signals": [
     "Petrol, diesel prices to fall? Here's what government said",
     "Sri Lanka reduces fuel prices after Middle East ceasefire",
-    "Sri Lanka cuts fuel prices, inflation hits three-year high"
+    "Fuel price shock: what policy responses reveal about resilience"
   ]
 }
